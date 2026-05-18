@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block title %}Mis Organizaciones - Control de Gastos{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>Mis Organizaciones</h2>
+    <a href="{% url 'crear_organizacion' %}" class="btn btn-primary">Crear Organización</a>
+</div>
+
+{% if organizations %}
+    <div class="row">
+        {% for org in organizations %}
+            <div class="col-md-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ org.name }}</h5>
+                        <p class="card-text text-muted">ID: {{ org.id }}</p>
+                    </div>
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        No tienes acceso a ninguna organización. ¡Crea una para comenzar!
+    </div>
+{% endif %}
+{% endblock %}
