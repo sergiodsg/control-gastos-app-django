@@ -1,0 +1,140 @@
+{% extends 'base.html' %}
+
+{% block title %}Categorías - {{ request.session.org_name }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-0"><i class="bi bi-tags me-2"></i>Categorías</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="{% url 'home_organizacion' %}">Inicio</a></li>
+                <li class="breadcrumb-item"><a href="{% url 'lista_transacciones' %}">Transacciones</a></li>
+                <li class="breadcrumb-item active">Categorías</li>
+            </ol>
+        </nav>
+    </div>
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#categoryModal" onclick="resetForm()">
+        <i class="bi bi-plus-lg me-1"></i>Nueva Categoría
+    </button>
+</div>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+    {% for cat in categories %}
+    <div class="col">
+        <div class="card h-100 shadow-sm border-0 border-start border-4" style="border-color: {{ cat.color }} !important;">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title mb-0">{{ cat.name }}</h5>
+                    <span class="badge" style="background-color: {{ cat.color }}; width: 20px; height: 20px; padding: 0;">&nbsp;</span>
+                </div>
+                <p class="card-text text-muted small">
+                    {{ cat.description|default:"Sin descripción" }}
+                </p>
+            </div>
+            <div class="card-footer bg-transparent border-0 d-flex justify-content-end gap-2 pb-3">
+                <button class="btn btn-sm btn-outline-primary" onclick="editCategory({{ cat.id }}, '{{ cat.name|escapejs }}', '{{ cat.description|default:""|escapejs }}', '{{ cat.color }}')">
+                    <i class="bi bi-pencil me-1"></i>Editar
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ cat.id }})">
+                    <i class="bi bi-trash me-1"></i>Eliminar
+                </button>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12 text-center py-5 text-muted">
+        <i class="bi bi-tag fs-1 d-block mb-3"></i>
+        No hay categorías registradas.
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal Categoría -->
+<div class="modal fade" id="categoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="modalTitle">Nueva Categoría</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="categoryForm" method="post" action="{% url 'crear_categoria' %}">
+                {% csrf_token %}
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nombre</label>
+                        {{ form.name }}
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Color</label>
+                        <div class="d-flex align-items-center gap-2">
+                            {{ form.color }}
+                            <span class="text-muted small">Elija un color para identificar la categoría.</span>
+                        </div>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-bold">Descripción</label>
+                        {{ form.description }}
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-primary px-4">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                ¿Está seguro de que desea eliminar esta categoría? Las transacciones asociadas podrían quedar sin categoría.
+            </div>
+            <div class="modal-footer bg-light">
+                <form id="deleteForm" method="post" action="">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger px-4">Eliminar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const catModal = new bootstrap.Modal(document.getElementById('categoryModal'));
+    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+
+    function resetForm() {
+        document.getElementById('categoryForm').reset();
+        document.getElementById('categoryForm').action = "{% url 'crear_categoria' %}";
+        document.getElementById('modalTitle').innerText = "Nueva Categoría";
+    }
+
+    function editCategory(id, name, desc, color) {
+        const form = document.getElementById('categoryForm');
+        form.action = `/categorias/guardar/${id}/`;
+        document.getElementById('modalTitle').innerText = "Editar Categoría";
+        
+        form.querySelector('[name="name"]').value = name;
+        form.querySelector('[name="description"]').value = desc;
+        form.querySelector('[name="color"]').value = color;
+        
+        catModal.show();
+    }
+
+    function confirmDelete(id) {
+        document.getElementById('deleteForm').action = `/categorias/eliminar/${id}/`;
+        deleteModal.show();
+    }
+</script>
+{% endblock %}

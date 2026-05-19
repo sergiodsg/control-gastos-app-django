@@ -1,0 +1,66 @@
+<div class="transaction-detail">
+    <div class="mb-3">
+        <label class="text-muted small d-block">Fecha</label>
+        <div class="fw-bold">{{ transaction.date|date:"d/m/Y" }}</div>
+    </div>
+    
+    <div class="mb-3">
+        <label class="text-muted small d-block">Descripción</label>
+        <div>{{ transaction.description }}</div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-6">
+            <label class="text-muted small d-block">Monto (USD)</label>
+            <div class="fw-bold text-{% if transaction.amount_usd < 0 %}danger{% else %}success{% endif %}">
+                {{ transaction.amount_usd }} $
+            </div>
+        </div>
+        <div class="col-6">
+            <label class="text-muted small d-block">Monto (BS)</label>
+            <div class="fw-bold">{{ transaction.amount_bs }} Bs.</div>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-6">
+            <label class="text-muted small d-block">Tasa del día</label>
+            <div>{{ transaction.daily_rate }}</div>
+        </div>
+        <div class="col-6">
+            <label class="text-muted small d-block">Referencia</label>
+            <div>{{ transaction.reference_number|default:"-" }}</div>
+        </div>
+    </div>
+    
+    <div class="row mb-3">
+        <div class="col-6">
+            <label class="text-muted small d-block">Categoría</label>
+            <div>
+                {% if transaction.category %}
+                    <span class="badge" style="background-color: {{ transaction.category.color }};">{{ transaction.category.name }}</span>
+                {% else %}
+                    -
+                {% endif %}
+            </div>
+        </div>
+        <div class="col-6">
+            <label class="text-muted small d-block">Estado</label>
+            <div>{{ transaction.get_status_display }}</div>
+        </div>
+    </div>
+    
+    {% if transaction.project %}
+    <div class="mb-3">
+        <label class="text-muted small d-block">Proyecto</label>
+        <div>{{ transaction.project.name }}</div>
+    </div>
+    {% endif %}
+    
+    {% if transaction.notes %}
+    <div class="mb-0">
+        <label class="text-muted small d-block">Notas</label>
+        <div class="bg-light p-2 rounded small">{{ transaction.notes }}</div>
+    </div>
+    {% endif %}
+</div>

@@ -13,4 +13,10 @@ def registro(request):
             return redirect('dashboard')
     else:
         form = RegistroForm()
-    return render(request, 'accounts/registro.html', {'form': form})
+    
+    # Pasamos banderas para ocultar navbar y sidebar
+    return render(request, 'accounts/registro.html', {
+        'form': form,
+        'hide_navbar': True,
+        'hide_sidebar': True
+    })

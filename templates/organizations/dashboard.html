@@ -3,27 +3,56 @@
 {% block title %}Mis Organizaciones - Control de Gastos{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Mis Organizaciones</h2>
-    <a href="{% url 'crear_organizacion' %}" class="btn btn-primary">Crear Organización</a>
+<div class="row mb-4">
+    <div class="col-12 d-flex justify-content-between align-items-center">
+        <h2>Mis Organizaciones</h2>
+        <a href="{% url 'crear_organizacion' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg me-1"></i>Crear Organización
+        </a>
+    </div>
 </div>
 
-{% if organizations %}
-    <div class="row">
+<div class="row">
+    {% if organizations %}
         {% for org in organizations %}
-            <div class="col-md-4 mb-3">
-                <div class="card h-100">
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm border-0 {% if org.id == request.session.org_id %}border-start border-primary border-4{% endif %}">
                     <div class="card-body">
-                        <h5 class="card-title">{{ org.name }}</h5>
-                        <p class="card-text text-muted">ID: {{ org.id }}</p>
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <h5 class="card-title mb-0">{{ org.name }}</h5>
+                            {% if org.id == request.session.org_id %}
+                                <span class="badge bg-primary">Seleccionada</span>
+                            {% endif %}
+                        </div>
+                        <p class="text-muted small">Gestiona tus gastos en esta organización.</p>
+                    </div>
+                    <div class="card-footer bg-transparent border-0 pb-3">
+                        {% if org.id != request.session.org_id %}
+                            <a href="{% url 'seleccionar_organizacion' org.id %}" class="btn btn-outline-primary w-100">
+                                Seleccionar
+                            </a>
+                        {% else %}
+                            <a href="{% url 'home_organizacion' %}" class="btn btn-success w-100">
+                                <i class="bi bi-arrow-right-circle me-1"></i>Entrar
+                            </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         {% endfor %}
-    </div>
-{% else %}
-    <div class="alert alert-info">
-        No tienes acceso a ninguna organización. ¡Crea una para comenzar!
-    </div>
-{% endif %}
+    {% else %}
+        <div class="col-12">
+            <div class="card text-center py-5 border-0 shadow-sm">
+                <div class="card-body">
+                    <i class="bi bi-building-add display-1 text-muted mb-4"></i>
+                    <h4>No tienes organizaciones</h4>
+                    <p class="text-muted mb-4">Para comenzar a gestionar tus gastos, primero debes crear una organización.</p>
+                    <a href="{% url 'crear_organizacion' %}" class="btn btn-primary btn-lg">
+                        Crear mi primera organización
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
 {% endblock %}

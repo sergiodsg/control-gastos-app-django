@@ -1,13 +1,172 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Organization, OrganizationAccess
+from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation
+from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from django.contrib import messages
+from django.db.models import Sum
+from django.utils import timezone
+from datetime import timedelta
+import urllib.request
+import json
+from django.db import models
+from django.core.paginator import Paginator
 
 @login_required
 def dashboard(request):
     accesses = OrganizationAccess.objects.filter(user=request.user)
     organizations = [access.organization for access in accesses]
-    return render(request, 'organizations/dashboard.html', {'organizations': organizations})
+    return render(request, 'organizations/dashboard.html', {
+        'organizations': organizations,
+        'hide_sidebar': True
+    })
+
+@login_required
+def seleccionar_organizacion(request, org_id):
+    get_object_or_404(OrganizationAccess, user=request.user, organization_id=org_id)
+    org = get_object_or_404(Organization, id=org_id)
+    request.session['org_id'] = org.id
+    request.session['org_name'] = org.name
+    return redirect('home_organizacion')
+
+def get_filtered_totals_both(org_id, filter_type):
+    now = timezone.now()
+    transactions = Transaction.objects.filter(organization_id=org_id)
+    
+    if filter_type == 'day':
+        start_date = now - timedelta(days=1)
+        transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == 'week':
+        start_date = now - timedelta(weeks=1)
+        transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == '15days':
+        start_date = now - timedelta(days=15)
+        transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == 'month':
+        start_date = now - timedelta(days=30)
+        transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == '3months':
+        start_date = now - timedelta(days=90)
+        transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == '6months':
+        start_date = now - timedelta(days=180)
+        transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == 'year':
+        start_date = now - timedelta(days=365)
+        transactions = transactions.filter(date__gte=start_date)
+
+    res = transactions.aggregate(
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
+    )
+    
+    return {
+        'income_usd': res['income_usd'] or 0,
+        'expense_usd': abs(res['expense_usd'] or 0),
+        'income_bs': res['income_bs'] or 0,
+        'expense_bs': abs(res['expense_bs'] or 0),
+    }
+
+def fetch_api_rate(url):
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=5) as response:
+            return json.loads(response.read().decode())
+    except Exception:
+        return None
+
+def get_bcv_rate():
+    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
+    if dolares_data:
+        for item in dolares_data:
+            if item.get('fuente', '').lower() == 'oficial':
+                return item.get('promedio', 1)
+    return 1
+
+@login_required
+def home_organizacion(request):
+
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    totals = Transaction.objects.filter(organization_id=org_id).aggregate(
+        balance_usd=Sum('amount_usd'),
+        balance_bs=Sum('amount_bs')
+    )
+    
+    income_filter = request.GET.get('income_filter', 'all')
+    expense_filter = request.GET.get('expense_filter', 'all')
+    
+    inc_totals = get_filtered_totals_both(org_id, income_filter)
+    exp_totals = get_filtered_totals_both(org_id, expense_filter)
+    
+    # Obtener listas completas de tasas
+    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
+    euros_data = fetch_api_rate('https://ve.dolarapi.com/v1/euros')
+    
+    rates = {
+        'usd_bcv': None,
+        'usd_paralelo': None,
+        'eur_bcv': None,
+        'eur_paralelo': None,
+    }
+    
+    def find_rate(data, fuente):
+        if not isinstance(data, list): return None
+        for item in data:
+            if item.get('fuente', '').lower() == 'oficial':
+                return item
+        return None
+
+    if dolares_data:
+        rates['usd_bcv'] = find_rate(dolares_data, 'oficial')
+        rates['usd_paralelo'] = next((x for x in dolares_data if x.get('fuente', '').lower() == 'paralelo'), None)
+    
+    if euros_data:
+        rates['eur_bcv'] = find_rate(euros_data, 'oficial')
+        rates['eur_paralelo'] = next((x for x in euros_data if x.get('fuente', '').lower() == 'paralelo'), None)
+    
+    recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
+    
+    context = {
+        'balance_usd': totals['balance_usd'] or 0,
+        'balance_bs': totals['balance_bs'] or 0,
+        'income_usd': inc_totals['income_usd'],
+        'income_bs': inc_totals['income_bs'],
+        'expense_usd': exp_totals['expense_usd'],
+        'expense_bs': exp_totals['expense_bs'],
+        'income_filter': income_filter,
+        'expense_filter': expense_filter,
+        'rates': rates,
+        'recent_transactions': recent_transactions,
+        'now_ve': timezone.now(),
+        'filter_options': [
+            ('day', 'Último día'),
+            ('week', 'Última semana'),
+            ('15days', 'Últimos 15 días'),
+            ('month', 'Último mes'),
+            ('3months', 'Últimos 3 meses'),
+            ('6months', 'Últimos 6 meses'),
+            ('year', 'Último año'),
+            ('all', 'Desde el principio'),
+        ]
+    }
+    
+    return render(request, 'organizations/home.html', context)
+
+@login_required
+def configuracion(request):
+    if not request.session.get('org_id'):
+        return redirect('dashboard')
+    return render(request, 'organizations/configuracion.html')
+
+@login_required
+def salir_organizacion(request):
+    if 'org_id' in request.session: del request.session['org_id']
+    if 'org_name' in request.session: del request.session['org_name']
+    return redirect('dashboard')
 
 @login_required
 def crear_organizacion(request):
@@ -20,4 +179,403 @@ def crear_organizacion(request):
             return redirect('dashboard')
         else:
             messages.error(request, "El nombre de la organización es obligatorio.")
-    return render(request, 'organizations/crear.html')
+    return render(request, 'organizations/crear.html', {'hide_sidebar': True})
+
+# --- Transacciones ---
+
+@login_required
+def lista_transacciones(request):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    transactions_list = Transaction.objects.filter(organization=org).order_by('-date', '-id')
+    
+    paginator = Paginator(transactions_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    form = TransactionForm(organization=org)
+
+    # Mapeo de proyectos a valuaciones para filtrado dinámico en JS
+    projects_data = {}
+    projects = Project.objects.filter(organization=org)
+    for p in projects:
+        projects_data[p.id] = list(Valuation.objects.filter(project=p).values('id', 'name', 'amount_usd'))
+
+    bcv_rate = get_bcv_rate()
+
+    return render(request, 'organizations/transacciones.html', {
+        'page_obj': page_obj,
+        'form': form,
+        'bcv_rate': bcv_rate,
+        'projects_data': json.dumps(projects_data),
+    })
+
+
+@login_required
+def guardar_transaccion(request, trans_id=None):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    instance = None
+    if trans_id:
+        instance = get_object_or_404(Transaction, id=trans_id, organization=org)
+    
+    if request.method == 'POST':
+        form = TransactionForm(request.POST, instance=instance, organization=org)
+        if form.is_valid():
+            transaction = form.save(commit=False)
+            transaction.organization = org
+            transaction.save()
+            messages.success(request, "Transacción guardada correctamente.")
+        else:
+            messages.error(request, "Error al guardar la transacción. Verifique los datos.")
+    
+    return redirect('lista_transacciones')
+
+@login_required
+def eliminar_transaccion(request, trans_id):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    transaction = get_object_or_404(Transaction, id=trans_id, organization=org)
+    
+    if request.method == 'POST':
+        transaction.delete()
+        messages.success(request, "Transacción eliminada.")
+    
+    return redirect('lista_transacciones')
+
+@login_required
+def detalle_transaccion(request, trans_id):
+    org_id = request.session.get('org_id')
+    org = get_object_or_404(Organization, id=org_id)
+    transaction = get_object_or_404(Transaction, id=trans_id, organization=org)
+    return render(request, 'organizations/partials/detalle_transaccion.html', {'transaction': transaction})
+
+# --- Categorías ---
+
+@login_required
+def lista_categorias(request):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    categories = Category.objects.filter(organization=org).order_by('name')
+    form = CategoryForm()
+    
+    return render(request, 'organizations/categorias.html', {
+        'categories': categories,
+        'form': form,
+    })
+
+@login_required
+def guardar_categoria(request, cat_id=None):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    instance = None
+    if cat_id:
+        instance = get_object_or_404(Category, id=cat_id, organization=org)
+    
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, instance=instance)
+        if form.is_valid():
+            category = form.save(commit=False)
+            category.organization = org
+            category.save()
+            messages.success(request, "Categoría guardada correctamente.")
+        else:
+            messages.error(request, "Error al guardar la categoría.")
+            
+    return redirect('lista_categorias')
+
+@login_required
+def eliminar_categoria(request, cat_id):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    category = get_object_or_404(Category, id=cat_id, organization=org)
+    
+    if request.method == 'POST':
+        category.delete()
+        messages.success(request, "Categoría eliminada.")
+    
+    return redirect('lista_categorias')
+
+# --- Cuentas ---
+
+@login_required
+def lista_cuentas(request):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    accounts = Account.objects.filter(organization=org).annotate(
+        balance_usd=Sum('transactions__amount_usd'),
+        balance_bs=Sum('transactions__amount_bs')
+    )
+    
+    form = AccountForm()
+
+    bcv_rate = get_bcv_rate()
+
+    return render(request, 'organizations/cuentas.html', {
+
+        'accounts': accounts,
+        'form': form,
+        'bcv_rate': bcv_rate,
+    })
+
+@login_required
+def guardar_cuenta(request, acc_id=None):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    instance = None
+    if acc_id:
+        instance = get_object_or_404(Account, id=acc_id, organization=org)
+    
+    if request.method == 'POST':
+        form = AccountForm(request.POST, instance=instance)
+        if form.is_valid():
+            account = form.save(commit=False)
+            account.organization = org
+            account.save()
+            
+            if not instance:
+                usd = form.cleaned_data.get('initial_amount_usd')
+                bs = form.cleaned_data.get('initial_amount_bs')
+                rate = form.cleaned_data.get('daily_rate') or 1
+                
+                if usd or bs:
+                    Transaction.objects.create(
+                        organization=org,
+                        account=account,
+                        date=timezone.now().date(),
+                        description=f"Saldo inicial: {account.name}",
+                        amount_usd=usd or 0,
+                        amount_bs=bs or 0,
+                        daily_rate=rate,
+                        status='completado'
+                    )
+            messages.success(request, "Cuenta guardada correctamente.")
+        else:
+            messages.error(request, "Error al guardar la cuenta.")
+            
+    return redirect('lista_cuentas')
+
+@login_required
+def eliminar_cuenta(request, acc_id):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    account = get_object_or_404(Account, id=acc_id, organization=org)
+    
+    if request.method == 'POST':
+        account.delete()
+        messages.success(request, "Cuenta eliminada.")
+    
+    return redirect('lista_cuentas')
+
+@login_required
+def detalle_cuenta(request, acc_id):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+    
+    org = get_object_or_404(Organization, id=org_id)
+    account = get_object_or_404(Account, id=acc_id, organization=org)
+    
+    transactions_list = Transaction.objects.filter(account=account).order_by('-date', '-id')
+    
+    totals = transactions_list.aggregate(
+        balance_usd=Sum('amount_usd'),
+        balance_bs=Sum('amount_bs'),
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
+    )
+    
+    paginator = Paginator(transactions_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    return render(request, 'organizations/detalle_cuenta.html', {
+        'account': account,
+        'page_obj': page_obj,
+        'totals': {
+            'balance_usd': totals['balance_usd'] or 0,
+            'balance_bs': totals['balance_bs'] or 0,
+            'income_usd': totals['income_usd'] or 0,
+            'expense_usd': abs(totals['expense_usd'] or 0),
+            'income_bs': totals['income_bs'] or 0,
+            'expense_bs': abs(totals['expense_bs'] or 0),
+        }
+    })
+
+# --- Proyectos ---
+
+@login_required
+def lista_proyectos(request):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+
+    org = get_object_or_404(Organization, id=org_id)
+    projects = Project.objects.filter(organization=org).annotate(
+        balance_usd=Sum('transactions__amount_usd'),
+        balance_bs=Sum('transactions__amount_bs')
+    )
+
+    form = ProjectForm()
+
+    return render(request, 'organizations/proyectos.html', {
+        'projects': projects,
+        'form': form,
+    })
+
+@login_required
+def guardar_proyecto(request, proj_id=None):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+
+    org = get_object_or_404(Organization, id=org_id)
+    instance = None
+    if proj_id:
+        instance = get_object_or_404(Project, id=proj_id, organization=org)
+
+    if request.method == 'POST':
+        form = ProjectForm(request.POST, instance=instance)
+        if form.is_valid():
+            project = form.save(commit=False)
+            project.organization = org
+            project.save()
+            messages.success(request, "Proyecto guardado correctamente.")
+        else:
+            messages.error(request, "Error al guardar el proyecto.")
+
+    return redirect('lista_proyectos')
+
+@login_required
+def eliminar_proyecto(request, proj_id):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+
+    org = get_object_or_404(Organization, id=org_id)
+    project = get_object_or_404(Project, id=proj_id, organization=org)
+
+    if request.method == 'POST':
+        project.delete()
+        messages.success(request, "Proyecto eliminado.")
+
+    return redirect('lista_proyectos')
+
+@login_required
+def detalle_proyecto(request, proj_id):
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+
+    org = get_object_or_404(Organization, id=org_id)
+    project = get_object_or_404(Project, id=proj_id, organization=org)
+
+    # Anotar valuaciones con el monto cubierto por transacciones de crédito
+    # Consideramos "crédito" como transacciones con monto positivo (ingresos)
+    valuations = Valuation.objects.filter(project=project).annotate(
+        covered_usd=Sum('transactions__amount_usd', filter=models.Q(transactions__amount_usd__gt=0)),
+        covered_bs=Sum('transactions__amount_bs', filter=models.Q(transactions__amount_bs__gt=0))
+    )
+
+    # Calcular porcentajes
+    for val in valuations:
+        val.progress = 0
+        if val.amount_usd > 0:
+            covered = val.covered_usd or 0
+            val.progress = min(round((covered / val.amount_usd) * 100, 2), 100)
+
+    transactions_list = Transaction.objects.filter(project=project).order_by('-date', '-id')
+    
+    totals = transactions_list.aggregate(
+        balance_usd=Sum('amount_usd'),
+        balance_bs=Sum('amount_bs'),
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0))
+    )
+
+    paginator = Paginator(transactions_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    val_form = ValuationForm()
+    bcv_rate = get_bcv_rate()
+
+    return render(request, 'organizations/detalle_proyecto.html', {
+        'project': project,
+        'valuations': valuations,
+        'page_obj': page_obj,
+        'val_form': val_form,
+        'bcv_rate': bcv_rate,
+        'totals': {
+            'balance_usd': totals['balance_usd'] or 0,
+            'balance_bs': totals['balance_bs'] or 0,
+            'income_usd': totals['income_usd'] or 0,
+            'expense_usd': abs(totals['expense_usd'] or 0),
+        }
+    })
+
+# --- Valuaciones ---
+
+@login_required
+def guardar_valuacion(request, proj_id, val_id=None):
+    org_id = request.session.get('org_id')
+    org = get_object_or_404(Organization, id=org_id)
+    project = get_object_or_404(Project, id=proj_id, organization=org)
+    
+    instance = None
+    if val_id:
+        instance = get_object_or_404(Valuation, id=val_id, project=project)
+
+    if request.method == 'POST':
+        form = ValuationForm(request.POST, instance=instance)
+        if form.is_valid():
+            valuation = form.save(commit=False)
+            valuation.project = project
+            valuation.save()
+            messages.success(request, "Valuación guardada correctamente.")
+        else:
+            messages.error(request, "Error al guardar la valuación.")
+
+    return redirect('detalle_proyecto', proj_id=project.id)
+
+@login_required
+def eliminar_valuacion(request, val_id):
+    org_id = request.session.get('org_id')
+    org = get_object_or_404(Organization, id=org_id)
+    valuation = get_object_or_404(Valuation, id=val_id, project__organization=org)
+    proj_id = valuation.project.id
+
+    if request.method == 'POST':
+        valuation.delete()
+        messages.success(request, "Valuación eliminada.")
+
+    return redirect('detalle_proyecto', proj_id=proj_id)
