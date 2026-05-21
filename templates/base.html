@@ -204,15 +204,24 @@
         .auth-card .card-body {
             padding: 2.5rem;
         }
-        .auth-card .form-control {
+        .auth-card .form-control, .auth-card .input-group-text {
             padding: 0.75rem 1rem;
+        }
+        .auth-card .form-control {
             border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
+        }
+        .auth-card .input-group .form-control {
+            border-top-left-radius: 0;
+            border-bottom-left-radius: 0;
+        }
+        .auth-card .input-group .input-group-text {
+            border-top-left-radius: 0.5rem;
+            border-bottom-left-radius: 0.5rem;
         }
         .auth-card label {
             font-weight: 500;
             margin-bottom: 0.5rem;
-            color: #495057;
+            color: var(--text-main);
         }
         {% endif %}
 
@@ -268,65 +277,70 @@
             {% if not hide_navbar %}
             <nav class="navbar navbar-expand-lg border-bottom shadow-sm py-2">
                 <div class="container-fluid px-4">
-                    {% if user.is_authenticated and request.session.org_id and not hide_sidebar %}
-                        <button class="btn btn-link text-decoration-none p-0 me-3" id="menu-toggle">
-                            <i class="bi bi-list fs-3"></i>
-                        </button>
-                    {% endif %}
-                    
-                    <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-                        <span class="title-content">Control Gastos</span>
-                        <span class="d-md-none">Control Gastos</span> <!-- Backup para móvil -->
-                    </a>
-                    
-                    {% if user.is_authenticated %}
-                        <div class="d-lg-none ms-auto">
-                            <button class="navbar-toggler-user" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent">
-                                <i class="bi bi-person-circle fs-4"></i>
+                    <div class="d-flex align-items-center">
+                        {% if user.is_authenticated and request.session.org_id and not hide_sidebar %}
+                            <button class="btn btn-link text-decoration-none p-0 me-3" id="menu-toggle">
+                                <i class="bi bi-list fs-3"></i>
                             </button>
-                        </div>
-                    {% endif %}
+                        {% endif %}
+                        
+                        <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
+                            <span class="title-content">Control Gastos</span>
+                        </a>
+                    </div>
 
-                    <div class="collapse navbar-collapse" id="navbarSupportedContent">
-                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0 align-items-lg-center">
-                            {% if user.is_authenticated %}
-                                <li class="nav-item dropdown">
-                                    <a class="nav-link dropdown-toggle fw-bold d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown">
-                                        <i class="bi bi-person-circle fs-5 me-2"></i>
-                                        <span class="user-name-text">{{ user.first_name|default:user.username }}</span>
-                                    </a>
-                                    <div class="dropdown-menu dropdown-menu-end shadow-sm">
-                                        {% if request.session.org_name %}
-                                            <span class="dropdown-item-text small text-muted">Org: {{ request.session.org_name }}</span>
-                                            <div class="dropdown-divider"></div>
+                    <div class="ms-auto d-flex align-items-center">
+                        {% if user.is_authenticated %}
+                            <div class="dropdown">
+                                <a class="nav-link dropdown-toggle fw-bold d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-person-circle fs-5 me-2"></i>
+                                    <span class="user-name-text">{{ user.first_name|default:user.username }}</span>
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
+                                    {% if request.session.org_name %}
+                                        <li><span class="dropdown-item-text small text-muted">{{ request.session.org_name }}</span></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
                                             <a class="dropdown-item" href="{% url 'salir_organizacion' %}">
                                                 <i class="bi bi-building me-2"></i>Mis Organizaciones
                                             </a>
-                                            <div class="dropdown-divider"></div>
-                                        {% endif %}
-                                        <form action="{% url 'logout' %}" method="post">
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                    {% endif %}
+                                    <li>
+                                        <form action="{% url 'logout' %}" method="post" class="px-0">
                                             {% csrf_token %}
                                             <button type="submit" class="dropdown-item text-danger">
                                                 <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
                                             </button>
                                         </form>
-                                    </div>
-                                </li>
-                            {% else %}
-                                <li class="nav-item">
-                                    <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
-                                </li>
-                                <li class="nav-item">
-                                    <a class="nav-link btn btn-primary text-white px-3" href="{% url 'registro' %}">Registrarse</a>
-                                </li>
-                            {% endif %}
+                                    </li>
+                                </ul>
+                            </div>
+                        {% else %}
+                            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navGuestContent">
+                                <i class="bi bi-list fs-3"></i>
+                            </button>
+                        {% endif %}
+                    </div>
+
+                    {% if not user.is_authenticated %}
+                    <div class="collapse navbar-collapse" id="navGuestContent">
+                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0 align-items-lg-center gap-2">
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link btn btn-primary text-white px-3" href="{% url 'registro' %}">Registrarse</a>
+                            </li>
                         </ul>
                     </div>
+                    {% endif %}
                 </div>
             </nav>
             {% endif %}
 
-            <div class="container-fluid py-4 px-4 {% if hide_navbar and hide_sidebar %}auth-container{% endif %}">
+            <div class="{% if hide_navbar and hide_sidebar %}auth-container{% else %}container-fluid py-4 px-4{% endif %}">
                 {% if messages %}
                     <div class="{% if hide_navbar and hide_sidebar %}w-100 position-absolute top-0 start-0 p-4{% endif %}">
                         {% for message in messages %}

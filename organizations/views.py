@@ -10,6 +10,14 @@ import urllib.request
 import json
 from django.db import models
 from django.core.paginator import Paginator
+from decimal import Decimal
+from django.core.cache import cache
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, Decimal):
+            return float(obj)
+        return super(DecimalEncoder, self).default(obj)
 
 @login_required
 def dashboard(request):
@@ -69,19 +77,32 @@ def get_filtered_totals_both(org_id, filter_type):
     }
 
 def fetch_api_rate(url):
+    cache_key = f'rate_api_{url}'
+    cached_data = cache.get(cache_key)
+    if cached_data:
+        return cached_data
+        
     try:
         req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
         with urllib.request.urlopen(req, timeout=5) as response:
-            return json.loads(response.read().decode())
+            data = json.loads(response.read().decode())
+            cache.set(cache_key, data, 3600)  # Cache por 1 hora
+            return data
     except Exception:
         return None
 
 def get_bcv_rate():
+    rate = cache.get('bcv_rate_val')
+    if rate:
+        return rate
+        
     dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
     if dolares_data:
         for item in dolares_data:
             if item.get('fuente', '').lower() == 'oficial':
-                return item.get('promedio', 1)
+                val = item.get('promedio', 1)
+                cache.set('bcv_rate_val', val, 3600)
+                return val
     return 1
 
 @login_required
@@ -99,10 +120,14 @@ def home_organizacion(request):
     income_filter = request.GET.get('income_filter', 'all')
     expense_filter = request.GET.get('expense_filter', 'all')
     
+    # Si los filtros son iguales, evitar doble consulta
     inc_totals = get_filtered_totals_both(org_id, income_filter)
-    exp_totals = get_filtered_totals_both(org_id, expense_filter)
+    if income_filter == expense_filter:
+        exp_totals = inc_totals
+    else:
+        exp_totals = get_filtered_totals_both(org_id, expense_filter)
     
-    # Obtener listas completas de tasas
+    # Cache para listas completas de tasas
     dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
     euros_data = fetch_api_rate('https://ve.dolarapi.com/v1/euros')
     
@@ -113,20 +138,20 @@ def home_organizacion(request):
         'eur_paralelo': None,
     }
     
-    def find_rate(data, fuente):
+    def find_rate(data, fuente_slug):
         if not isinstance(data, list): return None
         for item in data:
-            if item.get('fuente', '').lower() == 'oficial':
+            if item.get('fuente', '').lower() == fuente_slug:
                 return item
         return None
 
     if dolares_data:
         rates['usd_bcv'] = find_rate(dolares_data, 'oficial')
-        rates['usd_paralelo'] = next((x for x in dolares_data if x.get('fuente', '').lower() == 'paralelo'), None)
+        rates['usd_paralelo'] = find_rate(dolares_data, 'paralelo')
     
     if euros_data:
         rates['eur_bcv'] = find_rate(euros_data, 'oficial')
-        rates['eur_paralelo'] = next((x for x in euros_data if x.get('fuente', '').lower() == 'paralelo'), None)
+        rates['eur_paralelo'] = find_rate(euros_data, 'paralelo')
     
     recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
     
@@ -210,7 +235,7 @@ def lista_transacciones(request):
         'page_obj': page_obj,
         'form': form,
         'bcv_rate': bcv_rate,
-        'projects_data': json.dumps(projects_data),
+        'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
     })
 
 

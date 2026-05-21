@@ -18,6 +18,7 @@
     </button>
 </div>
 
+{% if projects %}
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for proj in projects %}
     <div class="col">
@@ -52,13 +53,14 @@
             </div>
         </div>
     </div>
-    {% empty %}
-    <div class="col-12 text-center py-5 text-muted">
-        <i class="bi bi-kanban fs-1 d-block mb-3"></i>
-        No hay proyectos registrados.
-    </div>
     {% endfor %}
 </div>
+{% else %}
+<div class="d-flex flex-column align-items-center justify-content-center text-muted w-100" style="min-height: 50vh;">
+    <i class="bi bi-kanban fs-1 mb-3"></i>
+    <p class="fs-5 mb-0 text-center">No hay proyectos registrados.</p>
+</div>
+{% endif %}
 
 <!-- Modal Proyecto (Crear/Editar) -->
 <div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">

@@ -15,19 +15,19 @@
         <div class="card border-0 shadow-sm h-100">
             <div class="card-body p-4">
                 <h5 class="card-title mb-4"><i class="bi bi-currency-exchange me-2 text-primary"></i>Preferencia de Moneda</h5>
-                <p class="text-muted small mb-4">Selecciona la moneda en la que deseas visualizar los indicadores principales en el dashboard.</p>
+                <p class="text-muted small mb-4">Selecciona la moneda principal.</p>
                 
-                <div class="mb-4">
-                    <div class="form-check mb-3 p-3 border rounded currency-option" id="opt-USD" style="cursor: pointer;">
-                        <input class="form-check-input ms-0 me-3" type="radio" name="currency-pref" id="currencyUSD" value="USD">
-                        <label class="form-check-label fw-bold w-100" for="currencyUSD" style="cursor: pointer;">
+                <div class="mb-4 d-flex flex-column gap-3">
+                    <div class="form-check p-3 border rounded currency-option d-flex align-items-center mb-0" id="opt-USD" style="cursor: pointer;">
+                        <input class="form-check-input flex-shrink-0" type="radio" name="currency-pref" id="currencyUSD" value="USD" style="margin-top: 0; margin-left: 0;">
+                        <label class="form-check-label fw-bold w-100 ps-2" for="currencyUSD" style="cursor: pointer;">
                             Dólares (USD)
                         </label>
                     </div>
                     
-                    <div class="form-check p-3 border rounded currency-option" id="opt-BS" style="cursor: pointer;">
-                        <input class="form-check-input ms-0 me-3" type="radio" name="currency-pref" id="currencyBS" value="BS">
-                        <label class="form-check-label fw-bold w-100" for="currencyBS" style="cursor: pointer;">
+                    <div class="form-check p-3 border rounded currency-option d-flex align-items-center mb-0" id="opt-BS" style="cursor: pointer;">
+                        <input class="form-check-input flex-shrink-0" type="radio" name="currency-pref" id="currencyBS" value="BS" style="margin-top: 0; margin-left: 0;">
+                        <label class="form-check-label fw-bold w-100 ps-2" for="currencyBS" style="cursor: pointer;">
                             Bolívares (BS)
                         </label>
                     </div>
@@ -42,17 +42,17 @@
                 <h5 class="card-title mb-4"><i class="bi bi-moon-stars me-2 text-primary"></i>Apariencia</h5>
                 <p class="text-muted small mb-4">Elige entre el modo claro u oscuro para personalizar tu experiencia visual.</p>
                 
-                <div class="mb-4">
-                    <div class="form-check mb-3 p-3 border rounded theme-option" id="opt-light" style="cursor: pointer;">
-                        <input class="form-check-input ms-0 me-3" type="radio" name="theme-pref" id="themeLight" value="light">
-                        <label class="form-check-label fw-bold w-100" for="themeLight" style="cursor: pointer;">
+                <div class="mb-4 d-flex flex-column gap-3">
+                    <div class="form-check p-3 border rounded theme-option d-flex align-items-center mb-0" id="opt-light" style="cursor: pointer;">
+                        <input class="form-check-input flex-shrink-0" type="radio" name="theme-pref" id="themeLight" value="light" style="margin-top: 0; margin-left: 0;">
+                        <label class="form-check-label fw-bold w-100 ps-2" for="themeLight" style="cursor: pointer;">
                             <i class="bi bi-sun me-2"></i>Modo Claro
                         </label>
                     </div>
                     
-                    <div class="form-check p-3 border rounded theme-option" id="opt-dark" style="cursor: pointer;">
-                        <input class="form-check-input ms-0 me-3" type="radio" name="theme-pref" id="themeDark" value="dark">
-                        <label class="form-check-label fw-bold w-100" for="themeDark" style="cursor: pointer;">
+                    <div class="form-check p-3 border rounded theme-option d-flex align-items-center mb-0" id="opt-dark" style="cursor: pointer;">
+                        <input class="form-check-input flex-shrink-0" type="radio" name="theme-pref" id="themeDark" value="dark" style="margin-top: 0; margin-left: 0;">
+                        <label class="form-check-label fw-bold w-100 ps-2" for="themeDark" style="cursor: pointer;">
                             <i class="bi bi-moon me-2"></i>Modo Oscuro
                         </label>
                     </div>
