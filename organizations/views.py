@@ -208,6 +208,11 @@ def crear_organizacion(request):
 
 # --- Transacciones ---
 
+from django.template.loader import get_template
+from xhtml2pdf import pisa
+from io import BytesIO
+from django.http import HttpResponse
+
 @login_required
 def lista_transacciones(request):
     org_id = request.session.get('org_id')
@@ -215,7 +220,45 @@ def lista_transacciones(request):
         return redirect('dashboard')
     
     org = get_object_or_404(Organization, id=org_id)
-    transactions_list = Transaction.objects.filter(organization=org).order_by('-date', '-id')
+    
+    # --- Lógica de Filtrado ---
+    filter_type = request.GET.get('filter_type', 'all')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    category_id = request.GET.get('category')
+
+    # Sanitizar valores 'None' que pueden venir de la URL
+    if date_from == 'None': date_from = None
+    if date_to == 'None': date_to = None
+    if category_id == 'None' or category_id == '': category_id = None
+    
+    transactions_list = Transaction.objects.filter(organization=org)
+    
+    if category_id:
+        transactions_list = transactions_list.filter(category_id=category_id)
+    
+    today = timezone.localdate()
+    
+    if filter_type != 'all' and filter_type != 'custom':
+        if filter_type == 'day':
+            start_date = today
+        elif filter_type == 'week':
+            start_date = today - timedelta(days=7)
+        elif filter_type == '15days':
+            start_date = today - timedelta(days=15)
+        elif filter_type == 'month':
+            start_date = today - timedelta(days=30)
+        elif filter_type == 'quarter':
+            start_date = today - timedelta(days=90)
+        elif filter_type == '6months':
+            start_date = today - timedelta(days=180)
+        elif filter_type == 'year':
+            start_date = today - timedelta(days=365)
+        transactions_list = transactions_list.filter(date__gte=start_date)
+    elif filter_type == 'custom' and date_from and date_to:
+        transactions_list = transactions_list.filter(date__range=[date_from, date_to])
+        
+    transactions_list = transactions_list.order_by('-date', '-id')
     
     paginator = Paginator(transactions_list, 20)
     page_number = request.GET.get('page')
@@ -230,13 +273,118 @@ def lista_transacciones(request):
         projects_data[p.id] = list(Valuation.objects.filter(project=p).values('id', 'name', 'amount_usd'))
 
     bcv_rate = get_bcv_rate()
+    categories = Category.objects.filter(organization=org)
 
     return render(request, 'organizations/transacciones.html', {
         'page_obj': page_obj,
         'form': form,
         'bcv_rate': bcv_rate,
+        'categories': categories,
+        'selected_category': category_id,
         'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
+        'filter_type': filter_type,
+        'date_from': date_from,
+        'date_to': date_to,
+        'filter_options': [
+            ('day', 'Último día'),
+            ('week', 'Última semana'),
+            ('15days', 'Últimos 15 días'),
+            ('month', 'Último mes'),
+            ('quarter', 'Trimestre'),
+            ('6months', '6 meses'),
+            ('year', 'Último año'),
+            ('custom', 'Rango personalizado'),
+            ('all', 'Todas'),
+        ]
     })
+
+@login_required
+def exportar_pdf_transacciones(request):
+    org_id = request.session.get('org_id')
+    org = get_object_or_404(Organization, id=org_id)
+    
+    filter_type = request.GET.get('filter_type', 'all')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    category_id = request.GET.get('category')
+
+    # Sanitizar valores 'None' que pueden venir de la URL
+    if date_from == 'None': date_from = None
+    if date_to == 'None': date_to = None
+    if category_id == 'None' or category_id == '': category_id = None
+    
+    transactions = Transaction.objects.filter(organization=org)
+    
+    if category_id:
+        transactions = transactions.filter(category_id=category_id)
+    
+    today = timezone.localdate()
+    now = timezone.now()
+    filter_label = "Todas"
+    
+    if category_id:
+        category = Category.objects.filter(id=category_id).first()
+        if category:
+            filter_label += f" | Categoría: {category.name}"
+    
+    if filter_type != 'all' and filter_type != 'custom':
+        if filter_type == 'day':
+            start_date = today
+            filter_label = "Hoy"
+        elif filter_type == 'week':
+            start_date = today - timedelta(days=7)
+            filter_label = "Última semana"
+        elif filter_type == '15days':
+            start_date = today - timedelta(days=15)
+            filter_label = "Últimos 15 días"
+        elif filter_type == 'month':
+            start_date = today - timedelta(days=30)
+            filter_label = "Último mes"
+        elif filter_type == 'quarter':
+            start_date = today - timedelta(days=90)
+            filter_label = "Trimestre"
+        elif filter_type == '6months':
+            start_date = today - timedelta(days=180)
+            filter_label = "Últimos 6 meses"
+        elif filter_type == 'year':
+            start_date = today - timedelta(days=365)
+            filter_label = "Último año"
+        transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == 'custom' and date_from and date_to:
+        transactions = transactions.filter(date__range=[date_from, date_to])
+        filter_label = f"Rango: {date_from} a {date_to}"
+        
+    transactions = transactions.order_by('date', 'id')
+    
+    # Calcular totales del reporte
+    report_totals = transactions.aggregate(
+        total_usd=Sum('amount_usd'),
+        total_bs=Sum('amount_bs')
+    )
+    
+    template = get_template('organizations/reportes/transacciones_pdf.html')
+    context = {
+        'transactions': transactions,
+        'org': org,
+        'filter_label': filter_label,
+        'now': now,
+        'report_totals': {
+            'usd': report_totals['total_usd'] or 0,
+            'bs': report_totals['total_bs'] or 0,
+        }
+    }
+    
+    html = template.render(context)
+    result = BytesIO()
+    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    
+    if not pdf.err:
+        response = HttpResponse(result.getvalue(), content_type='application/pdf')
+        filename = f"balance_general_{org.name}_{now.strftime('%Y%m%d')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        return response
+    
+    return HttpResponse("Error al generar PDF", status=500)
 
 
 @login_required
@@ -526,10 +674,10 @@ def detalle_proyecto(request, proj_id):
 
     # Anotar valuaciones con el monto cubierto por transacciones de crédito
     # Consideramos "crédito" como transacciones con monto positivo (ingresos)
-    valuations = Valuation.objects.filter(project=project).annotate(
+    valuations = list(Valuation.objects.filter(project=project).annotate(
         covered_usd=Sum('transactions__amount_usd', filter=models.Q(transactions__amount_usd__gt=0)),
         covered_bs=Sum('transactions__amount_bs', filter=models.Q(transactions__amount_bs__gt=0))
-    )
+    ))
 
     # Calcular porcentajes
     for val in valuations:

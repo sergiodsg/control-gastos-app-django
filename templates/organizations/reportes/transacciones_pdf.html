@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Balance General</title>
+    <style>
+        @page {
+            size: letter landscape;
+            margin: 1.5cm;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            font-size: 9px;
+            color: #333;
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #0d6efd;
+            padding-bottom: 10px;
+        }
+        .header h1 {
+            color: #0d6efd;
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            margin: 5px 0;
+            color: #666;
+        }
+        .info-row {
+            margin-bottom: 15px;
+            display: block;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        thead {
+            display: table-header-group;
+        }
+        tr {
+            page-break-inside: avoid;
+        }
+        th {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 4px;
+            text-align: left;
+            font-weight: bold;
+            color: #444;
+        }
+        td {
+            border: 1px solid #dee2e6;
+            padding: 4px;
+            vertical-align: top;
+        }
+        .text-end { text-align: right; }
+        .fw-bold { font-weight: bold; }
+        .footer {
+            text-align: right;
+            font-size: 8px;
+            color: #999;
+            margin-top: 20px;
+            border-top: 1px solid #eee;
+            padding-top: 5px;
+        }
+        .income { color: #198754; }
+        .expense { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Balance General</h1>
+        <p><strong>Organización:</strong> {{ org.name }}</p>
+        <p><strong>Generado el:</strong> {{ now|date:"d/m/Y H:i" }}</p>
+    </div>
+
+    <div class="info-row">
+        <strong>Filtro aplicado:</strong> {{ filter_label }}
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 55pt;">Fecha</th>
+                <th style="width: 150pt;">Descripción</th>
+                <th style="width: 60pt;">Referencia</th>
+                <th style="width: 85pt;">Monto (BS)</th>
+                <th style="width: 50pt;">Tasa</th>
+                <th style="width: 85pt;">Monto (USD)</th>
+                <th style="width: 150pt;">Notas</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for trans in transactions %}
+            <tr>
+                <td style="width: 55pt;">{{ trans.date|date:"d/m/Y" }}</td>
+                <td style="width: 150pt;"><div style="word-wrap: break-word;">{{ trans.description }}</div></td>
+                <td style="width: 60pt;">{{ trans.reference_number|default:"---" }}</td>
+                <td style="width: 85pt;" class="text-end fw-bold {% if trans.amount_bs < 0 %}expense{% else %}income{% endif %}">
+                    {{ trans.amount_bs|floatformat:2 }}
+                </td>
+                <td style="width: 50pt;" class="text-end">{{ trans.daily_rate|floatformat:4 }}</td>
+                <td style="width: 85pt;" class="text-end fw-bold {% if trans.amount_usd < 0 %}expense{% else %}income{% endif %}">
+                    {{ trans.amount_usd|floatformat:2 }}
+                </td>
+                <td style="width: 150pt;"><div style="word-wrap: break-word;">{{ trans.notes|default:"" }}</div></td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center;">No hay transacciones encontradas para este período.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        {% if transactions %}
+        <tfoot>
+            <tr style="background-color: #f1f1f1; font-weight: bold;">
+                <td colspan="3" style="width: 265pt;" class="text-end">BALANCE:</td>
+                <td style="width: 85pt;" class="text-end {% if report_totals.bs < 0 %}expense{% else %}income{% endif %}">
+                    {{ report_totals.bs|floatformat:2 }} Bs.
+                </td>
+                <td style="width: 50pt;"></td>
+                <td style="width: 85pt;" class="text-end {% if report_totals.usd < 0 %}expense{% else %}income{% endif %}">
+                    {{ report_totals.usd|floatformat:2 }} $
+                </td>
+                <td style="width: 150pt;"></td>
+            </tr>
+        </tfoot>
+        {% endif %}
+    </table>
+
+    <div class="footer">
+        Este documento es un reporte automático generado por Control de Gastos.
+    </div>
+</body>
+</html>

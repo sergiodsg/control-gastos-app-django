@@ -14,12 +14,63 @@
         </nav>
     </div>
     <div class="d-flex gap-2">
+        <a href="{% url 'exportar_pdf_transacciones' %}?filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}" class="btn btn-outline-danger flex-fill flex-md-grow-0" target="_blank">
+            <i class="bi bi-file-earmark-pdf me-1"></i>Reporte PDF
+        </a>
         <a href="{% url 'lista_categorias' %}" class="btn btn-outline-secondary flex-fill flex-md-grow-0">
             <i class="bi bi-tags me-1"></i><span class="d-none d-sm-inline">Categorías</span>
         </a>
         <button type="button" class="btn btn-primary flex-fill flex-md-grow-0" data-bs-toggle="modal" data-bs-target="#transactionModal" onclick="resetForm()">
             <i class="bi bi-plus-lg me-1"></i>Transacción
         </button>
+    </div>
+</div>
+
+<!-- Filtros de Fecha -->
+<div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="small text-muted mb-1 fw-bold">Período:</label>
+                <select name="filter_type" class="form-select form-select-sm" id="filter_type_select" onchange="toggleCustomDates(this.value)">
+                    {% for value, label in filter_options %}
+                        <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-2">
+                <label class="small text-muted mb-1 fw-bold">Categoría:</label>
+                <select name="category" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    {% for cat in categories %}
+                        <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="custom_date_inputs" class="col-md-4" style="{% if filter_type != 'custom' %}display: none;{% endif %}">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="small text-muted mb-1 fw-bold">Desde:</label>
+                        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="small text-muted mb-1 fw-bold">Hasta:</label>
+                        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-sm btn-dark px-3">
+                    <i class="bi bi-filter me-1"></i>Filtrar
+                </button>
+                <a href="{% url 'lista_transacciones' %}" class="btn btn-sm btn-outline-secondary px-3">
+                    <i class="bi bi-x-circle me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
     </div>
 </div>
 
@@ -81,6 +132,9 @@
                                 <button class="btn btn-sm btn-outline-primary" onclick="editTransaction({{ trans.id }}, '{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{{ trans.category.id|default:"" }}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs }}', '{{ trans.amount_usd }}', '{{ trans.daily_rate }}')" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmDelete({{ trans.id }})" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                             </div>
                         </td>
                     </tr>
@@ -133,6 +187,20 @@
                 {% csrf_token %}
                 <div class="modal-body p-4">
                     <div class="row g-3">
+                        <div class="col-md-12 mb-2">
+                            <label class="form-label fw-bold d-block">Tipo de Transacción</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="transaction_type" id="type_egreso" value="egreso" checked autocomplete="off">
+                                <label class="btn btn-outline-danger w-50 py-2" for="type_egreso">
+                                    <i class="bi bi-dash-circle me-1"></i>Egreso
+                                </label>
+
+                                <input type="radio" class="btn-check" name="transaction_type" id="type_ingreso" value="ingreso" autocomplete="off">
+                                <label class="btn btn-outline-success w-50 py-2" for="type_ingreso">
+                                    <i class="bi bi-plus-circle me-1"></i>Ingreso
+                                </label>
+                            </div>
+                        </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Fecha</label>
                             {{ form.date }}
@@ -269,7 +337,10 @@
             document.getElementById('manualRateSwitch').checked = false;
             const rateField = document.querySelector('input[name="daily_rate"]');
             rateField.value = bcvRate;
-            rateField.readOnly = true;
+            rateField.disabled = true;
+            
+            // Por defecto Egreso
+            document.getElementById('type_egreso').checked = true;
             
             currentInputCurrency = 'USD';
             document.getElementById('id_amount_display').value = "";
@@ -296,14 +367,21 @@
             form.querySelector('[name="amount_usd"]').value = usd;
             form.querySelector('[name="daily_rate"]').value = rate;
             
+            // Determinar si es Ingreso o Egreso basándose en el monto
+            if (parseFloat(usd) < 0 || parseFloat(bs) < 0) {
+                document.getElementById('type_egreso').checked = true;
+            } else {
+                document.getElementById('type_ingreso').checked = true;
+            }
+            
             // Establecer valuación antes de actualizar visibilidad para que se seleccione
             valuationSelect.value = valuation;
 
             document.getElementById('manualRateSwitch').checked = true;
-            document.querySelector('[name="daily_rate"]').readOnly = false;
+            document.querySelector('[name="daily_rate"]').disabled = false;
             
             currentInputCurrency = (parseFloat(usd) !== 0) ? 'USD' : 'BS';
-            document.getElementById('id_amount_display').value = (currentInputCurrency === 'USD') ? usd : bs;
+            document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usd : bs);
             updateCurrencyUI();
             updateValuationVisibility();
 
@@ -328,6 +406,15 @@
         window.confirmDelete = function(id) {
             document.getElementById('deleteForm').action = `/transacciones/eliminar/${id}/`;
             deleteModal.show();
+        }
+
+        window.toggleCustomDates = function(value) {
+            const customDiv = document.getElementById('custom_date_inputs');
+            if (value === 'custom') {
+                customDiv.style.display = 'block';
+            } else {
+                customDiv.style.display = 'none';
+            }
         }
 
         const currencyToggleBtn = document.getElementById('currencyToggleBtn');
@@ -397,8 +484,13 @@
 
         function syncHiddenFields() {
             if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
-            const val = parseFloat(amountDisplay.value) || 0;
+            let val = Math.abs(parseFloat(amountDisplay.value)) || 0;
             const rate = parseFloat(dailyRateField.value) || 1;
+            const isEgreso = document.getElementById('type_egreso').checked;
+            
+            if (isEgreso && val > 0) {
+                val = -val;
+            }
             
             if (currentInputCurrency === 'USD') {
                 amountUsdField.value = val.toFixed(2);
@@ -407,7 +499,26 @@
                 amountBsField.value = val.toFixed(2);
                 amountUsdField.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
             }
+            updateTypeColors();
         }
+
+        function updateTypeColors() {
+            const isEgreso = document.getElementById('type_egreso').checked;
+            if (isEgreso) {
+                amountDisplay.classList.add('text-danger');
+                amountDisplay.classList.add('fw-bold');
+                amountDisplay.classList.remove('text-success');
+            } else {
+                amountDisplay.classList.add('text-success');
+                amountDisplay.classList.add('fw-bold');
+                amountDisplay.classList.remove('text-danger');
+            }
+        }
+
+        // Event listeners for transaction type buttons
+        document.querySelectorAll('input[name="transaction_type"]').forEach(radio => {
+            radio.addEventListener('change', syncHiddenFields);
+        });
 
         if (currencyToggleBtn) {
             currencyToggleBtn.addEventListener('click', function(e) {
@@ -431,13 +542,20 @@
 
         if (manualRateSwitch) {
             manualRateSwitch.addEventListener('change', function(e) {
-                dailyRateField.readOnly = !e.target.checked;
+                dailyRateField.disabled = !e.target.checked;
                 if (!e.target.checked) {
                     dailyRateField.value = bcvRate;
                     syncHiddenFields();
                 }
             });
+            // Initial state based on switch
+            dailyRateField.disabled = !manualRateSwitch.checked;
         }
+
+        // Enable fields before submit so Django receives them
+        document.getElementById('transactionForm').addEventListener('submit', function() {
+            dailyRateField.disabled = false;
+        });
 
         const refInput = document.getElementById('id_reference_number_custom');
         if (refInput) {
