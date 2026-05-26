@@ -1,17 +1,33 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation
+from .models import (
+    Organization,
+    OrganizationAccess,
+    Transaction,
+    Category,
+    Account,
+    Project,
+    Valuation,
+)
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from django.contrib import messages
 from django.db.models import Sum
 from django.utils import timezone
-from datetime import timedelta
+from datetime import date, timedelta
 import urllib.request
 import json
 from django.db import models
 from django.core.paginator import Paginator
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 from django.core.cache import cache
+from django.http import HttpResponse, JsonResponse
+
+from organizations.pdf_reports.transacciones import build_transacciones_pdf
+from organizations.services.bcv_scraper import (
+    get_bcv_currency_rate_for_date,
+    get_bcv_rate_for_date,
+)
+
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -37,29 +53,29 @@ def seleccionar_organizacion(request, org_id):
     return redirect('home_organizacion')
 
 def get_filtered_totals_both(org_id, filter_type):
-    now = timezone.now()
+    today = timezone.localdate()
     transactions = Transaction.objects.filter(organization_id=org_id)
     
     if filter_type == 'day':
-        start_date = now - timedelta(days=1)
+        start_date = today
         transactions = transactions.filter(date__gte=start_date)
     elif filter_type == 'week':
-        start_date = now - timedelta(weeks=1)
+        start_date = today - timedelta(weeks=1)
         transactions = transactions.filter(date__gte=start_date)
     elif filter_type == '15days':
-        start_date = now - timedelta(days=15)
+        start_date = today - timedelta(days=15)
         transactions = transactions.filter(date__gte=start_date)
     elif filter_type == 'month':
-        start_date = now - timedelta(days=30)
+        start_date = today - timedelta(days=30)
         transactions = transactions.filter(date__gte=start_date)
-    elif filter_type == '3months':
-        start_date = now - timedelta(days=90)
+    elif filter_type == 'quarter':
+        start_date = today - timedelta(days=90)
         transactions = transactions.filter(date__gte=start_date)
     elif filter_type == '6months':
-        start_date = now - timedelta(days=180)
+        start_date = today - timedelta(days=180)
         transactions = transactions.filter(date__gte=start_date)
     elif filter_type == 'year':
-        start_date = now - timedelta(days=365)
+        start_date = today - timedelta(days=365)
         transactions = transactions.filter(date__gte=start_date)
 
     res = transactions.aggregate(
@@ -91,19 +107,55 @@ def fetch_api_rate(url):
     except Exception:
         return None
 
-def get_bcv_rate():
-    rate = cache.get('bcv_rate_val')
-    if rate:
-        return rate
-        
-    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
-    if dolares_data:
-        for item in dolares_data:
-            if item.get('fuente', '').lower() == 'oficial':
-                val = item.get('promedio', 1)
-                cache.set('bcv_rate_val', val, 3600)
-                return val
-    return 1
+def _to_decimal(value, default=None):
+    if value is None:
+        return default
+    if isinstance(value, Decimal):
+        return value
+    text = str(value).strip().replace(".", "").replace(",", ".")
+    try:
+        return Decimal(text)
+    except (InvalidOperation, ValueError):
+        return default
+
+
+def _extract_bcv_rate_from_api():
+    dolares_data = fetch_api_rate("https://ve.dolarapi.com/v1/dolares")
+    if not dolares_data:
+        return None
+
+    for item in dolares_data:
+        if item.get("fuente", "").lower() == "oficial":
+            value = _to_decimal(item.get("promedio"), None)
+            if value:
+                return value
+    return None
+
+
+def _get_bcv_cached_key(rate_date):
+    return f"bcv_rate_val_{rate_date.isoformat()}"
+
+
+def get_bcv_rate(rate_date=None):
+    target_date = rate_date or timezone.localdate()
+    cache_key = _get_bcv_cached_key(target_date)
+    cached = cache.get(cache_key)
+    if cached:
+        return _to_decimal(cached, None)
+
+    history_rate = get_bcv_rate_for_date(target_date)
+    if history_rate:
+        cache.set(cache_key, str(history_rate), 3600)
+        return history_rate
+
+    today = timezone.localdate()
+    if target_date == today:
+        api_rate = _extract_bcv_rate_from_api()
+        if api_rate:
+            cache.set(cache_key, str(api_rate), 1800)
+            return api_rate
+
+    return None
 
 @login_required
 def home_organizacion(request):
@@ -127,15 +179,19 @@ def home_organizacion(request):
     else:
         exp_totals = get_filtered_totals_both(org_id, expense_filter)
     
-    # Cache para listas completas de tasas
-    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
-    euros_data = fetch_api_rate('https://ve.dolarapi.com/v1/euros')
-    
+    today = timezone.localdate()
+    usd_bcv_history = get_bcv_currency_rate_for_date(today, "USD")
+    eur_bcv_history = get_bcv_currency_rate_for_date(today, "EUR")
+
+    # Se mantienen paralelos desde API externa solo como referencia informativa.
+    dolares_data = fetch_api_rate("https://ve.dolarapi.com/v1/dolares")
+    euros_data = fetch_api_rate("https://ve.dolarapi.com/v1/euros")
+
     rates = {
-        'usd_bcv': None,
-        'usd_paralelo': None,
-        'eur_bcv': None,
-        'eur_paralelo': None,
+        "usd_bcv": {"promedio": float(usd_bcv_history)} if usd_bcv_history else None,
+        "usd_paralelo": None,
+        "eur_bcv": {"promedio": float(eur_bcv_history)} if eur_bcv_history else None,
+        "eur_paralelo": None,
     }
     
     def find_rate(data, fuente_slug):
@@ -146,12 +202,10 @@ def home_organizacion(request):
         return None
 
     if dolares_data:
-        rates['usd_bcv'] = find_rate(dolares_data, 'oficial')
-        rates['usd_paralelo'] = find_rate(dolares_data, 'paralelo')
+        rates["usd_paralelo"] = find_rate(dolares_data, "paralelo")
     
     if euros_data:
-        rates['eur_bcv'] = find_rate(euros_data, 'oficial')
-        rates['eur_paralelo'] = find_rate(euros_data, 'paralelo')
+        rates["eur_paralelo"] = find_rate(euros_data, "paralelo")
     
     recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
     
@@ -172,7 +226,7 @@ def home_organizacion(request):
             ('week', 'Última semana'),
             ('15days', 'Últimos 15 días'),
             ('month', 'Último mes'),
-            ('3months', 'Últimos 3 meses'),
+            ('quarter', 'Últimos 3 meses'),
             ('6months', 'Últimos 6 meses'),
             ('year', 'Último año'),
             ('all', 'Desde el principio'),
@@ -208,10 +262,73 @@ def crear_organizacion(request):
 
 # --- Transacciones ---
 
-from django.template.loader import get_template
-from xhtml2pdf import pisa
-from io import BytesIO
-from django.http import HttpResponse
+
+def _sanitize_filter_values(date_from, date_to, category_id):
+    if date_from == "None":
+        date_from = None
+    if date_to == "None":
+        date_to = None
+    if category_id in ("None", ""):
+        category_id = None
+    return date_from, date_to, category_id
+
+
+def _apply_transactions_filters(org, filter_type, date_from, date_to, category_id):
+    transactions = Transaction.objects.filter(organization=org)
+
+    if category_id:
+        transactions = transactions.filter(category_id=category_id)
+
+    today = timezone.localdate()
+    if filter_type not in ("all", "custom"):
+        if filter_type == "day":
+            start_date = today
+        elif filter_type == "week":
+            start_date = today - timedelta(days=7)
+        elif filter_type == "15days":
+            start_date = today - timedelta(days=15)
+        elif filter_type == "month":
+            start_date = today - timedelta(days=30)
+        elif filter_type == "quarter":
+            start_date = today - timedelta(days=90)
+        elif filter_type == "6months":
+            start_date = today - timedelta(days=180)
+        elif filter_type == "year":
+            start_date = today - timedelta(days=365)
+        else:
+            start_date = None
+        if start_date:
+            transactions = transactions.filter(date__gte=start_date)
+    elif filter_type == "custom" and date_from and date_to:
+        transactions = transactions.filter(date__range=[date_from, date_to])
+
+    return transactions
+
+
+def _build_filter_label(filter_type, date_from, date_to, category_id):
+    base_label = "Todas"
+    if filter_type == "day":
+        base_label = "Hoy"
+    elif filter_type == "week":
+        base_label = "Ultima semana"
+    elif filter_type == "15days":
+        base_label = "Ultimos 15 dias"
+    elif filter_type == "month":
+        base_label = "Ultimo mes"
+    elif filter_type == "quarter":
+        base_label = "Trimestre"
+    elif filter_type == "6months":
+        base_label = "Ultimos 6 meses"
+    elif filter_type == "year":
+        base_label = "Ultimo ano"
+    elif filter_type == "custom" and date_from and date_to:
+        base_label = f"Rango: {date_from} a {date_to}"
+
+    if category_id:
+        category = Category.objects.filter(id=category_id).first()
+        if category:
+            base_label += f" | Categoria: {category.name}"
+    return base_label
 
 @login_required
 def lista_transacciones(request):
@@ -221,50 +338,21 @@ def lista_transacciones(request):
     
     org = get_object_or_404(Organization, id=org_id)
     
-    # --- Lógica de Filtrado ---
-    filter_type = request.GET.get('filter_type', 'all')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    category_id = request.GET.get('category')
+    filter_type = request.GET.get("filter_type", "all")
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+    category_id = request.GET.get("category")
+    date_from, date_to, category_id = _sanitize_filter_values(date_from, date_to, category_id)
 
-    # Sanitizar valores 'None' que pueden venir de la URL
-    if date_from == 'None': date_from = None
-    if date_to == 'None': date_to = None
-    if category_id == 'None' or category_id == '': category_id = None
-    
-    transactions_list = Transaction.objects.filter(organization=org)
-    
-    if category_id:
-        transactions_list = transactions_list.filter(category_id=category_id)
-    
-    today = timezone.localdate()
-    
-    if filter_type != 'all' and filter_type != 'custom':
-        if filter_type == 'day':
-            start_date = today
-        elif filter_type == 'week':
-            start_date = today - timedelta(days=7)
-        elif filter_type == '15days':
-            start_date = today - timedelta(days=15)
-        elif filter_type == 'month':
-            start_date = today - timedelta(days=30)
-        elif filter_type == 'quarter':
-            start_date = today - timedelta(days=90)
-        elif filter_type == '6months':
-            start_date = today - timedelta(days=180)
-        elif filter_type == 'year':
-            start_date = today - timedelta(days=365)
-        transactions_list = transactions_list.filter(date__gte=start_date)
-    elif filter_type == 'custom' and date_from and date_to:
-        transactions_list = transactions_list.filter(date__range=[date_from, date_to])
-        
-    transactions_list = transactions_list.order_by('-date', '-id')
+    transactions_list = _apply_transactions_filters(org, filter_type, date_from, date_to, category_id)
+    transactions_list = transactions_list.order_by("-date", "-id")
     
     paginator = Paginator(transactions_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
     form = TransactionForm(organization=org)
+    form.fields["date"].widget.attrs["max"] = timezone.localdate().isoformat()
 
     # Mapeo de proyectos a valuaciones para filtrado dinámico en JS
     projects_data = {}
@@ -273,12 +361,14 @@ def lista_transacciones(request):
         projects_data[p.id] = list(Valuation.objects.filter(project=p).values('id', 'name', 'amount_usd'))
 
     bcv_rate = get_bcv_rate()
+    has_today_bcv = bool(get_bcv_rate_for_date(timezone.localdate()))
     categories = Category.objects.filter(organization=org)
 
     return render(request, 'organizations/transacciones.html', {
         'page_obj': page_obj,
         'form': form,
         'bcv_rate': bcv_rate,
+        'has_today_bcv': has_today_bcv,
         'categories': categories,
         'selected_category': category_id,
         'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
@@ -302,89 +392,38 @@ def lista_transacciones(request):
 def exportar_pdf_transacciones(request):
     org_id = request.session.get('org_id')
     org = get_object_or_404(Organization, id=org_id)
-    
-    filter_type = request.GET.get('filter_type', 'all')
-    date_from = request.GET.get('date_from')
-    date_to = request.GET.get('date_to')
-    category_id = request.GET.get('category')
 
-    # Sanitizar valores 'None' que pueden venir de la URL
-    if date_from == 'None': date_from = None
-    if date_to == 'None': date_to = None
-    if category_id == 'None' or category_id == '': category_id = None
-    
-    transactions = Transaction.objects.filter(organization=org)
-    
-    if category_id:
-        transactions = transactions.filter(category_id=category_id)
-    
-    today = timezone.localdate()
+    filter_type = request.GET.get("filter_type", "all")
+    date_from = request.GET.get("date_from")
+    date_to = request.GET.get("date_to")
+    category_id = request.GET.get("category")
+    date_from, date_to, category_id = _sanitize_filter_values(date_from, date_to, category_id)
+
+    transactions = _apply_transactions_filters(org, filter_type, date_from, date_to, category_id)
+    transactions = transactions.order_by("date", "id")
     now = timezone.now()
-    filter_label = "Todas"
-    
-    if category_id:
-        category = Category.objects.filter(id=category_id).first()
-        if category:
-            filter_label += f" | Categoría: {category.name}"
-    
-    if filter_type != 'all' and filter_type != 'custom':
-        if filter_type == 'day':
-            start_date = today
-            filter_label = "Hoy"
-        elif filter_type == 'week':
-            start_date = today - timedelta(days=7)
-            filter_label = "Última semana"
-        elif filter_type == '15days':
-            start_date = today - timedelta(days=15)
-            filter_label = "Últimos 15 días"
-        elif filter_type == 'month':
-            start_date = today - timedelta(days=30)
-            filter_label = "Último mes"
-        elif filter_type == 'quarter':
-            start_date = today - timedelta(days=90)
-            filter_label = "Trimestre"
-        elif filter_type == '6months':
-            start_date = today - timedelta(days=180)
-            filter_label = "Últimos 6 meses"
-        elif filter_type == 'year':
-            start_date = today - timedelta(days=365)
-            filter_label = "Último año"
-        transactions = transactions.filter(date__gte=start_date)
-    elif filter_type == 'custom' and date_from and date_to:
-        transactions = transactions.filter(date__range=[date_from, date_to])
-        filter_label = f"Rango: {date_from} a {date_to}"
-        
-    transactions = transactions.order_by('date', 'id')
+    filter_label = _build_filter_label(filter_type, date_from, date_to, category_id)
     
     # Calcular totales del reporte
     report_totals = transactions.aggregate(
         total_usd=Sum('amount_usd'),
         total_bs=Sum('amount_bs')
     )
-    
-    template = get_template('organizations/reportes/transacciones_pdf.html')
-    context = {
-        'transactions': transactions,
-        'org': org,
-        'filter_label': filter_label,
-        'now': now,
-        'report_totals': {
-            'usd': report_totals['total_usd'] or 0,
-            'bs': report_totals['total_bs'] or 0,
-        }
-    }
-    
-    html = template.render(context)
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
-    
-    if not pdf.err:
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        filename = f"balance_general_{org.name}_{now.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        return response
-    
-    return HttpResponse("Error al generar PDF", status=500)
+
+    pdf_bytes = build_transacciones_pdf(
+        org=org,
+        transactions=transactions,
+        filter_label=filter_label,
+        now=now,
+        report_totals={
+            "usd": report_totals["total_usd"] or Decimal("0"),
+            "bs": report_totals["total_bs"] or Decimal("0"),
+        },
+    )
+    response = HttpResponse(pdf_bytes, content_type="application/pdf")
+    filename = f"balance_general_{org.name}_{now.strftime('%Y%m%d')}.pdf"
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
 
 
 @login_required
@@ -402,6 +441,32 @@ def guardar_transaccion(request, trans_id=None):
         form = TransactionForm(request.POST, instance=instance, organization=org)
         if form.is_valid():
             transaction = form.save(commit=False)
+            transaction_date = form.cleaned_data.get("date")
+            today = timezone.localdate()
+            use_manual_rate = request.POST.get("manual_rate") == "1"
+
+            if transaction_date and transaction_date > today:
+                messages.error(request, "No se permiten transacciones con fecha posterior a hoy.")
+                return redirect("lista_transacciones")
+
+            if not use_manual_rate:
+                rate_for_date = get_bcv_rate_for_date(transaction_date)
+                if transaction_date < today and not rate_for_date:
+                    messages.error(
+                        request,
+                        "No existe tasa BCV historica para esa fecha. Activa tasa manual para guardar esta transaccion.",
+                    )
+                    return redirect("lista_transacciones")
+                if not rate_for_date:
+                    rate_for_date = get_bcv_rate(transaction_date)
+                if not rate_for_date:
+                    messages.error(
+                        request,
+                        "No hay tasa BCV disponible para esa fecha. Activa tasa manual o sincroniza tasas BCV.",
+                    )
+                    return redirect("lista_transacciones")
+                transaction.daily_rate = rate_for_date
+
             transaction.organization = org
             transaction.save()
             messages.success(request, "Transacción guardada correctamente.")
@@ -431,6 +496,33 @@ def detalle_transaccion(request, trans_id):
     org = get_object_or_404(Organization, id=org_id)
     transaction = get_object_or_404(Transaction, id=trans_id, organization=org)
     return render(request, 'organizations/partials/detalle_transaccion.html', {'transaction': transaction})
+
+
+@login_required
+def tasa_bcv_por_fecha(request):
+    raw_date = request.GET.get("date")
+    if not raw_date:
+        return JsonResponse({"ok": False, "error": "date es requerido"}, status=400)
+
+    try:
+        target_date = date.fromisoformat(raw_date)
+    except ValueError:
+        return JsonResponse({"ok": False, "error": "date invalido"}, status=400)
+
+    today = timezone.localdate()
+    rate = get_bcv_rate_for_date(target_date)
+    if not rate and target_date == today:
+        rate = get_bcv_rate(target_date)
+
+    return JsonResponse(
+        {
+            "ok": True,
+            "date": raw_date,
+            "exists": bool(rate),
+            "rate": float(rate) if rate else None,
+            "is_past": target_date < today,
+        }
+    )
 
 # --- Categorías ---
 
@@ -504,12 +596,14 @@ def lista_cuentas(request):
     form = AccountForm()
 
     bcv_rate = get_bcv_rate()
+    has_today_bcv = bool(get_bcv_rate_for_date(timezone.localdate()))
 
     return render(request, 'organizations/cuentas.html', {
 
         'accounts': accounts,
         'form': form,
         'bcv_rate': bcv_rate,
+        'has_today_bcv': has_today_bcv,
     })
 
 @login_required
@@ -533,7 +627,21 @@ def guardar_cuenta(request, acc_id=None):
             if not instance:
                 usd = form.cleaned_data.get('initial_amount_usd')
                 bs = form.cleaned_data.get('initial_amount_bs')
-                rate = form.cleaned_data.get('daily_rate') or 1
+                rate = form.cleaned_data.get('daily_rate')
+                use_manual_rate = request.POST.get("manual_rate") == "1"
+
+                if not use_manual_rate:
+                    automatic_rate = get_bcv_rate_for_date(timezone.localdate()) or get_bcv_rate()
+                    rate = automatic_rate
+                    if not rate:
+                        messages.error(
+                            request,
+                            "No hay tasa BCV disponible para saldo inicial automático. Activa tasa manual o sincroniza tasas BCV.",
+                        )
+                        return redirect("lista_cuentas")
+                elif not rate:
+                    messages.error(request, "Debes indicar una tasa manual válida.")
+                    return redirect("lista_cuentas")
                 
                 if usd or bs:
                     Transaction.objects.create(

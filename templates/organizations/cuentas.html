@@ -5,24 +5,29 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h2 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Mis Cuentas</h2>
+        <h2 class="app-title"><i class="bi bi-wallet2 me-2"></i>Mis Cuentas</h2>
         <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
+            <ol class="breadcrumb app-subtitle">
                 <li class="breadcrumb-item"><a href="{% url 'home_organizacion' %}">Inicio</a></li>
                 <li class="breadcrumb-item active">Mis Cuentas</li>
             </ol>
         </nav>
     </div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#accountModal" onclick="resetForm()">
+    <button type="button" class="btn btn-primary app-btn" data-bs-toggle="modal" data-bs-target="#accountModal" onclick="resetForm()">
         <i class="bi bi-plus-lg me-1"></i>Nueva Cuenta
     </button>
+</div>
+
+<div class="app-highlight-note mb-3">
+    <i class="bi bi-database-check me-1"></i>
+    {% if has_today_bcv %}La tasa BCV de hoy esta disponible en el historico.{% else %}No se encontro historico BCV de hoy; se usara referencia actual al crear saldo inicial automatico.{% endif %}
 </div>
 
 {% if accounts %}
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
     {% for acc in accounts %}
     <div class="col">
-        <div class="card h-100 shadow-sm border-0 position-relative">
+        <div class="app-card h-100 position-relative">
             <a href="{% url 'detalle_cuenta' acc.id %}" class="stretched-link"></a>
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -33,8 +38,8 @@
                 </div>
                 
                 <div class="mt-auto">
-                    <label class="text-muted small d-block">Saldo Actual</label>
-                    <div class="fs-4 fw-bold text-dark">
+                    <label class="app-form-label d-block">Saldo Actual</label>
+                    <div class="fs-4 fw-bold">
                         {{ acc.balance_usd|default:0|floatformat:2 }} <span class="small text-muted">$</span>
                     </div>
                     <div class="text-muted small">
@@ -61,13 +66,14 @@
 <!-- Modal Cuenta (Crear/Editar) -->
 <div class="modal fade" id="accountModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
+        <div class="modal-content border-0 shadow app-card">
+            <div class="modal-header bg-primary text-white app-modal-header">
                 <h5 class="modal-title" id="modalTitle">Nueva Cuenta</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="accountForm" method="post" action="{% url 'crear_cuenta' %}">
                 {% csrf_token %}
+                <input type="hidden" id="manual_rate_field" name="manual_rate" value="0">
                 <div class="modal-body p-4">
                     <div class="mb-3">
                         <label class="form-label fw-bold">Nombre de la Cuenta</label>
@@ -87,7 +93,7 @@
                                 <label class="form-label small fw-bold">Monto</label>
                                 <div class="input-group">
                                     <span class="input-group-text py-1 px-2" id="currencyAddon" style="font-size: 0.85rem;">$</span>
-                                    <input type="number" step="0.01" class="form-control" id="id_amount_display" placeholder="0.00">
+                                    <input type="number" step="0.01" class="form-control app-input" id="id_amount_display" placeholder="0.00">
                                 </div>
                             </div>
                             <div class="col-md-5">
@@ -96,6 +102,9 @@
                                 <div class="form-check form-switch mt-1">
                                     <input class="form-check-input" type="checkbox" id="manualRateSwitch" style="transform: scale(0.8);">
                                     <label class="form-check-label" for="manualRateSwitch" style="font-size: 0.7rem;">Manual</label>
+                                </div>
+                                <div class="app-mini-note mt-1">
+                                    {% if has_today_bcv %}Tasa automatica BCV disponible.{% else %}No hay historico hoy, valida manualmente si lo necesitas.{% endif %}
                                 </div>
                             </div>
                         </div>
@@ -108,7 +117,7 @@
                         </p>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
+                <div class="modal-footer app-modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     <button type="submit" class="btn btn-primary px-4">Guardar</button>
                 </div>
@@ -120,15 +129,15 @@
 <!-- Modal Eliminar -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
+        <div class="modal-content border-0 shadow app-card">
+            <div class="modal-header bg-danger text-white app-modal-header">
                 <h5 class="modal-title">Confirmar Eliminación</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 ¿Está seguro de que desea eliminar esta cuenta? Se perderá el rastro de las transacciones asociadas.
             </div>
-            <div class="modal-footer bg-light">
+            <div class="modal-footer app-modal-footer">
                 <form id="deleteForm" method="post" action="">
                     {% csrf_token %}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -146,8 +155,9 @@
         const accountModal = new bootstrap.Modal(document.getElementById('accountModal'));
         const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
 
-        const bcvRate = parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1;
+        const bcvRate = parseFloat("{{ bcv_rate|default:'' }}".replace(',', '.'));
         let currentInputCurrency = 'USD';
+        const manualRateField = document.getElementById('manual_rate_field');
 
         window.resetForm = function() {
             const form = document.getElementById('accountForm');
@@ -158,8 +168,9 @@
             
             document.getElementById('manualRateSwitch').checked = false;
             const rateField = document.querySelector('input[name="daily_rate"]');
-            rateField.value = bcvRate;
+            rateField.value = Number.isFinite(bcvRate) ? bcvRate : "";
             rateField.readOnly = true;
+            if (manualRateField) manualRateField.value = "0";
             
             currentInputCurrency = 'USD';
             document.getElementById('id_amount_display').value = "";
@@ -206,7 +217,7 @@
         function syncHiddenFields() {
             if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
             const val = parseFloat(amountDisplay.value) || 0;
-            const rate = parseFloat(dailyRateField.value) || 1;
+            const rate = parseFloat(dailyRateField.value) || 0;
             
             if (currentInputCurrency === 'USD') {
                 amountUsdField.value = val.toFixed(2);
@@ -221,7 +232,7 @@
             currencyToggleBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const currentVal = parseFloat(amountDisplay.value) || 0;
-                const rate = parseFloat(dailyRateField.value) || 1;
+                const rate = parseFloat(dailyRateField.value) || 0;
                 
                 if (currentInputCurrency === 'USD') {
                     amountDisplay.value = (currentVal * rate).toFixed(2);
@@ -240,8 +251,9 @@
         if (manualRateSwitch) {
             manualRateSwitch.addEventListener('change', function(e) {
                 dailyRateField.readOnly = !e.target.checked;
+                if (manualRateField) manualRateField.value = e.target.checked ? "1" : "0";
                 if (!e.target.checked) {
-                    dailyRateField.value = bcvRate;
+                    dailyRateField.value = Number.isFinite(bcvRate) ? bcvRate : "";
                     syncHiddenFields();
                 }
             });

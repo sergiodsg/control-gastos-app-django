@@ -6,7 +6,7 @@ from .forms import LoginForm
 urlpatterns = [
     path('registro/', views.registro, name='registro'),
     path('login/', auth_views.LoginView.as_view(
-        template_name='accounts/login.html',
+        template_name='core/login.html',
         form_class=LoginForm,
         extra_context={'hide_navbar': True, 'hide_sidebar': True}
     ), name='login'),

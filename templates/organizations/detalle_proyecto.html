@@ -235,7 +235,7 @@
         const valuationModal = new bootstrap.Modal(document.getElementById('valuationModal'));
         const deleteValModal = new bootstrap.Modal(document.getElementById('deleteValModal'));
         
-        const bcvRate = parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1;
+        const bcvRate = parseFloat("{{ bcv_rate|default:'' }}".replace(',', '.'));
         let currentInputCurrency = 'USD';
 
         const currencyToggleBtn = document.getElementById('currencyToggleBtn');
@@ -275,7 +275,7 @@
             document.getElementById('valModalTitle').innerText = "Nueva Valuación";
             
             document.getElementById('manualRateSwitch').checked = false;
-            dailyRateField.value = bcvRate;
+            dailyRateField.value = Number.isFinite(bcvRate) ? bcvRate : "";
             dailyRateField.disabled = true;
             
             currentInputCurrency = 'USD';
@@ -324,7 +324,7 @@
         function syncHiddenFields() {
             if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
             const val = parseFloat(amountDisplay.value) || 0;
-            const rate = parseFloat(dailyRateField.value) || 1;
+            const rate = parseFloat(dailyRateField.value) || 0;
             
             if (currentInputCurrency === 'USD') {
                 amountUsdField.value = val.toFixed(2);
@@ -339,7 +339,7 @@
             currencyToggleBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const currentVal = parseFloat(amountDisplay.value) || 0;
-                const rate = parseFloat(dailyRateField.value) || 1;
+                const rate = parseFloat(dailyRateField.value) || 0;
                 
                 if (currentInputCurrency === 'USD') {
                     amountDisplay.value = (currentVal * rate).toFixed(2);
@@ -359,7 +359,7 @@
             manualRateSwitch.addEventListener('change', function(e) {
                 dailyRateField.disabled = !e.target.checked;
                 if (!e.target.checked) {
-                    dailyRateField.value = bcvRate;
+                    dailyRateField.value = Number.isFinite(bcvRate) ? bcvRate : "";
                     syncHiddenFields();
                 }
             });

@@ -5,34 +5,38 @@
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
     <div>
-        <h2 class="mb-0"><i class="bi bi-cash-stack me-2"></i>Transacciones</h2>
+        <h2 class="app-title"><i class="bi bi-cash-stack me-2"></i>Transacciones</h2>
         <nav aria-label="breadcrumb">
-            <ol class="breadcrumb mb-0">
+            <ol class="breadcrumb mb-0 app-subtitle">
                 <li class="breadcrumb-item"><a href="{% url 'home_organizacion' %}">Inicio</a></li>
                 <li class="breadcrumb-item active">Transacciones</li>
             </ol>
         </nav>
     </div>
-    <div class="d-flex gap-2">
-        <a href="{% url 'exportar_pdf_transacciones' %}?filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}" class="btn btn-outline-danger flex-fill flex-md-grow-0" target="_blank">
+    <div class="app-actions">
+        <a href="{% url 'exportar_pdf_transacciones' %}?filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}" class="btn btn-outline-danger app-btn" target="_blank">
             <i class="bi bi-file-earmark-pdf me-1"></i>Reporte PDF
         </a>
-        <a href="{% url 'lista_categorias' %}" class="btn btn-outline-secondary flex-fill flex-md-grow-0">
+        <a href="{% url 'lista_categorias' %}" class="btn btn-outline-secondary app-btn">
             <i class="bi bi-tags me-1"></i><span class="d-none d-sm-inline">Categorías</span>
         </a>
-        <button type="button" class="btn btn-primary flex-fill flex-md-grow-0" data-bs-toggle="modal" data-bs-target="#transactionModal" onclick="resetForm()">
+        <button type="button" class="btn btn-primary app-btn" data-bs-toggle="modal" data-bs-target="#transactionModal" onclick="resetForm()">
             <i class="bi bi-plus-lg me-1"></i>Transacción
         </button>
     </div>
 </div>
 
-<!-- Filtros de Fecha -->
-<div class="card shadow-sm border-0 mb-4 bg-light">
+<div class="app-highlight-note mb-3">
+    <i class="bi bi-info-circle me-1"></i>
+    Las fechas futuras estan bloqueadas. Para fechas pasadas sin tasa BCV historica, activa <strong>Tasa manual</strong>.
+</div>
+
+<div class="app-card mb-4">
     <div class="card-body py-3">
         <form method="get" class="row g-3 align-items-end">
             <div class="col-md-3">
-                <label class="small text-muted mb-1 fw-bold">Período:</label>
-                <select name="filter_type" class="form-select form-select-sm" id="filter_type_select" onchange="toggleCustomDates(this.value)">
+                <label class="app-form-label">Periodo:</label>
+                <select name="filter_type" class="form-select form-select-sm app-input" id="filter_type_select" onchange="toggleCustomDates(this.value)">
                     {% for value, label in filter_options %}
                         <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
@@ -40,8 +44,8 @@
             </div>
 
             <div class="col-md-2">
-                <label class="small text-muted mb-1 fw-bold">Categoría:</label>
-                <select name="category" class="form-select form-select-sm">
+                <label class="app-form-label">Categoria:</label>
+                <select name="category" class="form-select form-select-sm app-input">
                     <option value="">Todas</option>
                     {% for cat in categories %}
                         <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
@@ -52,21 +56,21 @@
             <div id="custom_date_inputs" class="col-md-4" style="{% if filter_type != 'custom' %}display: none;{% endif %}">
                 <div class="row g-2">
                     <div class="col-6">
-                        <label class="small text-muted mb-1 fw-bold">Desde:</label>
-                        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+                        <label class="app-form-label">Desde:</label>
+                        <input type="date" name="date_from" class="form-control form-control-sm app-input" value="{{ date_from }}">
                     </div>
                     <div class="col-6">
-                        <label class="small text-muted mb-1 fw-bold">Hasta:</label>
-                        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+                        <label class="app-form-label">Hasta:</label>
+                        <input type="date" name="date_to" class="form-control form-control-sm app-input" value="{{ date_to }}">
                     </div>
                 </div>
             </div>
             
             <div class="col-md-auto">
-                <button type="submit" class="btn btn-sm btn-dark px-3">
+                <button type="submit" class="btn btn-sm btn-dark px-3 app-btn">
                     <i class="bi bi-filter me-1"></i>Filtrar
                 </button>
-                <a href="{% url 'lista_transacciones' %}" class="btn btn-sm btn-outline-secondary px-3">
+                <a href="{% url 'lista_transacciones' %}" class="btn btn-sm btn-outline-secondary px-3 app-btn">
                     <i class="bi bi-x-circle me-1"></i>Limpiar
                 </a>
             </div>
@@ -74,11 +78,11 @@
     </div>
 </div>
 
-<div class="card shadow-sm border-0">
+<div class="app-card">
     <div class="card-body p-0">
         <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
+            <table class="table table-hover align-middle mb-0 app-table">
+                <thead>
                     <tr>
                         <th class="ps-4">Fecha</th>
                         <th>Descripción</th>
@@ -178,13 +182,14 @@
 <!-- Modal Transacción (Crear/Editar) -->
 <div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
+        <div class="modal-content border-0 shadow app-card">
+            <div class="modal-header bg-primary text-white app-modal-header">
                 <h5 class="modal-title" id="modalTitle">Nueva Transacción</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
                 {% csrf_token %}
+                <input type="hidden" id="manual_rate_field" name="manual_rate" value="0">
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-12 mb-2">
@@ -218,7 +223,7 @@
                             </label>
                             <div class="input-group">
                                 <span class="input-group-text" id="currencyAddon">$</span>
-                                <input type="number" step="0.01" class="form-control" id="id_amount_display" placeholder="0.00">
+                                <input type="number" step="0.01" class="form-control app-input" id="id_amount_display" placeholder="0.00">
                             </div>
                             <div class="d-none">
                                 {{ form.amount_usd }}
@@ -234,10 +239,13 @@
                                 </div>
                             </div>
                             {{ form.daily_rate }}
+                            <div class="app-mini-note mt-1" id="bcvSourceText">
+                                {% if has_today_bcv %}Tasa oficial BCV disponible hoy.{% else %}Aun no hay historico BCV de hoy, se usara referencia actual.{% endif %}
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Número de Referencia</label>
-                            <input type="text" id="id_reference_number_custom" class="form-control" placeholder="Nro. Referencia">
+                            <input type="text" id="id_reference_number_custom" class="form-control app-input" placeholder="Nro. Referencia">
                             <div class="d-none">
                                 {{ form.reference_number }}
                             </div>
@@ -268,7 +276,7 @@
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light">
+                <div class="modal-footer app-modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
                     <button type="submit" class="btn btn-primary px-4">Guardar</button>
                 </div>
@@ -280,8 +288,8 @@
 <!-- Modal Detalle -->
 <div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-info text-white">
+        <div class="modal-content border-0 shadow app-card">
+            <div class="modal-header bg-info text-white app-modal-header">
                 <h5 class="modal-title">Detalles de Transacción</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -298,15 +306,15 @@
 <!-- Modal Eliminar -->
 <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
+        <div class="modal-content border-0 shadow app-card">
+            <div class="modal-header bg-danger text-white app-modal-header">
                 <h5 class="modal-title">Confirmar Eliminación</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 ¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.
             </div>
-            <div class="modal-footer bg-light">
+            <div class="modal-footer app-modal-footer">
                 <form id="deleteForm" method="post" action="">
                     {% csrf_token %}
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -325,8 +333,9 @@
         const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
         const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
 
-        const bcvRate = parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1;
+        const bcvRate = parseFloat("{{ bcv_rate|default:'' }}".replace(',', '.'));
         let currentInputCurrency = 'USD';
+        const manualRateField = document.getElementById('manual_rate_field');
 
         window.resetForm = function() {
             const form = document.getElementById('transactionForm');
@@ -336,8 +345,12 @@
             
             document.getElementById('manualRateSwitch').checked = false;
             const rateField = document.querySelector('input[name="daily_rate"]');
-            rateField.value = bcvRate;
+            rateField.value = Number.isFinite(bcvRate) ? bcvRate : "";
             rateField.disabled = true;
+            if (manualRateField) manualRateField.value = "0";
+            if (form.querySelector('[name="date"]')) {
+                form.querySelector('[name="date"]').max = new Date().toISOString().split('T')[0];
+            }
             
             // Por defecto Egreso
             document.getElementById('type_egreso').checked = true;
@@ -379,6 +392,7 @@
 
             document.getElementById('manualRateSwitch').checked = true;
             document.querySelector('[name="daily_rate"]').disabled = false;
+            if (manualRateField) manualRateField.value = "1";
             
             currentInputCurrency = (parseFloat(usd) !== 0) ? 'USD' : 'BS';
             document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usd : bs);
@@ -425,6 +439,8 @@
         const amountBsField = document.querySelector('input[name="amount_bs"]');
         const dailyRateField = document.querySelector('input[name="daily_rate"]');
         const manualRateSwitch = document.getElementById('manualRateSwitch');
+        const dateField = document.querySelector('input[name="date"]');
+        const bcvSourceText = document.getElementById('bcvSourceText');
         
         const projectSelect = document.querySelector('select[name="project"]');
         const valuationSelect = document.querySelector('select[name="valuation"]');
@@ -485,7 +501,7 @@
         function syncHiddenFields() {
             if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
             let val = Math.abs(parseFloat(amountDisplay.value)) || 0;
-            const rate = parseFloat(dailyRateField.value) || 1;
+            const rate = parseFloat(dailyRateField.value) || 0;
             const isEgreso = document.getElementById('type_egreso').checked;
             
             if (isEgreso && val > 0) {
@@ -524,7 +540,7 @@
             currencyToggleBtn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const currentVal = parseFloat(amountDisplay.value) || 0;
-                const rate = parseFloat(dailyRateField.value) || 1;
+                const rate = parseFloat(dailyRateField.value) || 0;
                 
                 if (currentInputCurrency === 'USD') {
                     amountDisplay.value = (currentVal * rate).toFixed(2);
@@ -543,13 +559,39 @@
         if (manualRateSwitch) {
             manualRateSwitch.addEventListener('change', function(e) {
                 dailyRateField.disabled = !e.target.checked;
+                if (manualRateField) manualRateField.value = e.target.checked ? "1" : "0";
                 if (!e.target.checked) {
-                    dailyRateField.value = bcvRate;
+                    dailyRateField.value = Number.isFinite(bcvRate) ? bcvRate : "";
                     syncHiddenFields();
                 }
             });
             // Initial state based on switch
             dailyRateField.disabled = !manualRateSwitch.checked;
+        }
+
+        async function syncRateByDate() {
+            if (!dateField || !dateField.value || manualRateSwitch.checked) return;
+            try {
+                const response = await fetch(`/transacciones/tasa-bcv/?date=${dateField.value}`);
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (payload.exists && payload.rate) {
+                    dailyRateField.value = payload.rate.toFixed(4);
+                    syncHiddenFields();
+                    if (bcvSourceText) {
+                        bcvSourceText.innerText = payload.is_past
+                            ? "Tasa historica BCV encontrada para esa fecha."
+                            : "Tasa oficial BCV disponible.";
+                    }
+                } else if (payload.is_past && bcvSourceText) {
+                    bcvSourceText.innerText = "No hay historico BCV para esa fecha. Activa tasa manual para guardar.";
+                }
+            } catch (error) {}
+        }
+
+        if (dateField) {
+            dateField.max = new Date().toISOString().split('T')[0];
+            dateField.addEventListener('change', syncRateByDate);
         }
 
         // Enable fields before submit so Django receives them

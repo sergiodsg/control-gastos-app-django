@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -6,186 +7,24 @@
     <title>{% block title %}Control de Gastos{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="{% static 'css/app.css' %}">
     <script>
-        // Pre-carga del tema para evitar parpadeo blanco
         (function() {
             const theme = localStorage.getItem('theme_pref') || 'light';
             document.documentElement.setAttribute('data-bs-theme', theme);
         })();
     </script>
     <style>
-        :root {
-            --sidebar-width: 280px;
-            --bg-body: #f8f9fa;
-            --bg-card: #ffffff;
-            --text-main: #212529;
-            --text-muted: #6c757d;
-            --border-color: #dee2e6;
-            --navbar-bg: #ffffff;
-            --bg-light-override: #f8f9fa;
-            --sidebar-bg: #212529;
-            --sidebar-text: #adb5bd;
-        }
-
-        [data-bs-theme="dark"] {
-            --bg-body: #0f111a;
-            --bg-card: #161b22;
-            --text-main: #c9d1d9;
-            --text-muted: #8b949e;
-            --border-color: #30363d;
-            --navbar-bg: #161b22;
-            --bg-light-override: #21262d;
-            --sidebar-bg: #0d1117;
-            --sidebar-text: #8b949e;
-        }
-
-        body {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            overflow-x: hidden;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        /* Sobreescrituras para coherencia en modo oscuro */
-        [data-bs-theme="dark"] .bg-white { background-color: var(--bg-card) !important; }
-        [data-bs-theme="dark"] .bg-light { background-color: var(--bg-light-override) !important; }
-        [data-bs-theme="dark"] .table-light { --bs-table-bg: var(--bg-light-override); --bs-table-color: var(--text-main); }
-        [data-bs-theme="dark"] .text-muted { color: var(--text-muted) !important; }
-        [data-bs-theme="dark"] .border { border-color: var(--border-color) !important; }
-        [data-bs-theme="dark"] .border-bottom { border-bottom-color: var(--border-color) !important; }
-        [data-bs-theme="dark"] .dropdown-menu { background-color: var(--bg-card); border-color: var(--border-color); color: var(--text-main); }
-        [data-bs-theme="dark"] .dropdown-item { color: var(--text-main); }
-        [data-bs-theme="dark"] .dropdown-item:hover { background-color: var(--bg-light-override); }
-        [data-bs-theme="dark"] .modal-content { background-color: var(--bg-card); border-color: var(--border-color); }
-        [data-bs-theme="dark"] .modal-header, [data-bs-theme="dark"] .modal-footer { border-color: var(--border-color); }
-        [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select { background-color: #2d2d2d; border-color: #444; color: #fff; }
-        [data-bs-theme="dark"] .form-control:focus, [data-bs-theme="dark"] .form-select:focus { background-color: #333; border-color: #0d6efd; color: #fff; }
-        [data-bs-theme="dark"] .input-group-text { background-color: #333; border-color: #444; color: #eee; }
-        [data-bs-theme="dark"] .text-dark { color: #fff !important; }
-        [data-bs-theme="dark"] .btn-outline-dark { color: #fff; border-color: #fff; }
-        [data-bs-theme="dark"] .btn-outline-dark:hover { background-color: #fff; color: #000; }
-        [data-bs-theme="dark"] .pagination .page-link { background-color: var(--bg-card); border-color: var(--border-color); color: var(--text-main); }
-        [data-bs-theme="dark"] .pagination .page-item.active .page-link { background-color: #0d6efd; border-color: #0d6efd; color: #fff; }
-        [data-bs-theme="dark"] .breadcrumb-item.active { color: var(--text-muted); }
-        [data-bs-theme="dark"] .breadcrumb-item + .breadcrumb-item::before { color: var(--text-muted); }
-
-        .card {
-            background-color: var(--bg-card);
-            border-color: var(--border-color);
-            color: var(--text-main);
-        }
-        
-        .navbar {
-            background-color: var(--navbar-bg) !important;
-            border-bottom-color: var(--border-color) !important;
-        }
-
-        .list-group-item {
-            border-color: var(--border-color);
-        }
-
-        #wrapper {
-            display: flex;
-            width: 100%;
-            transition: all 0.3s;
-        }
-        #sidebar-wrapper {
-            min-height: 100vh;
-            width: var(--sidebar-width);
-            margin-left: calc(-1 * var(--sidebar-width));
-            transition: margin 0.3s ease-out;
-            background-color: var(--sidebar-bg);
-            color: var(--sidebar-text);
-            z-index: 1000;
-            border-right: 1px solid var(--border-color);
-        }
-        #wrapper.toggled #sidebar-wrapper {
-            margin-left: 0;
-        }
-        #page-content-wrapper {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar-heading {
-            padding: 2rem 1.5rem;
-            font-size: 1.25rem;
-            font-weight: 700;
-            border-bottom: 1px solid var(--border-color);
-            color: #fff;
-            letter-spacing: -0.5px;
-        }
-        [data-bs-theme="dark"] .sidebar-heading {
-            color: var(--text-main);
-        }
-        .sidebar-heading .small {
-            font-weight: 400;
-            letter-spacing: 0;
-            opacity: 0.7;
-        }
-        .list-group-item {
-            background-color: transparent;
-            color: var(--sidebar-text);
-            border: none;
-            padding: 0.9rem 1.5rem;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            display: flex;
-            align-items: center;
-        }
-        .list-group-item i {
-            font-size: 1.1rem;
-            width: 25px;
-            transition: transform 0.2s;
-        }
-        .list-group-item:hover {
-            background-color: var(--bg-light-override);
-            color: var(--text-main);
-            padding-left: 1.75rem;
-        }
-        .list-group-item:hover i {
-            transform: scale(1.1);
-        }
-        .list-group-item.active {
-            background-color: #0d6efd;
-            color: white !important;
-            padding-left: 1.75rem;
-            border-radius: 0;
-            font-weight: 600;
-        }
-        @media (min-width: 768px) {
-            #sidebar-wrapper {
-                margin-left: 0;
-            }
-            #wrapper.toggled #sidebar-wrapper {
-                margin-left: calc(-1 * var(--sidebar-width));
-            }
-        }
         {% if hide_sidebar or not request.session.org_id %}
-        #sidebar-wrapper {
+        .app-sidebar {
             display: none !important;
         }
         @media (min-width: 768px) {
-            #sidebar-wrapper {
-                margin-left: calc(-1 * var(--sidebar-width)) !important;
+            .app-sidebar {
+                margin-left: calc(-1 * var(--app-sidebar-width)) !important;
             }
         }
         {% endif %}
-
-        @media (max-width: 400px) {
-            .user-name-text {
-                display: none;
-            }
-        }
-        
-        .navbar-toggler-user {
-            border: none;
-            padding: 0.5rem;
-        }
-        .navbar-toggler-user:focus {
-            box-shadow: none;
-        }
-
         {% if hide_navbar and hide_sidebar %}
         .auth-container {
             min-height: 100vh;
@@ -198,141 +37,85 @@
             width: 100%;
             max-width: 450px;
             border: none;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
             border-radius: 1rem;
         }
         .auth-card .card-body {
             padding: 2.5rem;
         }
-        .auth-card .form-control, .auth-card .input-group-text {
-            padding: 0.75rem 1rem;
-        }
-        .auth-card .form-control {
-            border-radius: 0.5rem;
-        }
-        .auth-card .input-group .form-control {
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-        }
-        .auth-card .input-group .input-group-text {
-            border-top-left-radius: 0.5rem;
-            border-bottom-left-radius: 0.5rem;
-        }
-        .auth-card label {
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: var(--text-main);
-        }
         {% endif %}
-
-        /* Lógica de visibilidad del título */
-        .title-sidebar { display: block; }
-        .title-content { display: none; }
-
-        @media (min-width: 768px) {
-            #wrapper.toggled .title-sidebar { display: none; }
-            #wrapper.toggled .title-content { display: block; }
-        }
-        
-        /* En móvil, si está colapsado (por defecto), mostrar en content */
-        @media (max-width: 767px) {
-            .title-sidebar { display: block; } /* Visible dentro del drawer cuando se abre */
-            .title-content { display: block; } /* Visible siempre en la barra superior */
+        @media (max-width: 400px) {
+            .user-name-text {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="d-flex" id="wrapper">
-        <!-- Sidebar (Drawer) -->
+    <div class="app-shell" id="wrapper">
         {% if user.is_authenticated and request.session.org_id and not hide_sidebar %}
-        <div id="sidebar-wrapper">
-            <div class="sidebar-heading">
-                <div class="title-sidebar">
-                    <i class="bi bi-wallet2 me-2"></i>Control de Gastos
-                </div>
-                <div class="small text-muted mt-1">{{ request.session.org_name }}</div>
+        <aside class="app-sidebar">
+            <div class="app-sidebar-heading">
+                <div><i class="bi bi-wallet2 me-2"></i>Control de Gastos</div>
+                <div class="app-sidebar-org">{{ request.session.org_name }}</div>
             </div>
-            <div class="list-group list-group-flush">
-                <a href="{% url 'home_organizacion' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-house me-2"></i>Inicio
-                </a>
-                <a href="{% url 'lista_transacciones' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-cash-stack me-2"></i>Transacciones
-                </a>
-                <a href="{% url 'lista_cuentas' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-wallet2 me-2"></i>Mis Cuentas
-                </a>
-                <a href="{% url 'lista_proyectos' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-kanban me-2"></i>Proyectos
-                </a>
-                <a href="{% url 'configuracion' %}" class="list-group-item list-group-item-action">
-                    <i class="bi bi-gear me-2"></i>Configuración
-                </a>
+            <div class="pt-2">
+                <a href="{% url 'home_organizacion' %}" class="app-nav-link"><i class="bi bi-house"></i>Inicio</a>
+                <a href="{% url 'lista_transacciones' %}" class="app-nav-link"><i class="bi bi-cash-stack"></i>Transacciones</a>
+                <a href="{% url 'lista_cuentas' %}" class="app-nav-link"><i class="bi bi-wallet2"></i>Mis Cuentas</a>
+                <a href="{% url 'lista_proyectos' %}" class="app-nav-link"><i class="bi bi-kanban"></i>Proyectos</a>
+                <a href="{% url 'configuracion' %}" class="app-nav-link"><i class="bi bi-gear"></i>Configuracion</a>
             </div>
-        </div>
+        </aside>
         {% endif %}
 
-        <!-- Page Content -->
-        <div id="page-content-wrapper">
+        <div class="app-page">
             {% if not hide_navbar %}
-            <nav class="navbar navbar-expand-lg border-bottom shadow-sm py-2">
+            <nav class="navbar navbar-expand-lg app-navbar py-2">
                 <div class="container-fluid px-4">
                     <div class="d-flex align-items-center">
                         {% if user.is_authenticated and request.session.org_id and not hide_sidebar %}
-                            <button class="btn btn-link text-decoration-none p-0 me-3" id="menu-toggle">
-                                <i class="bi bi-list fs-3"></i>
-                            </button>
+                        <button class="btn btn-link text-decoration-none p-0 me-3" id="menu-toggle">
+                            <i class="bi bi-list fs-3"></i>
+                        </button>
                         {% endif %}
-                        
-                        <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">
-                            <span class="title-content">Control Gastos</span>
-                        </a>
+                        <a class="navbar-brand fw-bold" href="{% url 'dashboard' %}">Control Gastos</a>
                     </div>
 
                     <div class="ms-auto d-flex align-items-center">
                         {% if user.is_authenticated %}
-                            <div class="dropdown">
-                                <a class="nav-link dropdown-toggle fw-bold d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle fs-5 me-2"></i>
-                                    <span class="user-name-text">{{ user.first_name|default:user.username }}</span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
-                                    {% if request.session.org_name %}
-                                        <li><span class="dropdown-item-text small text-muted">{{ request.session.org_name }}</span></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item" href="{% url 'salir_organizacion' %}">
-                                                <i class="bi bi-building me-2"></i>Mis Organizaciones
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                    {% endif %}
-                                    <li>
-                                        <form action="{% url 'logout' %}" method="post" class="px-0">
-                                            {% csrf_token %}
-                                            <button type="submit" class="dropdown-item text-danger">
-                                                <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
+                        <div class="dropdown">
+                            <a class="nav-link dropdown-toggle fw-bold d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-person-circle fs-5 me-2"></i>
+                                <span class="user-name-text">{{ user.first_name|default:user.username }}</span>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
+                                {% if request.session.org_name %}
+                                <li><span class="dropdown-item-text small text-muted">{{ request.session.org_name }}</span></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="{% url 'salir_organizacion' %}"><i class="bi bi-building me-2"></i>Mis Organizaciones</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                {% endif %}
+                                <li>
+                                    <form action="{% url 'logout' %}" method="post" class="px-0">
+                                        {% csrf_token %}
+                                        <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesion</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
                         {% else %}
-                            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navGuestContent">
-                                <i class="bi bi-list fs-3"></i>
-                            </button>
+                        <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navGuestContent">
+                            <i class="bi bi-list fs-3"></i>
+                        </button>
                         {% endif %}
                     </div>
 
                     {% if not user.is_authenticated %}
                     <div class="collapse navbar-collapse" id="navGuestContent">
                         <ul class="navbar-nav ms-auto mt-2 mt-lg-0 align-items-lg-center gap-2">
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link btn btn-primary text-white px-3" href="{% url 'registro' %}">Registrarse</a>
-                            </li>
+                            <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Iniciar Sesion</a></li>
+                            <li class="nav-item"><a class="nav-link btn btn-primary text-white px-3 app-btn" href="{% url 'registro' %}">Registrarse</a></li>
                         </ul>
                     </div>
                     {% endif %}
@@ -340,20 +123,19 @@
             </nav>
             {% endif %}
 
-            <div class="{% if hide_navbar and hide_sidebar %}auth-container{% else %}container-fluid py-4 px-4{% endif %}">
+            <main class="{% if hide_navbar and hide_sidebar %}auth-container{% else %}app-container{% endif %}">
                 {% if messages %}
-                    <div class="{% if hide_navbar and hide_sidebar %}w-100 position-absolute top-0 start-0 p-4{% endif %}">
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mx-auto" style="max-width: 600px;" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
+                <div class="{% if hide_navbar and hide_sidebar %}w-100 position-absolute top-0 start-0 p-4{% else %}mb-3{% endif %}">
+                    {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show mx-auto" style="max-width: 760px;" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
+                    {% endfor %}
+                </div>
                 {% endif %}
-
                 {% block content %}{% endblock %}
-            </div>
+            </main>
         </div>
     </div>
 
@@ -376,29 +158,17 @@
         function applyThemePreference() {
             const theme = localStorage.getItem('theme_pref') || 'light';
             document.documentElement.setAttribute('data-bs-theme', theme);
-            
-            // Ajustes adicionales de Bootstrap que no se cubren automáticamente
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-                if (theme === 'dark') {
-                    navbar.classList.remove('navbar-light');
-                    navbar.classList.add('navbar-dark');
-                } else {
-                    navbar.classList.remove('navbar-dark');
-                    navbar.classList.add('navbar-light');
-                }
-            }
         }
 
-        window.addEventListener('DOMContentLoaded', event => {
+        window.addEventListener('DOMContentLoaded', () => {
             applyCurrencyPreference();
             applyThemePreference();
-            
-            const menuToggle = document.body.querySelector('#menu-toggle');
+
+            const menuToggle = document.querySelector('#menu-toggle');
             if (menuToggle) {
                 menuToggle.addEventListener('click', event => {
                     event.preventDefault();
-                    document.body.querySelector('#wrapper').classList.toggle('toggled');
+                    document.querySelector('#wrapper').classList.toggle('toggled');
                 });
             }
         });

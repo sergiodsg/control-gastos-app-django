@@ -1,5 +1,14 @@
 from django.contrib import admin
-from .models import Organization, OrganizationAccess, Account, Category, Project, Valuation, Transaction
+from .models import (
+    Organization,
+    OrganizationAccess,
+    Account,
+    Category,
+    Project,
+    Valuation,
+    Transaction,
+    ExchangeRateHistory,
+)
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
@@ -40,3 +49,11 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ('organization', 'status', 'date')
     search_fields = ('description', 'reference_number')
     date_hierarchy = 'date'
+
+
+@admin.register(ExchangeRateHistory)
+class ExchangeRateHistoryAdmin(admin.ModelAdmin):
+    list_display = ("rate_date", "currency", "source", "rate", "fetched_at")
+    list_filter = ("currency", "source", "rate_date")
+    search_fields = ("raw_label",)
+    date_hierarchy = "rate_date"
