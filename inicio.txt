@@ -1,0 +1,14 @@
+python -m venv venv
+
+py manage.py runserver
+
+.venv/scripts/activate
+.\.venv\Scripts\activate
+
+.\venv\Scripts\Activate
+
+docker compose up
+
+docker compose -f docker-compose.localdb.yml up
+
+pytest
