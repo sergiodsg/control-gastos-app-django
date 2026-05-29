@@ -208,10 +208,14 @@ def crear_organizacion(request):
 
 # --- Transacciones ---
 
-from django.template.loader import get_template
-from xhtml2pdf import pisa
 from io import BytesIO
 from django.http import HttpResponse
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import cm
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT
 
 @login_required
 def lista_transacciones(request):
@@ -362,29 +366,170 @@ def exportar_pdf_transacciones(request):
         total_bs=Sum('amount_bs')
     )
     
-    template = get_template('organizations/reportes/transacciones_pdf.html')
-    context = {
-        'transactions': transactions,
-        'org': org,
-        'filter_label': filter_label,
-        'now': now,
-        'report_totals': {
-            'usd': report_totals['total_usd'] or 0,
-            'bs': report_totals['total_bs'] or 0,
-        }
-    }
+    # --- Generación de PDF con ReportLab ---
+    response = HttpResponse(content_type='application/pdf')
+    filename = f"balance_general_{org.name}_{now.strftime('%Y%m%d')}.pdf"
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
     
-    html = template.render(context)
-    result = BytesIO()
-    pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
+                            rightMargin=1.5*cm, leftMargin=1.5*cm,
+                            topMargin=1.5*cm, bottomMargin=1.5*cm)
     
-    if not pdf.err:
-        response = HttpResponse(result.getvalue(), content_type='application/pdf')
-        filename = f"balance_general_{org.name}_{now.strftime('%Y%m%d')}.pdf"
-        response['Content-Disposition'] = f'attachment; filename="{filename}"'
-        return response
+    elements = []
+    styles = getSampleStyleSheet()
     
-    return HttpResponse("Error al generar PDF", status=500)
+    # Estilos personalizados
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=colors.HexColor("#0d6efd"),
+        alignment=TA_CENTER,
+        spaceAfter=10
+    )
+    
+    info_style = ParagraphStyle(
+        'InfoStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        alignment=TA_CENTER,
+        spaceAfter=5
+    )
+    
+    filter_style = ParagraphStyle(
+        'FilterStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        spaceAfter=10
+    )
+    
+    cell_style = ParagraphStyle(
+        'CellStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        leading=10
+    )
+    
+    header_cell_style = ParagraphStyle(
+        'HeaderCellStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        fontName='Helvetica-Bold',
+        textColor=colors.HexColor("#444444")
+    )
+    
+    # Header
+    elements.append(Paragraph("Balance General", title_style))
+    elements.append(Paragraph(f"<b>Organización:</b> {org.name}", info_style))
+    elements.append(Paragraph(f"<b>Generado el:</b> {now.strftime('%d/%m/%Y %H:%M')}", info_style))
+    elements.append(Spacer(1, 0.5*cm))
+    elements.append(Paragraph(f"<b>Filtro aplicado:</b> {filter_label}", filter_style))
+    
+    # Datos de la tabla
+    data = [
+        [
+            Paragraph("Fecha", header_cell_style),
+            Paragraph("Descripción", header_cell_style),
+            Paragraph("Referencia", header_cell_style),
+            Paragraph("Monto (BS)", header_cell_style),
+            Paragraph("Tasa", header_cell_style),
+            Paragraph("Monto (USD)", header_cell_style),
+            Paragraph("Notas", header_cell_style)
+        ]
+    ]
+    
+    for trans in transactions:
+        row = [
+            trans.date.strftime("%d/%m/%Y"),
+            Paragraph(trans.description or "", cell_style),
+            trans.reference_number or "---",
+            f"{trans.amount_bs:,.2f}",
+            f"{trans.daily_rate:,.4f}",
+            f"{trans.amount_usd:,.2f}",
+            Paragraph(trans.notes or "", cell_style)
+        ]
+        data.append(row)
+    
+    # Fila de balance
+    if transactions:
+        data.append([
+            "", "", "BALANCE:",
+            f"{report_totals['total_bs'] or 0:,.2f} Bs.",
+            "",
+            f"{report_totals['total_usd'] or 0:,.2f} $",
+            ""
+        ])
+
+    # Anchos de columna basados en el template original
+    col_widths = [1.94*cm, 5.29*cm, 2.12*cm, 3.0*cm, 1.76*cm, 3.0*cm, 5.29*cm]
+    
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+    
+    table_style = TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor("#f8f9fa")),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor("#dee2e6")),
+        ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+        ('ALIGN', (3, 1), (3, -1), 'RIGHT'), # Monto BS
+        ('ALIGN', (4, 1), (4, -1), 'RIGHT'), # Tasa
+        ('ALIGN', (5, 1), (5, -1), 'RIGHT'), # Monto USD
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+    ])
+    
+    # Colores condicionales y negritas
+    for i, trans in enumerate(transactions):
+        idx = i + 1
+        # Monto BS
+        if trans.amount_bs < 0:
+            table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#dc3545"))
+        else:
+            table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#198754"))
+        table_style.add('FONTNAME', (3, idx), (3, idx), 'Helvetica-Bold')
+        
+        # Monto USD
+        if trans.amount_usd < 0:
+            table_style.add('TEXTCOLOR', (5, idx), (5, idx), colors.HexColor("#dc3545"))
+        else:
+            table_style.add('TEXTCOLOR', (5, idx), (5, idx), colors.HexColor("#198754"))
+        table_style.add('FONTNAME', (5, idx), (5, idx), 'Helvetica-Bold')
+
+    # Estilo de la última fila (Balance)
+    if transactions:
+        last_row = len(data) - 1
+        table_style.add('BACKGROUND', (0, last_row), (-1, last_row), colors.HexColor("#f1f1f1"))
+        table_style.add('FONTNAME', (0, last_row), (-1, last_row), 'Helvetica-Bold')
+        table_style.add('ALIGN', (2, last_row), (2, last_row), 'RIGHT')
+        
+        total_bs = report_totals['total_bs'] or 0
+        if total_bs < 0:
+            table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#dc3545"))
+        else:
+            table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#198754"))
+            
+        total_usd = report_totals['total_usd'] or 0
+        if total_usd < 0:
+            table_style.add('TEXTCOLOR', (5, last_row), (5, last_row), colors.HexColor("#dc3545"))
+        else:
+            table_style.add('TEXTCOLOR', (5, last_row), (5, last_row), colors.HexColor("#198754"))
+
+    table.setStyle(table_style)
+    elements.append(table)
+    
+    # Footer
+    footer_style = ParagraphStyle(
+        'FooterStyle',
+        parent=styles['Normal'],
+        fontSize=8,
+        textColor=colors.grey,
+        alignment=TA_RIGHT,
+        spaceBefore=20
+    )
+    elements.append(Paragraph("Este documento es un reporte automático generado por Control de Gastos.", footer_style))
+    
+    doc.build(elements)
+    response.write(buffer.getvalue())
+    buffer.close()
+    return response
 
 
 @login_required
