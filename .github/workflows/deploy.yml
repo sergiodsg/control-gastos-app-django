@@ -1,0 +1,43 @@
+# .github/workflows/deploy.yml
+name: Deploy to Namecheap
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            # Activar virtualenv
+            source ~/virtualenv/control-gastos-app-django/3.12/bin/activate
+
+            # Ir al directorio del proyecto
+            cd ~/control-gastos-app-django
+
+            # Traer cambios del repo
+            git pull origin main
+
+            # Instalar/actualizar dependencias
+            pip install -r requirements.txt
+
+            # Aplicar migraciones
+            python manage.py migrate --noinput
+
+            # Recolectar archivos estáticos
+            python manage.py collectstatic --noinput
+
+            # Reiniciar la app (Passenger)
+            mkdir -p tmp && touch tmp/restart.txt
