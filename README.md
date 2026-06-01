@@ -14,5 +14,5 @@ Puedes visualizar el esquema de la base de datos en dbdiagram.io siguiendo este 
 
 - `accounts/`: Gestión de usuarios y perfiles.
 - `organizations/`: Modelos principales de organizaciones, cuentas, proyectos, valuaciones y transacciones.
-- `myproject/`: Configuración del proyecto Django.
+- `CashFlow/`: Configuración del proyecto Django.
 - `templates/`: Plantillas HTML.
