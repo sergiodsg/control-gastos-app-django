@@ -16,6 +16,9 @@
         </nav>
     </div>
     <div class="d-flex gap-2">
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#transactionModal" onclick="resetTransactionForm()">
+            <i class="bi bi-plus-lg me-1"></i>Nueva Transacción
+        </button>
         <button type="button" class="btn btn-outline-secondary" id="toggleValuationsBtn" onclick="toggleValuations()">
             <i class="bi bi-gear me-1"></i>Gestionar Valuaciones
         </button>
@@ -36,19 +39,26 @@
                 <hr class="my-4">
                 
                 <div class="row g-3">
-                    <div class="col-md-4">
-                        <label class="small text-muted d-block">Balance Total</label>
+                    <div class="col-md-3">
+                        <label class="small text-muted d-block">Balance Proyecto (Total)</label>
                         <span class="fs-4 fw-bold text-{% if totals.balance_usd < 0 %}danger{% else %}success{% endif %}">
                             {{ totals.balance_usd|floatformat:2 }} $
                         </span>
                         <div class="small text-muted">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
                     </div>
-                    <div class="col-md-4">
-                        <label class="small text-muted d-block">Total Ingresos (Créditos)</label>
+                    <div class="col-md-3">
+                        <label class="small text-muted d-block">Balance Mi Organización</label>
+                        <span class="fs-4 fw-bold text-{% if totals.org_balance_usd < 0 %}danger{% else %}success{% endif %}">
+                            {{ totals.org_balance_usd|floatformat:2 }} $
+                        </span>
+                        <div class="small text-muted">{{ totals.org_balance_bs|floatformat:2 }} Bs.</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="small text-muted d-block">Ingresos Totales (Créditos)</label>
                         <span class="fs-4 fw-bold text-success">{{ totals.income_usd|floatformat:2 }} $</span>
                     </div>
-                    <div class="col-md-4">
-                        <label class="small text-muted d-block">Total Gastos (Débitos)</label>
+                    <div class="col-md-3">
+                        <label class="small text-muted d-block">Gastos Totales (Débitos)</label>
                         <span class="fs-4 fw-bold text-danger">{{ totals.expense_usd|floatformat:2 }} $</span>
                     </div>
                 </div>
@@ -66,7 +76,7 @@
                     <div class="d-flex justify-content-between align-items-center mb-1">
                         <span class="fw-bold">{{ val.name }}</span>
                         <div class="btn-group">
-                            <button class="btn btn-xs btn-link text-primary p-0 me-2" onclick="editValuation({{ val.id }}, '{{ val.name|escapejs }}', '{{ val.amount_usd }}', '{{ val.amount_bs }}', '{{ val.daily_rate }}')">
+                            <button class="btn btn-xs btn-link text-primary p-0 me-2" onclick="editValuation({{ val.id }}, '{{ val.name|escapejs }}', '{{ val.amount_usd|unlocalize }}', '{{ val.amount_bs|unlocalize }}', '{{ val.daily_rate|unlocalize }}')">
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <button class="btn btn-xs btn-link text-danger p-0" onclick="confirmDeleteValuation({{ val.id }})">
@@ -98,6 +108,54 @@
     </div>
 </div>
 
+<!-- Filtros de Transacciones -->
+<div class="card shadow-sm border-0 mb-4 bg-light">
+    <div class="card-body py-3">
+        <form method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="small text-muted mb-1 fw-bold">Período:</label>
+                <select name="filter_type" class="form-select form-select-sm" id="filter_type_select" onchange="toggleCustomDates(this.value)">
+                    {% for value, label in filter_options %}
+                        <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="small text-muted mb-1 fw-bold">Organización:</label>
+                <select name="organization" class="form-select form-select-sm">
+                    <option value="">Todas</option>
+                    {% for o in orgs_with_access %}
+                        <option value="{{ o.id }}" {% if selected_org_id == o.id|stringformat:"i" %}selected{% endif %}>{{ o.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div id="custom_date_inputs" class="col-md-4" style="{% if filter_type != 'custom' %}display: none;{% endif %}">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="small text-muted mb-1 fw-bold">Desde:</label>
+                        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
+                    </div>
+                    <div class="col-6">
+                        <label class="small text-muted mb-1 fw-bold">Hasta:</label>
+                        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-sm btn-dark px-3">
+                    <i class="bi bi-filter me-1"></i>Filtrar
+                </button>
+                <a href="{% url 'detalle_proyecto' project.id %}" class="btn btn-sm btn-outline-secondary px-3">
+                    <i class="bi bi-x-circle me-1"></i>Limpiar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
 <!-- Lista de Transacciones Asociadas -->
 <div class="card shadow-sm border-0">
     <div class="card-header bg-white py-3">
@@ -109,16 +167,23 @@
                 <thead class="bg-light">
                     <tr>
                         <th class="ps-4">Fecha</th>
+                        <th>Organización</th>
                         <th>Descripción</th>
                         <th>Monto (USD)</th>
                         <th>Valuación</th>
                         <th>Estado</th>
+                        <th class="text-end pe-4">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for trans in page_obj %}
                     <tr>
                         <td class="ps-4">{{ trans.date|date:"d/m/Y" }}</td>
+                        <td>
+                            <span class="small fw-bold {% if trans.organization.id == request.session.org_id %}text-primary{% else %}text-muted{% endif %}">
+                                {{ trans.organization.name }}
+                            </span>
+                        </td>
                         <td>
                             <div class="text-truncate" style="max-width: 300px;" title="{{ trans.description }}">
                                 {{ trans.description }}
@@ -141,16 +206,201 @@
                                 {{ trans.get_status_display }}
                             </span>
                         </td>
+                        <td class="text-end pe-4">
+                            <div class="btn-group">
+                                <button class="btn btn-sm btn-outline-secondary" onclick="viewTransaction({{ trans.id }})" title="Ver detalle">
+                                    <i class="bi bi-eye"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" onclick="editTransaction({{ trans.id }}, '{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|escapejs }}', '{{ trans.notes|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Editar">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteTransaction({{ trans.id }})" title="Eliminar">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center py-5 text-muted">
+                        <td colspan="7" class="text-center py-5 text-muted">
                             No hay transacciones registradas para este proyecto.
                         </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+        </div>
+        
+        <!-- Paginación -->
+        {% if page_obj.has_other_pages %}
+        <nav class="mt-4 pb-4">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">Anterior</a></li>
+                {% endif %}
+
+                {% for i in page_obj.paginator.page_range %}
+                    {% if page_obj.number == i %}
+                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ i }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">{{ i }}</a></li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">Siguiente</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal Transacción (Crear/Editar) -->
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="transactionModalTitle">Nueva Transacción</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <!-- Mantenemos el proyecto oculto ya que está preseleccionado por contexto -->
+                <input type="hidden" name="project" value="{{ project.id }}">
+                
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-12 mb-2">
+                            <label class="form-label fw-bold d-block">Tipo de Transacción</label>
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="transaction_type" id="type_egreso" value="egreso" checked autocomplete="off">
+                                <label class="btn btn-outline-danger w-50 py-2" for="type_egreso">
+                                    <i class="bi bi-dash-circle me-1"></i>Egreso
+                                </label>
+
+                                <input type="radio" class="btn-check" name="transaction_type" id="type_ingreso" value="ingreso" autocomplete="off">
+                                <label class="btn btn-outline-success w-50 py-2" for="type_ingreso">
+                                    <i class="bi bi-plus-circle me-1"></i>Ingreso
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Fecha</label>
+                            {{ trans_form.date }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Organización</label>
+                            {{ trans_form.organization }}
+                            <div class="small text-muted mt-1">Responsable del gasto.</div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Cuenta</label>
+                            {{ trans_form.account }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold d-flex justify-content-between">
+                                Monto
+                                <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" id="t_currencyToggleBtn" style="font-size: 0.7rem;">
+                                    Cambiar a <span id="t_nextCurrencyLabel">BS</span>
+                                </button>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text" id="t_currencyAddon">$</span>
+                                <input type="number" step="0.01" class="form-control" id="id_t_amount_display" placeholder="0.00">
+                            </div>
+                            <div class="d-none">
+                                {{ trans_form.amount_usd }}
+                                {{ trans_form.amount_bs }}
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-bold mb-0">Tasa del día</label>
+                                <div class="form-check form-switch mb-0">
+                                    <input class="form-check-input" type="checkbox" id="t_manualRateSwitch">
+                                    <label class="form-check-label small" for="t_manualRateSwitch">Tasa manual</label>
+                                </div>
+                            </div>
+                            {{ trans_form.daily_rate }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Referencia</label>
+                            {{ trans_form.reference_number }}
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Descripción</label>
+                            {{ trans_form.description }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Categoría</label>
+                            {{ trans_form.category }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Valuación</label>
+                            {{ trans_form.valuation }}
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Estado</label>
+                            {{ trans_form.status }}
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Notas</label>
+                            {{ trans_form.notes }}
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-primary px-4">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Detalle Transacción -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow">
+            <div id="detailContent">
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Cargando...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Eliminar Transacción -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">Confirmar Eliminación</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                ¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-footer bg-light">
+                <form id="deleteForm" method="post" action="">
+                    {% csrf_token %}
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger px-4">Eliminar</button>
+                </form>
+            </div>
         </div>
     </div>
 </div>
@@ -232,20 +482,209 @@
 {% block extra_js %}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // --- Inicialización de Modales ---
         const valuationModal = new bootstrap.Modal(document.getElementById('valuationModal'));
         const deleteValModal = new bootstrap.Modal(document.getElementById('deleteValModal'));
+        const transactionModal = new bootstrap.Modal(document.getElementById('transactionModal'));
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
         
         const bcvRate = parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1;
-        let currentInputCurrency = 'USD';
+        const orgsData = JSON.parse('{{ orgs_data|safe }}');
 
-        const currencyToggleBtn = document.getElementById('currencyToggleBtn');
-        const nextCurrencyLabel = document.getElementById('nextCurrencyLabel');
-        const currencyAddon = document.getElementById('currencyAddon');
-        const amountDisplay = document.getElementById('id_amount_display');
-        const amountUsdField = document.querySelector('input[name="amount_usd"]');
-        const amountBsField = document.querySelector('input[name="amount_bs"]');
-        const dailyRateField = document.querySelector('input[name="daily_rate"]');
-        const manualRateSwitch = document.getElementById('manualRateSwitch');
+        // --- Gestión de Transacciones ---
+
+        const transactionForm = document.getElementById('transactionForm');
+        const orgSelect = transactionForm.querySelector('[name="organization"]');
+        const accountSelect = transactionForm.querySelector('[name="account"]');
+        const categorySelect = transactionForm.querySelector('[name="category"]');
+        const tAmountUsd = transactionForm.querySelector('[name="amount_usd"]');
+        const tAmountBs = transactionForm.querySelector('[name="amount_bs"]');
+        const tRate = transactionForm.querySelector('[name="daily_rate"]');
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        const tCurrencyToggleBtn = document.getElementById('t_currencyToggleBtn');
+        const tNextCurrencyLabel = document.getElementById('t_nextCurrencyLabel');
+        const tCurrencyAddon = document.getElementById('t_currencyAddon');
+        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
+        let tCurrentInputCurrency = 'USD';
+
+        function updateOrgFields(orgId, selectedAccountId = null, selectedCategoryId = null) {
+            const data = orgsData[orgId];
+            if (!data) return;
+
+            // Cuentas
+            accountSelect.innerHTML = '<option value="">---------</option>';
+            data.accounts.forEach(acc => {
+                const opt = new Option(acc.name, acc.id);
+                if (selectedAccountId && acc.id == selectedAccountId) opt.selected = true;
+                accountSelect.add(opt);
+            });
+
+            // Categorías
+            categorySelect.innerHTML = '<option value="">---------</option>';
+            data.categories.forEach(cat => {
+                const opt = new Option(cat.name, cat.id);
+                if (selectedCategoryId && cat.id == selectedCategoryId) opt.selected = true;
+                categorySelect.add(opt);
+            });
+        }
+
+        orgSelect.addEventListener('change', function() {
+            updateOrgFields(this.value);
+        });
+
+        window.toggleCustomDates = function(value) {
+            const customDiv = document.getElementById('custom_date_inputs');
+            if (value === 'custom') {
+                customDiv.style.display = 'block';
+            } else {
+                customDiv.style.display = 'none';
+            }
+        }
+
+        function updateTCurrencyUI() {
+            if (tCurrentInputCurrency === 'USD') {
+                tCurrencyAddon.innerText = '$';
+                tNextCurrencyLabel.innerText = 'BS';
+            } else {
+                tCurrencyAddon.innerText = 'Bs';
+                tNextCurrencyLabel.innerText = 'USD';
+            }
+            syncTFields();
+        }
+
+        function syncTFields() {
+            let val = Math.abs(parseFloat(tAmountDisplay.value)) || 0;
+            const rate = parseFloat(tRate.value) || 1;
+            const isEgreso = document.getElementById('type_egreso').checked;
+            
+            if (isEgreso && val > 0) val = -val;
+            
+            if (tCurrentInputCurrency === 'USD') {
+                tAmountUsd.value = val.toFixed(2);
+                tAmountBs.value = (val * rate).toFixed(2);
+            } else {
+                tAmountBs.value = val.toFixed(2);
+                tAmountUsd.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
+            }
+            updateTTypeColors();
+        }
+
+        function updateTTypeColors() {
+            const isEgreso = document.getElementById('type_egreso').checked;
+            if (isEgreso) {
+                tAmountDisplay.classList.add('text-danger');
+                tAmountDisplay.classList.remove('text-success');
+            } else {
+                tAmountDisplay.classList.add('text-success');
+                tAmountDisplay.classList.remove('text-danger');
+            }
+        }
+
+        window.resetTransactionForm = function() {
+            transactionForm.reset();
+            transactionForm.action = "{% url 'crear_transaccion' %}";
+            document.getElementById('transactionModalTitle').innerText = "Nueva Transacción";
+            orgSelect.value = "{{ request.session.org_id }}";
+            updateOrgFields(orgSelect.value);
+            transactionForm.querySelector('[name="date"]').value = new Date().toISOString().split('T')[0];
+            tRate.value = bcvRate;
+            tRate.disabled = true;
+            tManualRateSwitch.checked = false;
+            document.getElementById('type_egreso').checked = true;
+            tCurrentInputCurrency = 'USD';
+            tAmountDisplay.value = "";
+            updateTCurrencyUI();
+        }
+
+        window.editTransaction = function(id, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
+            transactionForm.action = `/transacciones/guardar/${id}/`;
+            document.getElementById('transactionModalTitle').innerText = "Editar Transacción";
+            transactionForm.querySelector('[name="date"]').value = date;
+            orgSelect.value = orgId;
+            updateOrgFields(orgId, accId, catId);
+            transactionForm.querySelector('[name="description"]').value = desc;
+            transactionForm.querySelector('[name="reference_number"]').value = ref;
+            transactionForm.querySelector('[name="notes"]').value = notes;
+            transactionForm.querySelector('[name="status"]').value = status;
+            transactionForm.querySelector('[name="valuation"]').value = valId;
+            
+            tAmountBs.value = bs.replace(',', '.');
+            tAmountUsd.value = usd.replace(',', '.');
+            tRate.value = rate.replace(',', '.');
+            tRate.disabled = false;
+            tManualRateSwitch.checked = true;
+
+            const valNum = parseFloat(usd.replace(',', '.'));
+            if (valNum < 0) {
+                document.getElementById('type_egreso').checked = true;
+            } else {
+                document.getElementById('type_ingreso').checked = true;
+            }
+
+            tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
+            tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.replace(',', '.')) || 0);
+            updateTCurrencyUI();
+            transactionModal.show();
+        }
+
+        tCurrencyToggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const currentVal = parseFloat(tAmountDisplay.value) || 0;
+            const rate = parseFloat(tRate.value) || 1;
+            if (tCurrentInputCurrency === 'USD') {
+                tAmountDisplay.value = (currentVal * rate).toFixed(2);
+                tCurrentInputCurrency = 'BS';
+            } else {
+                tAmountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
+                tCurrentInputCurrency = 'USD';
+            }
+            updateTCurrencyUI();
+        });
+
+        tAmountDisplay.addEventListener('input', syncTFields);
+        tRate.addEventListener('input', syncTFields);
+        document.querySelectorAll('input[name="transaction_type"]').forEach(radio => {
+            radio.addEventListener('change', syncTFields);
+        });
+
+        tManualRateSwitch.addEventListener('change', function(e) {
+            tRate.disabled = !e.target.checked;
+            if (!e.target.checked) {
+                tRate.value = bcvRate;
+                syncTFields();
+            }
+        });
+
+        transactionForm.addEventListener('submit', function() {
+            tRate.disabled = false;
+        });
+
+        window.confirmDeleteTransaction = function(id) {
+            document.getElementById('deleteForm').action = `/transacciones/eliminar/${id}/?next={{ request.get_full_path|urlencode }}`;
+            deleteModal.show();
+        }
+
+        window.viewTransaction = function(id) {
+            detailModal.show();
+            fetch(`/transacciones/detalle/${id}/`)
+                .then(response => response.text())
+                .then(html => {
+                    document.getElementById('detailContent').innerHTML = html;
+                });
+        }
+
+        // --- Gestión de Valuaciones ---
+
+        const valForm = document.getElementById('valuationForm');
+        const vCurrencyToggleBtn = document.getElementById('currencyToggleBtn');
+        const vNextCurrencyLabel = document.getElementById('nextCurrencyLabel');
+        const vCurrencyAddon = document.getElementById('currencyAddon');
+        const vAmountDisplay = document.getElementById('id_amount_display');
+        const vAmountUsdField = valForm.querySelector('input[name="amount_usd"]');
+        const vAmountBsField = valForm.querySelector('input[name="amount_bs"]');
+        const vDailyRateField = valForm.querySelector('input[name="daily_rate"]');
+        const vManualRateSwitch = document.getElementById('manualRateSwitch');
 
         window.toggleValuations = function() {
             const btn = document.getElementById('toggleValuationsBtn');
@@ -269,38 +708,29 @@
         }
 
         window.resetValuationForm = function() {
-            const form = document.getElementById('valuationForm');
-            form.reset();
-            form.action = "{% url 'crear_valuacion' project.id %}";
+            valForm.reset();
+            valForm.action = "{% url 'crear_valuacion' project.id %}";
             document.getElementById('valModalTitle').innerText = "Nueva Valuación";
-            
-            document.getElementById('manualRateSwitch').checked = false;
-            dailyRateField.value = bcvRate;
-            dailyRateField.disabled = true;
-            
+            vManualRateSwitch.checked = false;
+            vDailyRateField.value = bcvRate;
+            vDailyRateField.disabled = true;
             currentInputCurrency = 'USD';
-            amountDisplay.value = "";
-            updateCurrencyUI();
+            vAmountDisplay.value = "";
+            updateVCurrencyUI();
         }
 
         window.editValuation = function(id, name, usd, bs, rate) {
-            const form = document.getElementById('valuationForm');
-            form.action = `/valuaciones/guardar/{{ project.id }}/${id}/`;
+            valForm.action = `/valuaciones/guardar/{{ project.id }}/${id}/`;
             document.getElementById('valModalTitle').innerText = "Editar Valuación";
-            
-            form.querySelector('[name="name"]').value = name;
-            
-            amountUsdField.value = usd.replace(',', '.');
-            amountBsField.value = bs.replace(',', '.');
-            dailyRateField.value = rate.replace(',', '.');
-            
+            valForm.querySelector('[name="name"]').value = name;
+            vAmountUsdField.value = usd.replace(',', '.');
+            vAmountBsField.value = bs.replace(',', '.');
+            vDailyRateField.value = rate.replace(',', '.');
             currentInputCurrency = 'USD';
-            amountDisplay.value = usd.replace(',', '.');
-            
-            document.getElementById('manualRateSwitch').checked = true;
-            dailyRateField.disabled = false;
-            
-            updateCurrencyUI();
+            vAmountDisplay.value = usd.replace(',', '.');
+            vManualRateSwitch.checked = true;
+            vDailyRateField.disabled = false;
+            updateVCurrencyUI();
             valuationModal.show();
         }
 
@@ -309,67 +739,56 @@
             deleteValModal.show();
         }
 
-        function updateCurrencyUI() {
-            if (!currencyAddon || !nextCurrencyLabel) return;
+        function updateVCurrencyUI() {
             if (currentInputCurrency === 'USD') {
-                currencyAddon.innerText = '$';
-                nextCurrencyLabel.innerText = 'BS';
+                vCurrencyAddon.innerText = '$';
+                vNextCurrencyLabel.innerText = 'BS';
             } else {
-                currencyAddon.innerText = 'Bs';
-                nextCurrencyLabel.innerText = 'USD';
+                vCurrencyAddon.innerText = 'Bs';
+                vNextCurrencyLabel.innerText = 'USD';
             }
-            syncHiddenFields();
+            syncVHiddenFields();
         }
 
-        function syncHiddenFields() {
-            if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
-            const val = parseFloat(amountDisplay.value) || 0;
-            const rate = parseFloat(dailyRateField.value) || 1;
-            
+        function syncVHiddenFields() {
+            const val = parseFloat(vAmountDisplay.value) || 0;
+            const rate = parseFloat(vDailyRateField.value) || 1;
             if (currentInputCurrency === 'USD') {
-                amountUsdField.value = val.toFixed(2);
-                amountBsField.value = (val * rate).toFixed(2);
+                vAmountUsdField.value = val.toFixed(2);
+                vAmountBsField.value = (val * rate).toFixed(2);
             } else {
-                amountBsField.value = val.toFixed(2);
-                amountUsdField.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
+                vAmountBsField.value = val.toFixed(2);
+                vAmountUsdField.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
             }
         }
 
-        if (currencyToggleBtn) {
-            currencyToggleBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const currentVal = parseFloat(amountDisplay.value) || 0;
-                const rate = parseFloat(dailyRateField.value) || 1;
-                
-                if (currentInputCurrency === 'USD') {
-                    amountDisplay.value = (currentVal * rate).toFixed(2);
-                    currentInputCurrency = 'BS';
-                } else {
-                    amountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
-                    currentInputCurrency = 'USD';
-                }
-                updateCurrencyUI();
-            });
-        }
+        vCurrencyToggleBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const currentVal = parseFloat(vAmountDisplay.value) || 0;
+            const rate = parseFloat(vDailyRateField.value) || 1;
+            if (currentInputCurrency === 'USD') {
+                vAmountDisplay.value = (currentVal * rate).toFixed(2);
+                currentInputCurrency = 'BS';
+            } else {
+                vAmountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
+                currentInputCurrency = 'USD';
+            }
+            updateVCurrencyUI();
+        });
 
-        if (amountDisplay) amountDisplay.addEventListener('input', syncHiddenFields);
-        if (dailyRateField) dailyRateField.addEventListener('input', syncHiddenFields);
+        vAmountDisplay.addEventListener('input', syncVHiddenFields);
+        vDailyRateField.addEventListener('input', syncVHiddenFields);
 
-        if (manualRateSwitch) {
-            manualRateSwitch.addEventListener('change', function(e) {
-                dailyRateField.disabled = !e.target.checked;
-                if (!e.target.checked) {
-                    dailyRateField.value = bcvRate;
-                    syncHiddenFields();
-                }
-            });
-            // Initial state based on switch
-            dailyRateField.disabled = !manualRateSwitch.checked;
-        }
+        vManualRateSwitch.addEventListener('change', function(e) {
+            vDailyRateField.disabled = !e.target.checked;
+            if (!e.target.checked) {
+                vDailyRateField.value = bcvRate;
+                syncVHiddenFields();
+            }
+        });
 
-        // Enable fields before submit so Django receives them
-        document.getElementById('valuationForm').addEventListener('submit', function() {
-            dailyRateField.disabled = false;
+        valForm.addEventListener('submit', function() {
+            vDailyRateField.disabled = false;
         });
     });
 </script>

@@ -1,16 +1,18 @@
 from django import forms
-from .models import Transaction, Category, Account, Project, Valuation
+from django.db import models
+from .models import Transaction, Category, Account, Project, Valuation, Organization
 
 class TransactionForm(forms.ModelForm):
     class Meta:
         model = Transaction
         fields = [
-            'date', 'account', 'reference_number', 'description', 
+            'date', 'organization', 'account', 'reference_number', 'description', 
             'notes', 'category', 'project', 'valuation', 
             'status', 'amount_bs', 'amount_usd', 'daily_rate'
         ]
         widgets = {
             'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'organization': forms.Select(attrs={'class': 'form-control'}),
             'account': forms.Select(attrs={'class': 'form-control'}),
             'reference_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nro. Referencia'}),
             'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Descripción de la transacción'}),
@@ -40,12 +42,40 @@ class TransactionForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         organization = kwargs.pop('organization', None)
+        project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
-        if organization:
+        
+        if project:
+            # Si estamos en un proyecto, restringir organizaciones a las que tienen acceso
+            orgs_owned = Organization.objects.filter(projects=project)
+            orgs_shared = Organization.objects.filter(shared_projects__project=project)
+            self.fields['organization'].queryset = (orgs_owned | orgs_shared).distinct()
+            
+            # Valuaciones del proyecto
+            self.fields['valuation'].queryset = Valuation.objects.filter(project=project)
+            
+            # Filtrar cuentas y categorías por la organización seleccionada (o la actual si no hay post)
+            selected_org = self.data.get('organization') or (self.instance.organization_id if self.instance.pk else organization.id if organization else None)
+            if selected_org:
+                self.fields['account'].queryset = Account.objects.filter(organization_id=selected_org)
+                self.fields['category'].queryset = Category.objects.filter(organization_id=selected_org)
+            else:
+                self.fields['account'].queryset = Account.objects.none()
+                self.fields['category'].queryset = Category.objects.none()
+        elif organization:
+            # Comportamiento original para la vista de transacciones
+            self.fields['organization'].queryset = Organization.objects.filter(id=organization.id)
+            self.fields['organization'].initial = organization
+            self.fields['organization'].widget = forms.HiddenInput()
+            
             self.fields['category'].queryset = Category.objects.filter(organization=organization)
             self.fields['account'].queryset = Account.objects.filter(organization=organization)
-            self.fields['project'].queryset = Project.objects.filter(organization=organization)
-            self.fields['valuation'].queryset = Valuation.objects.filter(project__organization=organization)
+            self.fields['project'].queryset = Project.objects.filter(
+                models.Q(organization=organization) | models.Q(shared_organizations__organization=organization)
+            ).distinct()
+            self.fields['valuation'].queryset = Valuation.objects.filter(
+                models.Q(project__organization=organization) | models.Q(project__shared_organizations__organization=organization)
+            ).distinct()
 
 class CategoryForm(forms.ModelForm):
     class Meta:
@@ -123,4 +153,3 @@ class ValuationForm(forms.ModelForm):
             cleaned_data['amount_usd'] = round(bs / rate, 2) if rate != 0 else 0
             
         return cleaned_data
-
