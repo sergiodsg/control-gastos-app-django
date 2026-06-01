@@ -1,8 +1,8 @@
 ---
 deployment:
   tasks:
-    - export DEPLOY_PATH=/home/ssapmcco/apps/HojadeTiempo
-    - export REPO_PATH=/home/ssapmcco/repositories/HojadeTiempo
+    - export DEPLOY_PATH=/home/ssapmcco/apps/CashFlow
+    - export REPO_PATH=/home/ssapmcco/repositories/CashFlow
 
     # Eliminar archivos y directorios excepto los que deben preservarse
     # Proteger: logs/, tmp/, passenger_wsgi.py, passenger_wsgi.pyc, .htaccess, archivos .log
