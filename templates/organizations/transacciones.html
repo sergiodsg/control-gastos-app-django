@@ -338,6 +338,8 @@
             const rateField = document.querySelector('input[name="daily_rate"]');
             rateField.value = bcvRate;
             rateField.disabled = true;
+            const selectedDate = form.querySelector('[name="date"]').value;
+            loadRateForDate(selectedDate);
             
             // Por defecto Egreso
             document.getElementById('type_egreso').checked = true;
@@ -425,6 +427,7 @@
         const amountBsField = document.querySelector('input[name="amount_bs"]');
         const dailyRateField = document.querySelector('input[name="daily_rate"]');
         const manualRateSwitch = document.getElementById('manualRateSwitch');
+        const dateField = document.querySelector('input[name="date"]');
         
         const projectSelect = document.querySelector('select[name="project"]');
         const valuationSelect = document.querySelector('select[name="valuation"]');
@@ -502,6 +505,18 @@
             updateTypeColors();
         }
 
+        async function loadRateForDate(dateValue) {
+            if (!dateValue || manualRateSwitch.checked) return;
+            try {
+                const response = await fetch(`{% url 'bcv_rates_api' %}?date=${dateValue}&currency=USD`);
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (!payload.ok || typeof payload.rate !== 'number') return;
+                dailyRateField.value = payload.rate.toFixed(4);
+                syncHiddenFields();
+            } catch (e) {}
+        }
+
         function updateTypeColors() {
             const isEgreso = document.getElementById('type_egreso').checked;
             if (isEgreso) {
@@ -544,12 +559,17 @@
             manualRateSwitch.addEventListener('change', function(e) {
                 dailyRateField.disabled = !e.target.checked;
                 if (!e.target.checked) {
-                    dailyRateField.value = bcvRate;
-                    syncHiddenFields();
+                    loadRateForDate(dateField.value);
                 }
             });
             // Initial state based on switch
             dailyRateField.disabled = !manualRateSwitch.checked;
+        }
+
+        if (dateField) {
+            dateField.addEventListener('change', function() {
+                loadRateForDate(this.value);
+            });
         }
 
         // Enable fields before submit so Django receives them

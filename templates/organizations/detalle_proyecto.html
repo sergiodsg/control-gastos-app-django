@@ -501,6 +501,7 @@
         const tAmountUsd = transactionForm.querySelector('[name="amount_usd"]');
         const tAmountBs = transactionForm.querySelector('[name="amount_bs"]');
         const tRate = transactionForm.querySelector('[name="daily_rate"]');
+        const tDate = transactionForm.querySelector('[name="date"]');
         const tAmountDisplay = document.getElementById('id_t_amount_display');
         const tCurrencyToggleBtn = document.getElementById('t_currencyToggleBtn');
         const tNextCurrencyLabel = document.getElementById('t_nextCurrencyLabel');
@@ -570,6 +571,18 @@
             updateTTypeColors();
         }
 
+        async function loadTRateForDate(dateValue) {
+            if (!dateValue || tManualRateSwitch.checked) return;
+            try {
+                const response = await fetch(`{% url 'bcv_rates_api' %}?date=${dateValue}&currency=USD`);
+                if (!response.ok) return;
+                const payload = await response.json();
+                if (!payload.ok || typeof payload.rate !== 'number') return;
+                tRate.value = payload.rate.toFixed(4);
+                syncTFields();
+            } catch (e) {}
+        }
+
         function updateTTypeColors() {
             const isEgreso = document.getElementById('type_egreso').checked;
             if (isEgreso) {
@@ -591,6 +604,7 @@
             tRate.value = bcvRate;
             tRate.disabled = true;
             tManualRateSwitch.checked = false;
+            loadTRateForDate(transactionForm.querySelector('[name="date"]').value);
             document.getElementById('type_egreso').checked = true;
             tCurrentInputCurrency = 'USD';
             tAmountDisplay.value = "";
@@ -651,9 +665,12 @@
         tManualRateSwitch.addEventListener('change', function(e) {
             tRate.disabled = !e.target.checked;
             if (!e.target.checked) {
-                tRate.value = bcvRate;
-                syncTFields();
+                loadTRateForDate(tDate.value);
             }
+        });
+
+        tDate.addEventListener('change', function() {
+            loadTRateForDate(this.value);
         });
 
         transactionForm.addEventListener('submit', function() {

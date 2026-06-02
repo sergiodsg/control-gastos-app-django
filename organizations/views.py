@@ -6,12 +6,11 @@ from django.contrib import messages
 from django.db.models import Sum
 from django.utils import timezone
 from datetime import timedelta
-import urllib.request
 import json
 from django.db import models
 from django.core.paginator import Paginator
 from decimal import Decimal
-from django.core.cache import cache
+from BCV.services.bcv_scrapper import as_dashboard_rates, get_rate_for_date
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -76,33 +75,14 @@ def get_filtered_totals_both(org_id, filter_type):
         'expense_bs': abs(res['expense_bs'] or 0),
     }
 
-def fetch_api_rate(url):
-    cache_key = f'rate_api_{url}'
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return cached_data
-        
+def get_bcv_rate(target_date=None):
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
-            cache.set(cache_key, data, 3600)  # Cache por 1 hora
-            return data
+        rate_date = target_date or timezone.localdate()
+        rate = get_rate_for_date(rate_date, currency="USD")
+        if rate is not None:
+            return float(rate)
     except Exception:
-        return None
-
-def get_bcv_rate():
-    rate = cache.get('bcv_rate_val')
-    if rate:
-        return rate
-        
-    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
-    if dolares_data:
-        for item in dolares_data:
-            if item.get('fuente', '').lower() == 'oficial':
-                val = item.get('promedio', 1)
-                cache.set('bcv_rate_val', val, 3600)
-                return val
+        pass
     return 1
 
 @login_required
@@ -127,31 +107,15 @@ def home_organizacion(request):
     else:
         exp_totals = get_filtered_totals_both(org_id, expense_filter)
     
-    # Cache para listas completas de tasas
-    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
-    euros_data = fetch_api_rate('https://ve.dolarapi.com/v1/euros')
-    
-    rates = {
-        'usd_bcv': None,
-        'usd_paralelo': None,
-        'eur_bcv': None,
-        'eur_paralelo': None,
-    }
-    
-    def find_rate(data, fuente_slug):
-        if not isinstance(data, list): return None
-        for item in data:
-            if item.get('fuente', '').lower() == fuente_slug:
-                return item
-        return None
-
-    if dolares_data:
-        rates['usd_bcv'] = find_rate(dolares_data, 'oficial')
-        rates['usd_paralelo'] = find_rate(dolares_data, 'paralelo')
-    
-    if euros_data:
-        rates['eur_bcv'] = find_rate(euros_data, 'oficial')
-        rates['eur_paralelo'] = find_rate(euros_data, 'paralelo')
+    try:
+        rates = as_dashboard_rates()
+    except Exception:
+        rates = {
+            'usd_bcv': None,
+            'usd_paralelo': None,
+            'eur_bcv': None,
+            'eur_paralelo': None,
+        }
     
     recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
     
