@@ -1,44 +1,45 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Registrarse - Control de Gastos{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/auth.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="card auth-card mx-auto" style="max-width: 550px;">
-    <div class="card-body">
-        <div class="text-center mb-4">
-            <i class="bi bi-person-plus fs-1 text-success"></i>
-            <h3 class="mt-2 fw-bold">Registro de Usuario</h3>
-            <p class="text-muted">Crea tu cuenta para empezar a gestionar organizaciones</p>
+<div class="cf-card auth-card" style="max-width: 550px;">
+    <div class="cf-card__body">
+        <div class="cf-text-center cf-mb-4">
+            <i class="fa-solid fa-user-plus auth-logo" style="color: var(--color-success);"></i>
+            <h3 class="auth-title">Registro de Usuario</h3>
+            <p class="auth-subtitle">Crea tu cuenta para empezar a gestionar organizaciones</p>
         </div>
-        
+
         <form method="post">
             {% csrf_token %}
-            <div class="row">
+            <div class="cf-form-row">
                 {% for field in form %}
-                    <div class="{% if field.name == 'first_name' or field.name == 'last_name' %}col-md-6{% else %}col-12{% endif %} mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label fw-medium">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.errors %}
-                            {% for error in field.errors %}
-                                <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
-                            {% endfor %}
-                        {% endif %}
-                        {% if field.help_text %}
-                            <div class="text-muted small mt-1" style="font-size: 0.75rem;">{{ field.help_text|safe }}</div>
-                        {% endif %}
-                    </div>
+                <div class="cf-form-group" style="{% if field.name != 'first_name' and field.name != 'last_name' %}grid-column: 1 / -1;{% endif %}">
+                    <label for="{{ field.id_for_label }}" class="cf-label">{{ field.label }}</label>
+                    {{ field }}
+                    {% for error in field.errors %}
+                    <div class="cf-field-error"><i class="fa-solid fa-circle-exclamation cf-me-1"></i>{{ error }}</div>
+                    {% endfor %}
+                    {% if field.help_text %}
+                    <div class="cf-text-muted cf-fs-sm cf-mt-1">{{ field.help_text|safe }}</div>
+                    {% endif %}
+                </div>
                 {% endfor %}
             </div>
-            
-            <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-success btn-lg shadow-sm">
-                    Registrarse <i class="bi bi-check-circle ms-1"></i>
-                </button>
-            </div>
+
+            <button type="submit" class="cf-btn cf-btn--success cf-btn--lg cf-mt-4 cf-w-100">
+                Registrarse <i class="fa-solid fa-circle-check"></i>
+            </button>
         </form>
-        
-        <div class="text-center mt-4 pt-2 border-top">
-            <p class="mb-0">¿Ya tienes cuenta? <a href="{% url 'login' %}" class="text-decoration-none fw-bold">Inicia sesión aquí</a></p>
+
+        <div class="auth-register-link cf-divider cf-mt-4">
+            <p class="cf-mb-0">¿Ya tienes cuenta? <a href="{% url 'login' %}">Inicia sesión aquí</a></p>
         </div>
     </div>
 </div>

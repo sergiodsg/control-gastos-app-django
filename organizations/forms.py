@@ -11,19 +11,19 @@ class TransactionForm(forms.ModelForm):
             'status', 'amount_bs', 'amount_usd', 'daily_rate'
         ]
         widgets = {
-            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
-            'organization': forms.Select(attrs={'class': 'form-control'}),
-            'account': forms.Select(attrs={'class': 'form-control'}),
-            'reference_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nro. Referencia'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Descripción de la transacción'}),
-            'notes': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Notas adicionales'}),
-            'category': forms.Select(attrs={'class': 'form-control'}),
-            'project': forms.Select(attrs={'class': 'form-control'}),
-            'valuation': forms.Select(attrs={'class': 'form-control'}),
-            'status': forms.Select(attrs={'class': 'form-control'}),
-            'amount_bs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'type': 'number'}),
-            'amount_usd': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'type': 'number'}),
-            'daily_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.0001', 'type': 'number'}),
+            'date': forms.DateInput(attrs={'class': 'cf-input', 'type': 'date'}),
+            'organization': forms.Select(attrs={'class': 'cf-input'}),
+            'account': forms.Select(attrs={'class': 'cf-input'}),
+            'reference_number': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nro. Referencia'}),
+            'description': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Descripción de la transacción'}),
+            'notes': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Notas adicionales'}),
+            'category': forms.Select(attrs={'class': 'cf-input'}),
+            'project': forms.Select(attrs={'class': 'cf-input'}),
+            'valuation': forms.Select(attrs={'class': 'cf-input'}),
+            'status': forms.Select(attrs={'class': 'cf-input'}),
+            'amount_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
+            'amount_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
+            'daily_rate': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number'}),
         }
 
     def clean(self):
@@ -82,23 +82,23 @@ class CategoryForm(forms.ModelForm):
         model = Category
         fields = ['name', 'description', 'color']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la categoría'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 2, 'placeholder': 'Breve descripción'}),
-            'color': forms.TextInput(attrs={'class': 'form-control', 'type': 'color', 'style': 'height: 38px; width: 60px; padding: 2px;'}),
+            'name': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nombre de la categoría'}),
+            'description': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Breve descripción'}),
+            'color': forms.TextInput(attrs={'class': 'cf-input', 'type': 'color', 'style': 'height: 38px; width: 60px; padding: 2px;'}),
         }
 
 class AccountForm(forms.ModelForm):
     initial_amount_usd = forms.DecimalField(
         max_digits=20, decimal_places=2, required=False, label="Monto inicial (USD)",
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'type': 'number'})
+        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'})
     )
     initial_amount_bs = forms.DecimalField(
         max_digits=20, decimal_places=2, required=False, label="Monto inicial (BS)",
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'type': 'number'})
+        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'})
     )
     daily_rate = forms.DecimalField(
         max_digits=20, decimal_places=4, required=False, label="Tasa del día (para monto inicial)",
-        widget=forms.NumberInput(attrs={'class': 'form-control', 'step': '0.0001', 'type': 'number'})
+        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number'})
     )
 
     def clean(self):
@@ -118,7 +118,7 @@ class AccountForm(forms.ModelForm):
         model = Account
         fields = ['name']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre de la cuenta (ej. Caja Menuda, Banco Banesco)'}),
+            'name': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nombre de la cuenta (ej. Caja Menuda, Banco Banesco)'}),
         }
 
 class ProjectForm(forms.ModelForm):
@@ -126,8 +126,8 @@ class ProjectForm(forms.ModelForm):
         model = Project
         fields = ['name', 'description']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre del proyecto'}),
-            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Descripción del proyecto'}),
+            'name': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nombre del proyecto'}),
+            'description': forms.Textarea(attrs={'class': 'cf-input', 'rows': 3, 'placeholder': 'Descripción del proyecto'}),
         }
 
 class ValuationForm(forms.ModelForm):
@@ -135,10 +135,10 @@ class ValuationForm(forms.ModelForm):
         model = Valuation
         fields = ['name', 'amount_usd', 'amount_bs', 'daily_rate']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej. Valuación 01, Fundaciones...'}),
-            'amount_usd': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'type': 'number'}),
-            'amount_bs': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'type': 'number'}),
-            'daily_rate': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.0001', 'type': 'number'}),
+            'name': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Ej. Valuación 01, Fundaciones...'}),
+            'amount_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
+            'amount_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
+            'daily_rate': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number'}),
         }
 
     def clean(self):

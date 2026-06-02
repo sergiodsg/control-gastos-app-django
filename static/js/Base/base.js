@@ -55,3 +55,21 @@
         }
     });
 })();
+
+function applyCurrencyPreference() {
+    const pref = localStorage.getItem('currency_pref') || 'USD';
+    const usdElements = document.querySelectorAll('.currency-usd-content');
+    const bsElements = document.querySelectorAll('.currency-bs-content');
+
+    if (pref === 'USD') {
+        usdElements.forEach(function (el) { el.classList.remove('cf-hidden', 'd-none'); });
+        bsElements.forEach(function (el) { el.classList.add('cf-hidden', 'd-none'); });
+    } else {
+        usdElements.forEach(function (el) { el.classList.add('cf-hidden', 'd-none'); });
+        bsElements.forEach(function (el) { el.classList.remove('cf-hidden', 'd-none'); });
+    }
+}
+
+window.addEventListener('DOMContentLoaded', function () {
+    applyCurrencyPreference();
+});

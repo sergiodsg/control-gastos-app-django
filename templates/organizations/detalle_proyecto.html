@@ -1,812 +1,303 @@
 {% extends 'base.html' %}
-{% load l10n %}
+{% load static l10n %}
 
 {% block title %}{{ project.name }} - Proyectos{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/detalle_proyecto.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="cf-page-header">
     <div>
-        <h2 class="mb-0"><i class="bi bi-kanban me-2 text-primary"></i>{{ project.name }}</h2>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'home_organizacion' %}">Inicio</a></li>
-                <li class="breadcrumb-item"><a href="{% url 'lista_proyectos' %}">Proyectos</a></li>
-                <li class="breadcrumb-item active">Detalle</li>
-            </ol>
+        <h2 class="cf-page-title"><i class="fa-solid fa-table-columns cf-text-primary"></i> {{ project.name }}</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'home_organizacion' %}">Inicio</a></span>
+            <span class="cf-breadcrumb__sep"><a href="{% url 'lista_proyectos' %}">Proyectos</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">Detalle</span>
         </nav>
     </div>
-    <div class="d-flex gap-2">
-        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#transactionModal" onclick="resetTransactionForm()">
-            <i class="bi bi-plus-lg me-1"></i>Nueva Transacción
+    <div class="cf-flex cf-gap-2 cf-flex-wrap">
+        <button type="button" class="cf-btn cf-btn--primary" data-cf-modal="transactionModal" onclick="resetTransactionForm()">
+            <i class="fa-solid fa-plus"></i> Nueva Transacción
         </button>
-        <button type="button" class="btn btn-outline-secondary" id="toggleValuationsBtn" onclick="toggleValuations()">
-            <i class="bi bi-gear me-1"></i>Gestionar Valuaciones
+        <button type="button" class="cf-btn cf-btn--outline-secondary" id="toggleValuationsBtn" onclick="toggleValuations()">
+            <i class="fa-solid fa-gear"></i> Gestionar Valuaciones
         </button>
-        <button type="button" class="btn btn-outline-primary" id="addValuationBtn" data-bs-toggle="modal" data-bs-target="#valuationModal" onclick="resetValuationForm()" style="display: none;">
-            <i class="bi bi-plus-lg me-1"></i>Añadir Valuación
+        <button type="button" class="cf-btn cf-btn--outline" id="addValuationBtn" data-cf-modal="valuationModal" onclick="resetValuationForm()" style="display: none;">
+            <i class="fa-solid fa-plus"></i> Añadir Valuación
         </button>
     </div>
 </div>
 
-<div class="row g-4 mb-4">
-    <!-- Resumen del Proyecto -->
-    <div class="col-lg-12" id="projectSummaryCol">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body p-4">
-                <h5 class="card-title fw-bold mb-3">Descripción</h5>
-                <p class="text-muted">{{ project.description|default:"Sin descripción" }}</p>
-                
-                <hr class="my-4">
-                
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="small text-muted d-block">Balance Proyecto (Total)</label>
-                        <span class="fs-4 fw-bold text-{% if totals.balance_usd < 0 %}danger{% else %}success{% endif %}">
-                            {{ totals.balance_usd|floatformat:2 }} $
-                        </span>
-                        <div class="small text-muted">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="small text-muted d-block">Balance Mi Organización</label>
-                        <span class="fs-4 fw-bold text-{% if totals.org_balance_usd < 0 %}danger{% else %}success{% endif %}">
-                            {{ totals.org_balance_usd|floatformat:2 }} $
-                        </span>
-                        <div class="small text-muted">{{ totals.org_balance_bs|floatformat:2 }} Bs.</div>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="small text-muted d-block">Ingresos Totales (Créditos)</label>
-                        <span class="fs-4 fw-bold text-success">{{ totals.income_usd|floatformat:2 }} $</span>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="small text-muted d-block">Gastos Totales (Débitos)</label>
-                        <span class="fs-4 fw-bold text-danger">{{ totals.expense_usd|floatformat:2 }} $</span>
-                    </div>
+<div class="cf-grid cf-grid--kpi cf-mb-4">
+    <div class="cf-card" id="projectSummaryCol">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-3">Descripción</h5>
+            <p class="cf-text-muted">{{ project.description|default:"Sin descripción" }}</p>
+            <div class="cf-divider"></div>
+            <div class="project-detail-kpi">
+                <div>
+                    <span class="cf-stat-label">Balance Proyecto (Total)</span>
+                    <div class="cf-stat-value {% if totals.balance_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.balance_usd|floatformat:2 }} $</div>
+                    <div class="cf-text-muted cf-fs-sm">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+                </div>
+                <div>
+                    <span class="cf-stat-label">Balance Mi Organización</span>
+                    <div class="cf-stat-value {% if totals.org_balance_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.org_balance_usd|floatformat:2 }} $</div>
+                    <div class="cf-text-muted cf-fs-sm">{{ totals.org_balance_bs|floatformat:2 }} Bs.</div>
+                </div>
+                <div>
+                    <span class="cf-stat-label">Ingresos Totales</span>
+                    <div class="cf-stat-value cf-text-success">{{ totals.income_usd|floatformat:2 }} $</div>
+                </div>
+                <div>
+                    <span class="cf-stat-label">Gastos Totales</span>
+                    <div class="cf-stat-value cf-text-danger">{{ totals.expense_usd|floatformat:2 }} $</div>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Valuaciones y Progreso -->
-    <div class="col-lg-4 d-none" id="valuationsContainer">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body p-4">
-                <h5 class="card-title fw-bold mb-4">Valuaciones</h5>
-                {% for val in valuations %}
-                <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <span class="fw-bold">{{ val.name }}</span>
-                        <div class="btn-group">
-                            <button class="btn btn-xs btn-link text-primary p-0 me-2" onclick="editValuation({{ val.id }}, '{{ val.name|escapejs }}', '{{ val.amount_usd|unlocalize }}', '{{ val.amount_bs|unlocalize }}', '{{ val.daily_rate|unlocalize }}')">
-                                <i class="bi bi-pencil"></i>
-                            </button>
-                            <button class="btn btn-xs btn-link text-danger p-0" onclick="confirmDeleteValuation({{ val.id }})">
-                                <i class="bi bi-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="d-flex justify-content-between small text-muted mb-2">
-                        <span>{{ val.covered_usd|default:0|floatformat:2 }} $ / {{ val.amount_usd|floatformat:2 }} $</span>
-                        <span class="fw-bold text-primary">{{ val.progress|default:0 }}%</span>
-                    </div>
-                    <div class="small text-muted mb-2" style="font-size: 0.7rem;">
-                        Equivalente: {{ val.amount_bs|floatformat:2 }} Bs. (Tasa: {{ val.daily_rate|floatformat:4 }})
-                    </div>
-                    <div class="progress" style="height: 10px;">
-                        <div class="progress-bar {% if val.progress == 100 %}bg-success{% else %}bg-primary{% endif %}" 
-                             role="progressbar" style="width: {{ val.progress|unlocalize }}%" 
-                             aria-valuenow="{{ val.progress|unlocalize }}" aria-valuemin="0" aria-valuemax="100"></div>
+
+    <div class="cf-card cf-hidden project-valuations-panel" id="valuationsContainer">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-4">Valuaciones</h5>
+            {% for val in valuations %}
+            <div class="valuation-item">
+                <div class="cf-flex cf-justify-between cf-items-center cf-mb-1">
+                    <span class="cf-fw-bold">{{ val.name }}</span>
+                    <div class="cf-btn-group">
+                        <button class="cf-btn cf-btn--link cf-btn--xs" onclick="editValuation({{ val.id }}, '{{ val.name|escapejs }}', '{{ val.amount_usd|unlocalize }}', '{{ val.amount_bs|unlocalize }}', '{{ val.daily_rate|unlocalize }}')"><i class="fa-solid fa-pencil"></i></button>
+                        <button class="cf-btn cf-btn--link-danger cf-btn--xs" onclick="confirmDeleteValuation({{ val.id }})"><i class="fa-solid fa-trash"></i></button>
                     </div>
                 </div>
-                {% empty %}
-                <div class="text-center py-4 text-muted small">
-                    <i class="bi bi-info-circle d-block mb-2 fs-4"></i>
-                    No hay valuaciones registradas.
+                <div class="cf-flex cf-justify-between cf-fs-sm cf-text-muted cf-mb-2">
+                    <span>{{ val.covered_usd|default:0|floatformat:2 }} $ / {{ val.amount_usd|floatformat:2 }} $</span>
+                    <span class="cf-fw-bold cf-text-primary">{{ val.progress|default:0 }}%</span>
                 </div>
+                <div class="cf-text-muted cf-mb-2" style="font-size: 0.7rem;">Equivalente: {{ val.amount_bs|floatformat:2 }} Bs. (Tasa: {{ val.daily_rate|floatformat:4 }})</div>
+                <div class="cf-progress">
+                    <div class="cf-progress__bar {% if val.progress == 100 %}cf-progress__bar--success{% endif %}" style="width: {{ val.progress|unlocalize }}%;"></div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="cf-text-center cf-py-4 cf-text-muted cf-fs-sm">
+                <i class="fa-solid fa-circle-info cf-d-block cf-mb-2 cf-fs-xl"></i>
+                No hay valuaciones registradas.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="cf-filter-bar">
+    <form method="get" class="cf-form-row" style="align-items: end;">
+        <div class="cf-form-group cf-mb-0">
+            <label class="cf-stat-label">Período:</label>
+            <select name="filter_type" class="cf-select cf-input--sm" onchange="toggleCustomDates(this.value)">
+                {% for value, label in filter_options %}
+                <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
+            </select>
+        </div>
+        <div class="cf-form-group cf-mb-0">
+            <label class="cf-stat-label">Organización:</label>
+            <select name="organization" class="cf-select cf-input--sm">
+                <option value="">Todas</option>
+                {% for o in orgs_with_access %}
+                <option value="{{ o.id }}" {% if selected_org_id == o.id|stringformat:"i" %}selected{% endif %}>{{ o.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div id="custom_date_inputs" class="cf-form-group cf-mb-0" style="grid-column: span 2; {% if filter_type != 'custom' %}display: none;{% endif %}">
+            <div class="cf-form-row">
+                <div class="cf-form-group cf-mb-0"><label class="cf-stat-label">Desde:</label><input type="date" name="date_from" class="cf-input cf-input--sm" value="{{ date_from }}"></div>
+                <div class="cf-form-group cf-mb-0"><label class="cf-stat-label">Hasta:</label><input type="date" name="date_to" class="cf-input cf-input--sm" value="{{ date_to }}"></div>
             </div>
         </div>
-    </div>
+        <div class="cf-flex cf-gap-2">
+            <button type="submit" class="cf-btn cf-btn--dark cf-btn--sm"><i class="fa-solid fa-filter"></i> Filtrar</button>
+            <a href="{% url 'detalle_proyecto' project.id %}" class="cf-btn cf-btn--outline-secondary cf-btn--sm"><i class="fa-solid fa-circle-xmark"></i> Limpiar</a>
+        </div>
+    </form>
 </div>
 
-<!-- Filtros de Transacciones -->
-<div class="card shadow-sm border-0 mb-4 bg-light">
-    <div class="card-body py-3">
-        <form method="get" class="row g-3 align-items-end">
-            <div class="col-md-3">
-                <label class="small text-muted mb-1 fw-bold">Período:</label>
-                <select name="filter_type" class="form-select form-select-sm" id="filter_type_select" onchange="toggleCustomDates(this.value)">
-                    {% for value, label in filter_options %}
-                        <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
+<div class="cf-card">
+    <div class="cf-card__header"><h5 class="cf-card__title">Transacciones del Proyecto</h5></div>
+    <div class="cf-table-wrap">
+        <table class="cf-table">
+            <thead>
+                <tr>
+                    <th class="cf-ps-4">Fecha</th>
+                    <th>Organización</th>
+                    <th>Descripción</th>
+                    <th>Monto (USD)</th>
+                    <th>Valuación</th>
+                    <th>Estado</th>
+                    <th class="cf-text-end cf-pe-4">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trans in page_obj %}
+                <tr>
+                    <td class="cf-ps-4">{{ trans.date|date:"d/m/Y" }}</td>
+                    <td><span class="cf-fs-sm cf-fw-bold {% if trans.organization.id == request.session.org_id %}cf-text-primary{% else %}cf-text-muted{% endif %}">{{ trans.organization.name }}</span></td>
+                    <td><div class="cf-text-truncate" style="max-width: 300px;" title="{{ trans.description }}">{{ trans.description }}</div></td>
+                    <td class="cf-fw-bold {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
+                    <td>{% if trans.valuation %}<span class="cf-badge cf-badge--info">{{ trans.valuation.name }}</span>{% else %}<span class="cf-text-muted cf-fs-sm">-</span>{% endif %}</td>
+                    <td>
+                        <span class="cf-badge cf-badge--pill {% if trans.status == 'completado' %}cf-badge--success{% elif trans.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
+                            {{ trans.get_status_display }}
+                        </span>
+                    </td>
+                    <td class="cf-text-end cf-pe-4">
+                        <div class="cf-btn-group">
+                            <button class="cf-btn cf-btn--sm cf-btn--outline-secondary" onclick="viewTransaction({{ trans.id }})" title="Ver"><i class="fa-solid fa-eye"></i></button>
+                            <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editTransaction({{ trans.id }}, '{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|escapejs }}', '{{ trans.notes|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+                            <button class="cf-btn cf-btn--sm cf-btn--outline-danger" onclick="confirmDeleteTransaction({{ trans.id }})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="cf-text-center cf-py-5 cf-text-muted">No hay transacciones registradas para este proyecto.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <nav class="cf-p-4">
+        <ul class="cf-pagination">
+            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">Anterior</a></li>{% endif %}
+            {% for i in page_obj.paginator.page_range %}
+            {% if page_obj.number == i %}<li class="is-active"><span>{{ i }}</span></li>
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">{{ i }}</a></li>{% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">Siguiente</a></li>{% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 
-            <div class="col-md-3">
-                <label class="small text-muted mb-1 fw-bold">Organización:</label>
-                <select name="organization" class="form-select form-select-sm">
-                    <option value="">Todas</option>
-                    {% for o in orgs_with_access %}
-                        <option value="{{ o.id }}" {% if selected_org_id == o.id|stringformat:"i" %}selected{% endif %}>{{ o.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            
-            <div id="custom_date_inputs" class="col-md-4" style="{% if filter_type != 'custom' %}display: none;{% endif %}">
-                <div class="row g-2">
-                    <div class="col-6">
-                        <label class="small text-muted mb-1 fw-bold">Desde:</label>
-                        <input type="date" name="date_from" class="form-control form-control-sm" value="{{ date_from }}">
-                    </div>
-                    <div class="col-6">
-                        <label class="small text-muted mb-1 fw-bold">Hasta:</label>
-                        <input type="date" name="date_to" class="form-control form-control-sm" value="{{ date_to }}">
+<!-- Modals -->
+<div class="cf-modal" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--lg">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title" id="transactionModalTitle">Nueva Transacción</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <input type="hidden" name="project" value="{{ project.id }}">
+            <div class="cf-modal__body">
+                <div class="cf-form-group">
+                    <label class="cf-label">Tipo de Transacción</label>
+                    <div class="cf-radio-group">
+                        <input type="radio" name="transaction_type" id="type_egreso" value="egreso" checked>
+                        <label class="cf-radio--danger" for="type_egreso"><i class="fa-solid fa-circle-minus cf-me-1"></i>Egreso</label>
+                        <input type="radio" name="transaction_type" id="type_ingreso" value="ingreso">
+                        <label class="cf-radio--success" for="type_ingreso"><i class="fa-solid fa-circle-plus cf-me-1"></i>Ingreso</label>
                     </div>
                 </div>
+                <div class="cf-form-row">
+                    <div class="cf-form-group"><label class="cf-label">Fecha</label>{{ trans_form.date }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Organización</label>{{ trans_form.organization }}<div class="cf-text-muted cf-fs-sm cf-mt-1">Responsable del gasto.</div></div>
+                    <div class="cf-form-group"><label class="cf-label">Cuenta</label>{{ trans_form.account }}</div>
+                    <div class="cf-form-group">
+                        <label class="cf-label cf-flex cf-justify-between">Monto<button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="t_currencyToggleBtn">Cambiar a <span id="t_nextCurrencyLabel">BS</span></button></label>
+                        <div class="cf-input-group"><span class="cf-input-group__addon" id="t_currencyAddon">$</span><input type="number" step="0.01" class="cf-input" id="id_t_amount_display" placeholder="0.00"></div>
+                        <div class="cf-hidden">{{ trans_form.amount_usd }}{{ trans_form.amount_bs }}</div>
+                    </div>
+                    <div class="cf-form-group">
+                        <div class="cf-flex cf-justify-between cf-items-center cf-mb-2"><label class="cf-label cf-mb-0">Tasa del día</label><div class="cf-switch"><input type="checkbox" id="t_manualRateSwitch"><label for="t_manualRateSwitch" class="cf-fs-sm">Tasa manual</label></div></div>
+                        {{ trans_form.daily_rate }}
+                    </div>
+                    <div class="cf-form-group"><label class="cf-label">Referencia</label>{{ trans_form.reference_number }}</div>
+                    <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ trans_form.description }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Categoría</label>{{ trans_form.category }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Valuación</label>{{ trans_form.valuation }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Estado</label>{{ trans_form.status }}</div>
+                    <div class="cf-form-group cf-mb-0" style="grid-column: 1 / -1;"><label class="cf-label">Notas</label>{{ trans_form.notes }}</div>
+                </div>
             </div>
-            
-            <div class="col-md-auto">
-                <button type="submit" class="btn btn-sm btn-dark px-3">
-                    <i class="bi bi-filter me-1"></i>Filtrar
-                </button>
-                <a href="{% url 'detalle_proyecto' project.id %}" class="btn btn-sm btn-outline-secondary px-3">
-                    <i class="bi bi-x-circle me-1"></i>Limpiar
-                </a>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Guardar</button>
             </div>
         </form>
     </div>
 </div>
 
-<!-- Lista de Transacciones Asociadas -->
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3">
-        <h5 class="card-title mb-0 fw-bold">Transacciones del Proyecto</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">Fecha</th>
-                        <th>Organización</th>
-                        <th>Descripción</th>
-                        <th>Monto (USD)</th>
-                        <th>Valuación</th>
-                        <th>Estado</th>
-                        <th class="text-end pe-4">Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for trans in page_obj %}
-                    <tr>
-                        <td class="ps-4">{{ trans.date|date:"d/m/Y" }}</td>
-                        <td>
-                            <span class="small fw-bold {% if trans.organization.id == request.session.org_id %}text-primary{% else %}text-muted{% endif %}">
-                                {{ trans.organization.name }}
-                            </span>
-                        </td>
-                        <td>
-                            <div class="text-truncate" style="max-width: 300px;" title="{{ trans.description }}">
-                                {{ trans.description }}
-                            </div>
-                        </td>
-                        <td class="fw-bold text-{% if trans.amount_usd < 0 %}danger{% else %}success{% endif %}">
-                            {{ trans.amount_usd|floatformat:2 }} $
-                        </td>
-                        <td>
-                            {% if trans.valuation %}
-                                <span class="badge bg-info-subtle text-info border border-info-subtle">
-                                    {{ trans.valuation.name }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted small">-</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge rounded-pill {% if trans.status == 'completado' %}bg-success-subtle text-success{% elif trans.status == 'pendiente' %}bg-warning-subtle text-warning{% else %}bg-danger-subtle text-danger{% endif %} small">
-                                {{ trans.get_status_display }}
-                            </span>
-                        </td>
-                        <td class="text-end pe-4">
-                            <div class="btn-group">
-                                <button class="btn btn-sm btn-outline-secondary" onclick="viewTransaction({{ trans.id }})" title="Ver detalle">
-                                    <i class="bi bi-eye"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-primary" onclick="editTransaction({{ trans.id }}, '{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|escapejs }}', '{{ trans.notes|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Editar">
-                                    <i class="bi bi-pencil"></i>
-                                </button>
-                                <button class="btn btn-sm btn-outline-danger" onclick="confirmDeleteTransaction({{ trans.id }})" title="Eliminar">
-                                    <i class="bi bi-trash"></i>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
-                            No hay transacciones registradas para este proyecto.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+<div class="cf-modal" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--lg">
+        <div class="cf-modal__header" style="background: var(--color-info); color: #fff; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+            <h5 class="cf-modal__title">Detalle de Transacción</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
         </div>
-        
-        <!-- Paginación -->
-        {% if page_obj.has_other_pages %}
-        <nav class="mt-4 pb-4">
-            <ul class="pagination justify-content-center">
-                {% if page_obj.has_previous %}
-                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">Anterior</a></li>
-                {% endif %}
-
-                {% for i in page_obj.paginator.page_range %}
-                    {% if page_obj.number == i %}
-                        <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-                    {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-                        <li class="page-item"><a class="page-link" href="?page={{ i }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">{{ i }}</a></li>
-                    {% endif %}
-                {% endfor %}
-
-                {% if page_obj.has_next %}
-                    <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}">Siguiente</a></li>
-                {% endif %}
-            </ul>
-        </nav>
-        {% endif %}
+        <div class="cf-modal__body" id="detailContent">
+            <div class="cf-text-center cf-p-5"><div class="cf-spinner"></div></div>
+        </div>
     </div>
 </div>
 
-<!-- Modal Transacción (Crear/Editar) -->
-<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="transactionModalTitle">Nueva Transacción</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
-                {% csrf_token %}
-                <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <!-- Mantenemos el proyecto oculto ya que está preseleccionado por contexto -->
-                <input type="hidden" name="project" value="{{ project.id }}">
-                
-                <div class="modal-body p-4">
-                    <div class="row g-3">
-                        <div class="col-md-12 mb-2">
-                            <label class="form-label fw-bold d-block">Tipo de Transacción</label>
-                            <div class="btn-group w-100" role="group">
-                                <input type="radio" class="btn-check" name="transaction_type" id="type_egreso" value="egreso" checked autocomplete="off">
-                                <label class="btn btn-outline-danger w-50 py-2" for="type_egreso">
-                                    <i class="bi bi-dash-circle me-1"></i>Egreso
-                                </label>
+<div class="cf-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--danger"><h5 class="cf-modal__title">Confirmar Eliminación</h5><button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button></div>
+        <div class="cf-modal__body">¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.</div>
+        <div class="cf-modal__footer"><form id="deleteForm" method="post" action="">{% csrf_token %}<button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button><button type="submit" class="cf-btn cf-btn--danger">Eliminar</button></form></div>
+    </div>
+</div>
 
-                                <input type="radio" class="btn-check" name="transaction_type" id="type_ingreso" value="ingreso" autocomplete="off">
-                                <label class="btn btn-outline-success w-50 py-2" for="type_ingreso">
-                                    <i class="bi bi-plus-circle me-1"></i>Ingreso
-                                </label>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Fecha</label>
-                            {{ trans_form.date }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Organización</label>
-                            {{ trans_form.organization }}
-                            <div class="small text-muted mt-1">Responsable del gasto.</div>
-                        </div>
-                        
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Cuenta</label>
-                            {{ trans_form.account }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold d-flex justify-content-between">
-                                Monto
-                                <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" id="t_currencyToggleBtn" style="font-size: 0.7rem;">
-                                    Cambiar a <span id="t_nextCurrencyLabel">BS</span>
-                                </button>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="t_currencyAddon">$</span>
-                                <input type="number" step="0.01" class="form-control" id="id_t_amount_display" placeholder="0.00">
-                            </div>
-                            <div class="d-none">
-                                {{ trans_form.amount_usd }}
-                                {{ trans_form.amount_bs }}
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="d-flex justify-content-between align-items-center mb-2">
-                                <label class="form-label fw-bold mb-0">Tasa del día</label>
-                                <div class="form-check form-switch mb-0">
-                                    <input class="form-check-input" type="checkbox" id="t_manualRateSwitch">
-                                    <label class="form-check-label small" for="t_manualRateSwitch">Tasa manual</label>
-                                </div>
-                            </div>
-                            {{ trans_form.daily_rate }}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Referencia</label>
-                            {{ trans_form.reference_number }}
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Descripción</label>
-                            {{ trans_form.description }}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Categoría</label>
-                            {{ trans_form.category }}
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Valuación</label>
-                            {{ trans_form.valuation }}
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label fw-bold">Estado</label>
-                            {{ trans_form.status }}
-                        </div>
-                        
-                        <div class="col-12">
-                            <label class="form-label fw-bold">Notas</label>
-                            {{ trans_form.notes }}
-                        </div>
+<div class="cf-modal" id="valuationModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--primary"><h5 class="cf-modal__title" id="valModalTitle">Nueva Valuación</h5><button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button></div>
+        <form id="valuationForm" method="post" action="{% url 'crear_valuacion' project.id %}">
+            {% csrf_token %}
+            <div class="cf-modal__body">
+                <div class="cf-form-group"><label class="cf-label">Nombre de la Valuación</label>{{ val_form.name }}</div>
+                <div class="cf-form-row">
+                    <div class="cf-form-group">
+                        <label class="cf-label cf-flex cf-justify-between">Monto<button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="currencyToggleBtn">Cambiar a <span id="nextCurrencyLabel">BS</span></button></label>
+                        <div class="cf-input-group"><span class="cf-input-group__addon" id="currencyAddon">$</span><input type="number" step="0.01" class="cf-input" id="id_amount_display" placeholder="0.00"></div>
+                        <div class="cf-hidden">{{ val_form.amount_usd }}{{ val_form.amount_bs }}</div>
                     </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-primary px-4">Guardar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Detalle Transacción -->
-<div class="modal fade" id="detailModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow">
-            <div id="detailContent">
-                <div class="text-center p-5">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Cargando...</span>
+                    <div class="cf-form-group">
+                        <label class="cf-label cf-fs-sm">Tasa</label>{{ val_form.daily_rate }}
+                        <div class="cf-switch cf-mt-1"><input type="checkbox" id="manualRateSwitch"><label for="manualRateSwitch" class="cf-fs-sm">Manual</label></div>
                     </div>
                 </div>
             </div>
-        </div>
+            <div class="cf-modal__footer"><button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button><button type="submit" class="cf-btn cf-btn--primary">Guardar</button></div>
+        </form>
     </div>
 </div>
 
-<!-- Modal Eliminar Transacción -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                ¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.
-            </div>
-            <div class="modal-footer bg-light">
-                <form id="deleteForm" method="post" action="">
-                    {% csrf_token %}
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger px-4">Eliminar</button>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Valuación (Crear/Editar) -->
-<div class="modal fade" id="valuationModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="valModalTitle">Nueva Valuación</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="valuationForm" method="post" action="{% url 'crear_valuacion' project.id %}">
-                {% csrf_token %}
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nombre de la Valuación</label>
-                        {{ val_form.name }}
-                    </div>
-                    <div class="row g-3">
-                        <div class="col-md-7">
-                            <label class="form-label fw-bold d-flex justify-content-between">
-                                Monto
-                                <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" id="currencyToggleBtn" style="font-size: 0.7rem;">
-                                    Cambiar a <span id="nextCurrencyLabel">BS</span>
-                                </button>
-                            </label>
-                            <div class="input-group">
-                                <span class="input-group-text" id="currencyAddon">$</span>
-                                <input type="number" step="0.01" class="form-control" id="id_amount_display" placeholder="0.00">
-                            </div>
-                            <div class="d-none">
-                                {{ val_form.amount_usd }}
-                                {{ val_form.amount_bs }}
-                            </div>
-                        </div>
-                        <div class="col-md-5">
-                            <label class="form-label fw-bold small">Tasa</label>
-                            {{ val_form.daily_rate }}
-                            <div class="form-check form-switch mt-1">
-                                <input class="form-check-input" type="checkbox" id="manualRateSwitch" style="transform: scale(0.8);">
-                                <label class="form-check-label" for="manualRateSwitch" style="font-size: 0.7rem;">Manual</label>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-primary">Guardar</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Modal Eliminar Valuación -->
-<div class="modal fade" id="deleteValModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                ¿Está seguro de que desea eliminar esta valuación? Las transacciones asociadas ya no estarán vinculadas a ella.
-            </div>
-            <div class="modal-footer bg-light">
-                <form id="deleteValForm" method="post" action="">
-                    {% csrf_token %}
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger px-4">Eliminar</button>
-                </form>
-            </div>
-        </div>
+<div class="cf-modal" id="deleteValModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--danger"><h5 class="cf-modal__title">Confirmar Eliminación</h5><button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button></div>
+        <div class="cf-modal__body">¿Está seguro de que desea eliminar esta valuación? Las transacciones asociadas ya no estarán vinculadas a ella.</div>
+        <div class="cf-modal__footer"><form id="deleteValForm" method="post" action="">{% csrf_token %}<button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button><button type="submit" class="cf-btn cf-btn--danger">Eliminar</button></form></div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/organizations/detalle_proyecto.js' %}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // --- Inicialización de Modales ---
-        const valuationModal = new bootstrap.Modal(document.getElementById('valuationModal'));
-        const deleteValModal = new bootstrap.Modal(document.getElementById('deleteValModal'));
-        const transactionModal = new bootstrap.Modal(document.getElementById('transactionModal'));
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-        const detailModal = new bootstrap.Modal(document.getElementById('detailModal'));
-        
-        const bcvRate = parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1;
-        const orgsData = JSON.parse('{{ orgs_data|safe }}');
-
-        // --- Gestión de Transacciones ---
-
-        const transactionForm = document.getElementById('transactionForm');
-        const orgSelect = transactionForm.querySelector('[name="organization"]');
-        const accountSelect = transactionForm.querySelector('[name="account"]');
-        const categorySelect = transactionForm.querySelector('[name="category"]');
-        const tAmountUsd = transactionForm.querySelector('[name="amount_usd"]');
-        const tAmountBs = transactionForm.querySelector('[name="amount_bs"]');
-        const tRate = transactionForm.querySelector('[name="daily_rate"]');
-        const tDate = transactionForm.querySelector('[name="date"]');
-        const tAmountDisplay = document.getElementById('id_t_amount_display');
-        const tCurrencyToggleBtn = document.getElementById('t_currencyToggleBtn');
-        const tNextCurrencyLabel = document.getElementById('t_nextCurrencyLabel');
-        const tCurrencyAddon = document.getElementById('t_currencyAddon');
-        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
-        let tCurrentInputCurrency = 'USD';
-
-        function updateOrgFields(orgId, selectedAccountId = null, selectedCategoryId = null) {
-            const data = orgsData[orgId];
-            if (!data) return;
-
-            // Cuentas
-            accountSelect.innerHTML = '<option value="">---------</option>';
-            data.accounts.forEach(acc => {
-                const opt = new Option(acc.name, acc.id);
-                if (selectedAccountId && acc.id == selectedAccountId) opt.selected = true;
-                accountSelect.add(opt);
-            });
-
-            // Categorías
-            categorySelect.innerHTML = '<option value="">---------</option>';
-            data.categories.forEach(cat => {
-                const opt = new Option(cat.name, cat.id);
-                if (selectedCategoryId && cat.id == selectedCategoryId) opt.selected = true;
-                categorySelect.add(opt);
-            });
-        }
-
-        orgSelect.addEventListener('change', function() {
-            updateOrgFields(this.value);
-        });
-
-        window.toggleCustomDates = function(value) {
-            const customDiv = document.getElementById('custom_date_inputs');
-            if (value === 'custom') {
-                customDiv.style.display = 'block';
-            } else {
-                customDiv.style.display = 'none';
-            }
-        }
-
-        function updateTCurrencyUI() {
-            if (tCurrentInputCurrency === 'USD') {
-                tCurrencyAddon.innerText = '$';
-                tNextCurrencyLabel.innerText = 'BS';
-            } else {
-                tCurrencyAddon.innerText = 'Bs';
-                tNextCurrencyLabel.innerText = 'USD';
-            }
-            syncTFields();
-        }
-
-        function syncTFields() {
-            let val = Math.abs(parseFloat(tAmountDisplay.value)) || 0;
-            const rate = parseFloat(tRate.value) || 1;
-            const isEgreso = document.getElementById('type_egreso').checked;
-            
-            if (isEgreso && val > 0) val = -val;
-            
-            if (tCurrentInputCurrency === 'USD') {
-                tAmountUsd.value = val.toFixed(2);
-                tAmountBs.value = (val * rate).toFixed(2);
-            } else {
-                tAmountBs.value = val.toFixed(2);
-                tAmountUsd.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
-            }
-            updateTTypeColors();
-        }
-
-        async function loadTRateForDate(dateValue) {
-            if (!dateValue || tManualRateSwitch.checked) return;
-            try {
-                const response = await fetch(`{% url 'bcv_rates_api' %}?date=${dateValue}&currency=USD`);
-                if (!response.ok) return;
-                const payload = await response.json();
-                if (!payload.ok || typeof payload.rate !== 'number') return;
-                tRate.value = payload.rate.toFixed(4);
-                syncTFields();
-            } catch (e) {}
-        }
-
-        function updateTTypeColors() {
-            const isEgreso = document.getElementById('type_egreso').checked;
-            if (isEgreso) {
-                tAmountDisplay.classList.add('text-danger');
-                tAmountDisplay.classList.remove('text-success');
-            } else {
-                tAmountDisplay.classList.add('text-success');
-                tAmountDisplay.classList.remove('text-danger');
-            }
-        }
-
-        window.resetTransactionForm = function() {
-            transactionForm.reset();
-            transactionForm.action = "{% url 'crear_transaccion' %}";
-            document.getElementById('transactionModalTitle').innerText = "Nueva Transacción";
-            orgSelect.value = "{{ request.session.org_id }}";
-            updateOrgFields(orgSelect.value);
-            transactionForm.querySelector('[name="date"]').value = new Date().toISOString().split('T')[0];
-            tRate.value = bcvRate;
-            tRate.disabled = true;
-            tManualRateSwitch.checked = false;
-            loadTRateForDate(transactionForm.querySelector('[name="date"]').value);
-            document.getElementById('type_egreso').checked = true;
-            tCurrentInputCurrency = 'USD';
-            tAmountDisplay.value = "";
-            updateTCurrencyUI();
-        }
-
-        window.editTransaction = function(id, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
-            transactionForm.action = `/transacciones/guardar/${id}/`;
-            document.getElementById('transactionModalTitle').innerText = "Editar Transacción";
-            transactionForm.querySelector('[name="date"]').value = date;
-            orgSelect.value = orgId;
-            updateOrgFields(orgId, accId, catId);
-            transactionForm.querySelector('[name="description"]').value = desc;
-            transactionForm.querySelector('[name="reference_number"]').value = ref;
-            transactionForm.querySelector('[name="notes"]').value = notes;
-            transactionForm.querySelector('[name="status"]').value = status;
-            transactionForm.querySelector('[name="valuation"]').value = valId;
-            
-            tAmountBs.value = bs.replace(',', '.');
-            tAmountUsd.value = usd.replace(',', '.');
-            tRate.value = rate.replace(',', '.');
-            tRate.disabled = false;
-            tManualRateSwitch.checked = true;
-
-            const valNum = parseFloat(usd.replace(',', '.'));
-            if (valNum < 0) {
-                document.getElementById('type_egreso').checked = true;
-            } else {
-                document.getElementById('type_ingreso').checked = true;
-            }
-
-            tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
-            tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.replace(',', '.')) || 0);
-            updateTCurrencyUI();
-            transactionModal.show();
-        }
-
-        tCurrencyToggleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const currentVal = parseFloat(tAmountDisplay.value) || 0;
-            const rate = parseFloat(tRate.value) || 1;
-            if (tCurrentInputCurrency === 'USD') {
-                tAmountDisplay.value = (currentVal * rate).toFixed(2);
-                tCurrentInputCurrency = 'BS';
-            } else {
-                tAmountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
-                tCurrentInputCurrency = 'USD';
-            }
-            updateTCurrencyUI();
-        });
-
-        tAmountDisplay.addEventListener('input', syncTFields);
-        tRate.addEventListener('input', syncTFields);
-        document.querySelectorAll('input[name="transaction_type"]').forEach(radio => {
-            radio.addEventListener('change', syncTFields);
-        });
-
-        tManualRateSwitch.addEventListener('change', function(e) {
-            tRate.disabled = !e.target.checked;
-            if (!e.target.checked) {
-                loadTRateForDate(tDate.value);
-            }
-        });
-
-        tDate.addEventListener('change', function() {
-            loadTRateForDate(this.value);
-        });
-
-        transactionForm.addEventListener('submit', function() {
-            tRate.disabled = false;
-        });
-
-        window.confirmDeleteTransaction = function(id) {
-            document.getElementById('deleteForm').action = `/transacciones/eliminar/${id}/?next={{ request.get_full_path|urlencode }}`;
-            deleteModal.show();
-        }
-
-        window.viewTransaction = function(id) {
-            detailModal.show();
-            fetch(`/transacciones/detalle/${id}/`)
-                .then(response => response.text())
-                .then(html => {
-                    document.getElementById('detailContent').innerHTML = html;
-                });
-        }
-
-        // --- Gestión de Valuaciones ---
-
-        const valForm = document.getElementById('valuationForm');
-        const vCurrencyToggleBtn = document.getElementById('currencyToggleBtn');
-        const vNextCurrencyLabel = document.getElementById('nextCurrencyLabel');
-        const vCurrencyAddon = document.getElementById('currencyAddon');
-        const vAmountDisplay = document.getElementById('id_amount_display');
-        const vAmountUsdField = valForm.querySelector('input[name="amount_usd"]');
-        const vAmountBsField = valForm.querySelector('input[name="amount_bs"]');
-        const vDailyRateField = valForm.querySelector('input[name="daily_rate"]');
-        const vManualRateSwitch = document.getElementById('manualRateSwitch');
-
-        window.toggleValuations = function() {
-            const btn = document.getElementById('toggleValuationsBtn');
-            const addBtn = document.getElementById('addValuationBtn');
-            const container = document.getElementById('valuationsContainer');
-            const summaryCol = document.getElementById('projectSummaryCol');
-            
-            if (container.classList.contains('d-none')) {
-                container.classList.remove('d-none');
-                addBtn.style.display = 'inline-block';
-                summaryCol.classList.remove('col-lg-12');
-                summaryCol.classList.add('col-lg-8');
-                btn.innerHTML = '<i class="bi bi-eye-slash me-1"></i>Ocultar Valuaciones';
-            } else {
-                container.classList.add('d-none');
-                addBtn.style.display = 'none';
-                summaryCol.classList.remove('col-lg-8');
-                summaryCol.classList.add('col-lg-12');
-                btn.innerHTML = '<i class="bi bi-gear me-1"></i>Gestionar Valuaciones';
-            }
-        }
-
-        window.resetValuationForm = function() {
-            valForm.reset();
-            valForm.action = "{% url 'crear_valuacion' project.id %}";
-            document.getElementById('valModalTitle').innerText = "Nueva Valuación";
-            vManualRateSwitch.checked = false;
-            vDailyRateField.value = bcvRate;
-            vDailyRateField.disabled = true;
-            currentInputCurrency = 'USD';
-            vAmountDisplay.value = "";
-            updateVCurrencyUI();
-        }
-
-        window.editValuation = function(id, name, usd, bs, rate) {
-            valForm.action = `/valuaciones/guardar/{{ project.id }}/${id}/`;
-            document.getElementById('valModalTitle').innerText = "Editar Valuación";
-            valForm.querySelector('[name="name"]').value = name;
-            vAmountUsdField.value = usd.replace(',', '.');
-            vAmountBsField.value = bs.replace(',', '.');
-            vDailyRateField.value = rate.replace(',', '.');
-            currentInputCurrency = 'USD';
-            vAmountDisplay.value = usd.replace(',', '.');
-            vManualRateSwitch.checked = true;
-            vDailyRateField.disabled = false;
-            updateVCurrencyUI();
-            valuationModal.show();
-        }
-
-        window.confirmDeleteValuation = function(id) {
-            document.getElementById('deleteValForm').action = `/valuaciones/eliminar/${id}/`;
-            deleteValModal.show();
-        }
-
-        function updateVCurrencyUI() {
-            if (currentInputCurrency === 'USD') {
-                vCurrencyAddon.innerText = '$';
-                vNextCurrencyLabel.innerText = 'BS';
-            } else {
-                vCurrencyAddon.innerText = 'Bs';
-                vNextCurrencyLabel.innerText = 'USD';
-            }
-            syncVHiddenFields();
-        }
-
-        function syncVHiddenFields() {
-            const val = parseFloat(vAmountDisplay.value) || 0;
-            const rate = parseFloat(vDailyRateField.value) || 1;
-            if (currentInputCurrency === 'USD') {
-                vAmountUsdField.value = val.toFixed(2);
-                vAmountBsField.value = (val * rate).toFixed(2);
-            } else {
-                vAmountBsField.value = val.toFixed(2);
-                vAmountUsdField.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
-            }
-        }
-
-        vCurrencyToggleBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            const currentVal = parseFloat(vAmountDisplay.value) || 0;
-            const rate = parseFloat(vDailyRateField.value) || 1;
-            if (currentInputCurrency === 'USD') {
-                vAmountDisplay.value = (currentVal * rate).toFixed(2);
-                currentInputCurrency = 'BS';
-            } else {
-                vAmountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
-                currentInputCurrency = 'USD';
-            }
-            updateVCurrencyUI();
-        });
-
-        vAmountDisplay.addEventListener('input', syncVHiddenFields);
-        vDailyRateField.addEventListener('input', syncVHiddenFields);
-
-        vManualRateSwitch.addEventListener('change', function(e) {
-            vDailyRateField.disabled = !e.target.checked;
-            if (!e.target.checked) {
-                vDailyRateField.value = bcvRate;
-                syncVHiddenFields();
-            }
-        });
-
-        valForm.addEventListener('submit', function() {
-            vDailyRateField.disabled = false;
-        });
+    initDetalleProyecto({
+        bcvRate: parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1,
+        orgsData: JSON.parse('{{ orgs_data|safe }}'),
+        orgId: "{{ request.session.org_id }}",
+        projectId: {{ project.id }},
+        crearTransUrl: "{% url 'crear_transaccion' %}",
+        crearValUrl: "{% url 'crear_valuacion' project.id %}",
+        bcvRatesUrl: "{% url 'bcv_rates_api' %}",
+        currentPath: "{{ request.get_full_path|escapejs }}"
     });
 </script>
 {% endblock %}

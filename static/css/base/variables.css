@@ -1,0 +1,59 @@
+:root {
+    /* Paleta Paldaca */
+    --color-red: #ed2546;
+    --color-morado: #32407b;
+    --color-azulmarino: #141644;
+    --color-azul: #282c89;
+
+    /* Alias legacy */
+    --e-global-color-red: var(--color-red);
+    --e-global-color-moradopaldaca: var(--color-morado);
+    --e-global-color-azulmarino: var(--color-azulmarino);
+    --e-global-color-azul: var(--color-azul);
+
+    /* Superficies */
+    --bg-body: #ffffff;
+    --bg-surface: #f8f9fc;
+    --bg-card: #ffffff;
+    --bg-muted: #f4f6fb;
+
+    /* Texto */
+    --text-main: #1a1f36;
+    --text-muted: #6b7280;
+    --text-subtle: #9ca3af;
+
+    /* Bordes y sombras */
+    --border-subtle: #e8ecf4;
+    --border-default: #dbe0e7;
+    --shadow-soft: 0 4px 20px rgba(40, 44, 137, 0.08);
+    --shadow-card: 0 2px 12px rgba(20, 22, 68, 0.06);
+    --shadow-btn: 0 4px 14px rgba(50, 64, 123, 0.35);
+
+    /* Semánticos */
+    --color-success: #206b4e;
+    --color-success-bg: #f0faf5;
+    --color-success-border: #b8e6d0;
+    --color-danger: #c0392b;
+    --color-danger-bg: #fef2f2;
+    --color-danger-border: #fecaca;
+    --color-warning: #7a4d00;
+    --color-warning-bg: #fff1d1;
+    --color-warning-border: #f0d090;
+    --color-info: #1e5a8a;
+    --color-info-bg: #eff6ff;
+    --color-info-border: #bfdbfe;
+
+    /* Layout */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 14px;
+    --radius-pill: 50px;
+    --transition: all 0.3s ease;
+
+    /* Sidebar */
+    --app-sidebar-w-expanded: 280px;
+    --app-sidebar-w-collapsed: 86px;
+    --app-sidebar-bg: var(--color-azulmarino);
+    --app-sidebar-border: rgba(255, 255, 255, 0.14);
+    --app-sidebar-active-bg: rgba(237, 37, 70, 0.22);
+}

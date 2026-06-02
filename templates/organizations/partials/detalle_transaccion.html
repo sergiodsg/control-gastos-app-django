@@ -1,66 +1,56 @@
 <div class="transaction-detail">
-    <div class="mb-3">
-        <label class="text-muted small d-block">Fecha</label>
-        <div class="fw-bold">{{ transaction.date|date:"d/m/Y" }}</div>
+    <div class="cf-form-group">
+        <span class="cf-stat-label">Fecha</span>
+        <div class="cf-fw-bold">{{ transaction.date|date:"d/m/Y" }}</div>
     </div>
-    
-    <div class="mb-3">
-        <label class="text-muted small d-block">Descripción</label>
+    <div class="cf-form-group">
+        <span class="cf-stat-label">Descripción</span>
         <div>{{ transaction.description }}</div>
     </div>
-    
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="text-muted small d-block">Monto (USD)</label>
-            <div class="fw-bold text-{% if transaction.amount_usd < 0 %}danger{% else %}success{% endif %}">
-                {{ transaction.amount_usd }} $
-            </div>
+    <div class="cf-form-row">
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Monto (USD)</span>
+            <div class="cf-fw-bold {% if transaction.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ transaction.amount_usd }} $</div>
         </div>
-        <div class="col-6">
-            <label class="text-muted small d-block">Monto (BS)</label>
-            <div class="fw-bold">{{ transaction.amount_bs }} Bs.</div>
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Monto (BS)</span>
+            <div class="cf-fw-bold">{{ transaction.amount_bs }} Bs.</div>
         </div>
     </div>
-    
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="text-muted small d-block">Tasa del día</label>
+    <div class="cf-form-row">
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Tasa del día</span>
             <div>{{ transaction.daily_rate }}</div>
         </div>
-        <div class="col-6">
-            <label class="text-muted small d-block">Referencia</label>
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Referencia</span>
             <div>{{ transaction.reference_number|default:"-" }}</div>
         </div>
     </div>
-    
-    <div class="row mb-3">
-        <div class="col-6">
-            <label class="text-muted small d-block">Categoría</label>
+    <div class="cf-form-row">
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Categoría</span>
             <div>
                 {% if transaction.category %}
-                    <span class="badge" style="background-color: {{ transaction.category.color }};">{{ transaction.category.name }}</span>
-                {% else %}
-                    -
-                {% endif %}
+                <span class="cf-badge cf-badge--pill" style="background-color: {{ transaction.category.color }}; color: #fff; border: none;">{{ transaction.category.name }}</span>
+                {% else %}-{% endif %}
             </div>
         </div>
-        <div class="col-6">
-            <label class="text-muted small d-block">Estado</label>
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Estado</span>
             <div>{{ transaction.get_status_display }}</div>
         </div>
     </div>
-    
     {% if transaction.project %}
-    <div class="mb-3">
-        <label class="text-muted small d-block">Proyecto</label>
+    <div class="cf-form-group">
+        <span class="cf-stat-label">Proyecto</span>
         <div>{{ transaction.project.name }}</div>
     </div>
     {% endif %}
-    
     {% if transaction.notes %}
-    <div class="mb-0">
-        <label class="text-muted small d-block">Notas</label>
-        <div class="bg-light p-2 rounded small">{{ transaction.notes }}</div>
+    <div class="cf-form-group cf-mb-0">
+        <span class="cf-stat-label">Notas</span>
+        <div class="cf-card cf-card--surface cf-p-4 cf-fs-sm">{{ transaction.notes }}</div>
     </div>
     {% endif %}
 </div>

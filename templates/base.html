@@ -5,142 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}CashFlow{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <link rel="stylesheet" href="{% static 'css/base/base.css' %}">
-    <link rel="stylesheet" href="{% static 'css/base/sidebar.css' %}">
-    <script>
-        // Pre-carga del tema para evitar parpadeo blanco
-        (function() {
-            const theme = localStorage.getItem('theme_pref') || 'light';
-            document.documentElement.setAttribute('data-bs-theme', theme);
-        })();
-    </script>
-    <style>
-        :root {
-            --bg-body: #f8f9fa;
-            --bg-card: #ffffff;
-            --text-main: #212529;
-            --text-muted: #6c757d;
-            --border-color: #dee2e6;
-            --navbar-bg: #ffffff;
-            --bg-light-override: #f8f9fa;
-        }
-
-        [data-bs-theme="dark"] {
-            --bg-body: #0f111a;
-            --bg-card: #161b22;
-            --text-main: #c9d1d9;
-            --text-muted: #8b949e;
-            --border-color: #30363d;
-            --navbar-bg: #161b22;
-            --bg-light-override: #21262d;
-        }
-
-        body.app-layout {
-            background-color: var(--bg-body);
-            color: var(--text-main);
-            overflow-x: hidden;
-            transition: background-color 0.3s, color 0.3s;
-        }
-
-        /* Sobreescrituras para coherencia en modo oscuro */
-        [data-bs-theme="dark"] .bg-white { background-color: var(--bg-card) !important; }
-        [data-bs-theme="dark"] .bg-light { background-color: var(--bg-light-override) !important; }
-        [data-bs-theme="dark"] .table-light { --bs-table-bg: var(--bg-light-override); --bs-table-color: var(--text-main); }
-        [data-bs-theme="dark"] .text-muted { color: var(--text-muted) !important; }
-        [data-bs-theme="dark"] .border { border-color: var(--border-color) !important; }
-        [data-bs-theme="dark"] .border-bottom { border-bottom-color: var(--border-color) !important; }
-        [data-bs-theme="dark"] .dropdown-menu { background-color: var(--bg-card); border-color: var(--border-color); color: var(--text-main); }
-        [data-bs-theme="dark"] .dropdown-item { color: var(--text-main); }
-        [data-bs-theme="dark"] .dropdown-item:hover { background-color: var(--bg-light-override); }
-        [data-bs-theme="dark"] .modal-content { background-color: var(--bg-card); border-color: var(--border-color); }
-        [data-bs-theme="dark"] .modal-header, [data-bs-theme="dark"] .modal-footer { border-color: var(--border-color); }
-        [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select { background-color: #2d2d2d; border-color: #444; color: #fff; }
-        [data-bs-theme="dark"] .form-control:focus, [data-bs-theme="dark"] .form-select:focus { background-color: #333; border-color: #0d6efd; color: #fff; }
-        [data-bs-theme="dark"] .input-group-text { background-color: #333; border-color: #444; color: #eee; }
-        [data-bs-theme="dark"] .text-dark { color: #fff !important; }
-        [data-bs-theme="dark"] .btn-outline-dark { color: #fff; border-color: #fff; }
-        [data-bs-theme="dark"] .btn-outline-dark:hover { background-color: #fff; color: #000; }
-        [data-bs-theme="dark"] .pagination .page-link { background-color: var(--bg-card); border-color: var(--border-color); color: var(--text-main); }
-        [data-bs-theme="dark"] .pagination .page-item.active .page-link { background-color: #0d6efd; border-color: #0d6efd; color: #fff; }
-        [data-bs-theme="dark"] .breadcrumb-item.active { color: var(--text-muted); }
-        [data-bs-theme="dark"] .breadcrumb-item + .breadcrumb-item::before { color: var(--text-muted); }
-
-        .card {
-            background-color: var(--bg-card);
-            border-color: var(--border-color);
-            color: var(--text-main);
-        }
-        
-        .navbar {
-            background-color: var(--navbar-bg) !important;
-            border-bottom-color: var(--border-color) !important;
-        }
-
-        .list-group-item {
-            border-color: var(--border-color);
-        }
-
-        .app-top-navbar {
-            background-color: var(--navbar-bg) !important;
-            border-bottom: 1px solid var(--border-color) !important;
-        }
-
-        @media (max-width: 400px) {
-            .user-name-text {
-                display: none;
-            }
-        }
-        
-        .navbar-toggler-user {
-            border: none;
-            padding: 0.5rem;
-        }
-        .navbar-toggler-user:focus {
-            box-shadow: none;
-        }
-
-        {% if hide_navbar and hide_sidebar %}
-        .auth-container {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 1rem;
-        }
-        .auth-card {
-            width: 100%;
-            max-width: 450px;
-            border: none;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.05);
-            border-radius: 1rem;
-        }
-        .auth-card .card-body {
-            padding: 2.5rem;
-        }
-        .auth-card .form-control, .auth-card .input-group-text {
-            padding: 0.75rem 1rem;
-        }
-        .auth-card .form-control {
-            border-radius: 0.5rem;
-        }
-        .auth-card .input-group .form-control {
-            border-top-left-radius: 0;
-            border-bottom-left-radius: 0;
-        }
-        .auth-card .input-group .input-group-text {
-            border-top-left-radius: 0.5rem;
-            border-bottom-left-radius: 0.5rem;
-        }
-        .auth-card label {
-            font-weight: 500;
-            margin-bottom: 0.5rem;
-            color: var(--text-main);
-        }
-        {% endif %}
-
-    </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body
     id="appLayout"
@@ -166,28 +33,28 @@
 
         <nav class="app-sidebar-nav">
             <a href="{% url 'dashboard' %}" class="app-sidebar-link{% if current_url == 'dashboard' or current_url == 'crear_organizacion' or current_url == 'seleccionar_organizacion' %} is-active{% endif %}">
-                <i class="bi bi-building app-sidebar-icon" aria-hidden="true"></i>
+                <i class="fa-solid fa-building app-sidebar-icon" aria-hidden="true"></i>
                 <span class="app-sidebar-label">Mis Organizaciones</span>
             </a>
             {% if request.session.org_id %}
             <a href="{% url 'home_organizacion' %}" class="app-sidebar-link{% if current_url == 'home_organizacion' %} is-active{% endif %}">
-                <i class="bi bi-house app-sidebar-icon" aria-hidden="true"></i>
+                <i class="fa-solid fa-house app-sidebar-icon" aria-hidden="true"></i>
                 <span class="app-sidebar-label">Inicio</span>
             </a>
             <a href="{% url 'lista_transacciones' %}" class="app-sidebar-link{% if current_url == 'lista_transacciones' or current_url == 'crear_transaccion' or current_url == 'editar_transaccion' or current_url == 'detalle_transaccion' or current_url == 'exportar_pdf_transacciones' %} is-active{% endif %}">
-                <i class="bi bi-cash-stack app-sidebar-icon" aria-hidden="true"></i>
+                <i class="fa-solid fa-money-bill-wave app-sidebar-icon" aria-hidden="true"></i>
                 <span class="app-sidebar-label">Transacciones</span>
             </a>
             <a href="{% url 'lista_cuentas' %}" class="app-sidebar-link{% if current_url == 'lista_cuentas' or current_url == 'detalle_cuenta' or current_url == 'crear_cuenta' or current_url == 'editar_cuenta' %} is-active{% endif %}">
-                <i class="bi bi-wallet2 app-sidebar-icon" aria-hidden="true"></i>
+                <i class="fa-solid fa-wallet app-sidebar-icon" aria-hidden="true"></i>
                 <span class="app-sidebar-label">Mis Cuentas</span>
             </a>
             <a href="{% url 'lista_proyectos' %}" class="app-sidebar-link{% if current_url == 'lista_proyectos' or current_url == 'detalle_proyecto' or current_url == 'crear_proyecto' or current_url == 'editar_proyecto' %} is-active{% endif %}">
-                <i class="bi bi-kanban app-sidebar-icon" aria-hidden="true"></i>
+                <i class="fa-solid fa-table-columns app-sidebar-icon" aria-hidden="true"></i>
                 <span class="app-sidebar-label">Proyectos</span>
             </a>
             <a href="{% url 'configuracion' %}" class="app-sidebar-link{% if current_url == 'configuracion' %} is-active{% endif %}">
-                <i class="bi bi-gear app-sidebar-icon" aria-hidden="true"></i>
+                <i class="fa-solid fa-gear app-sidebar-icon" aria-hidden="true"></i>
                 <span class="app-sidebar-label">Configuración</span>
             </a>
             {% endif %}
@@ -195,7 +62,7 @@
 
         <div class="app-sidebar-footer">
             <button type="button" class="app-sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar menú">
-                <i class="bi bi-chevron-double-left" aria-hidden="true"></i>
+                <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
             </button>
         </div>
     </aside>
@@ -204,124 +71,71 @@
     {% endif %}
 
     <div class="app-main-content">
-            {% if not hide_navbar %}
-            <nav class="navbar navbar-expand-lg app-top-navbar border-bottom shadow-sm py-2">
-                <div class="container-fluid px-4 navbar-content">
-                    <div class="d-flex align-items-center navbar-title">
-                        {% if user.is_authenticated and not hide_sidebar %}
-                            <button type="button" class="app-mobile-menu-btn" id="sidebarMobileBtn" aria-label="Abrir menú">
-                                <i class="bi bi-list"></i>
-                            </button>
-                        {% endif %}
-                        
-                        <a class="navbar-brand fw-bold mb-0" href="{% url 'dashboard' %}">
-                            CashFlow
+        {% if not hide_navbar %}
+        <nav class="cf-navbar">
+            <div class="cf-navbar__inner">
+                <div class="cf-navbar__title">
+                    {% if user.is_authenticated and not hide_sidebar %}
+                    <button type="button" class="app-mobile-menu-btn" id="sidebarMobileBtn" aria-label="Abrir menú">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                    {% endif %}
+                    <a class="cf-navbar__brand" href="{% url 'dashboard' %}">CashFlow</a>
+                </div>
+
+                <div class="cf-navbar__actions">
+                    {% if user.is_authenticated %}
+                    <div class="cf-dropdown">
+                        <a class="cf-dropdown__toggle" href="#" data-cf-dropdown aria-expanded="false">
+                            <i class="fa-solid fa-circle-user"></i>
+                            <span class="user-name-text">{{ user.first_name|default:user.username }}</span>
+                            <i class="fa-solid fa-chevron-down cf-fs-sm"></i>
                         </a>
+                        <div class="cf-dropdown__menu">
+                            {% if request.session.org_name %}
+                            <span class="cf-dropdown__label">{{ request.session.org_name }}</span>
+                            <div class="cf-dropdown__divider"></div>
+                            <a class="cf-dropdown__item" href="{% url 'salir_organizacion' %}">
+                                <i class="fa-solid fa-building"></i> Mis Organizaciones
+                            </a>
+                            <div class="cf-dropdown__divider"></div>
+                            {% endif %}
+                            <form action="{% url 'logout' %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="cf-dropdown__item cf-dropdown__item--danger">
+                                    <i class="fa-solid fa-right-from-bracket"></i> Cerrar Sesión
+                                </button>
+                            </form>
+                        </div>
                     </div>
-
-                    <div class="ms-auto d-flex align-items-center">
-                        {% if user.is_authenticated %}
-                            <div class="dropdown">
-                                <a class="nav-link dropdown-toggle fw-bold d-flex align-items-center" id="navbarDropdown" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                    <i class="bi bi-person-circle fs-5 me-2"></i>
-                                    <span class="user-name-text">{{ user.first_name|default:user.username }}</span>
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="navbarDropdown">
-                                    {% if request.session.org_name %}
-                                        <li><span class="dropdown-item-text small text-muted">{{ request.session.org_name }}</span></li>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item" href="{% url 'salir_organizacion' %}">
-                                                <i class="bi bi-building me-2"></i>Mis Organizaciones
-                                            </a>
-                                        </li>
-                                        <li><hr class="dropdown-divider"></li>
-                                    {% endif %}
-                                    <li>
-                                        <form action="{% url 'logout' %}" method="post" class="px-0">
-                                            {% csrf_token %}
-                                            <button type="submit" class="dropdown-item text-danger">
-                                                <i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </div>
-                        {% else %}
-                            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navGuestContent">
-                                <i class="bi bi-list fs-3"></i>
-                            </button>
-                        {% endif %}
-                    </div>
-
-                    {% if not user.is_authenticated %}
-                    <div class="collapse navbar-collapse" id="navGuestContent">
-                        <ul class="navbar-nav ms-auto mt-2 mt-lg-0 align-items-lg-center gap-2">
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'login' %}">Iniciar Sesión</a>
-                            </li>
-                        </ul>
-                    </div>
+                    {% else %}
+                    <a class="cf-btn cf-btn--outline cf-btn--sm" href="{% url 'login' %}">Iniciar Sesión</a>
                     {% endif %}
                 </div>
-            </nav>
+            </div>
+        </nav>
+        {% endif %}
+
+        <div class="{% if hide_navbar and hide_sidebar %}auth-container{% else %}cf-page{% endif %}">
+            {% if messages %}
+            <div class="{% if hide_navbar and hide_sidebar %}auth-messages{% endif %}">
+                {% for message in messages %}
+                <div class="cf-alert cf-alert--{{ message.tags }}" role="alert">
+                    {{ message }}
+                    <button type="button" class="cf-alert__close" data-cf-dismiss="alert" aria-label="Cerrar">&times;</button>
+                </div>
+                {% endfor %}
+            </div>
             {% endif %}
 
-            <div class="{% if hide_navbar and hide_sidebar %}auth-container{% else %}container-fluid py-4 px-4{% endif %}">
-                {% if messages %}
-                    <div class="{% if hide_navbar and hide_sidebar %}w-100 position-absolute top-0 start-0 p-4{% endif %}">
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show mx-auto" style="max-width: 600px;" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                {% block content %}{% endblock %}
-            </div>
+            {% block content %}{% endblock %}
+        </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{% static 'js/Base/base.js' %}"></script>
-    <script>
-        function applyCurrencyPreference() {
-            const pref = localStorage.getItem('currency_pref') || 'USD';
-            const usdElements = document.querySelectorAll('.currency-usd-content');
-            const bsElements = document.querySelectorAll('.currency-bs-content');
-
-            if (pref === 'USD') {
-                usdElements.forEach(el => el.classList.remove('d-none'));
-                bsElements.forEach(el => el.classList.add('d-none'));
-            } else {
-                usdElements.forEach(el => el.classList.add('d-none'));
-                bsElements.forEach(el => el.classList.remove('d-none'));
-            }
-        }
-
-        function applyThemePreference() {
-            const theme = localStorage.getItem('theme_pref') || 'light';
-            document.documentElement.setAttribute('data-bs-theme', theme);
-            
-            // Ajustes adicionales de Bootstrap que no se cubren automáticamente
-            const navbar = document.querySelector('.navbar');
-            if (navbar) {
-                if (theme === 'dark') {
-                    navbar.classList.remove('navbar-light');
-                    navbar.classList.add('navbar-dark');
-                } else {
-                    navbar.classList.remove('navbar-dark');
-                    navbar.classList.add('navbar-light');
-                }
-            }
-        }
-
-        window.addEventListener('DOMContentLoaded', event => {
-            applyCurrencyPreference();
-            applyThemePreference();
-        });
-    </script>
+    <script src="{% static 'js/base/modal.js' %}"></script>
+    <script src="{% static 'js/base/dropdown.js' %}"></script>
+    <script src="{% static 'js/base/alert.js' %}"></script>
+    <script src="{% static 'js/base/base.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

@@ -3,14 +3,14 @@ from django.contrib.auth.models import User
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 
 class LoginForm(AuthenticationForm):
-    username = forms.CharField(label="Nombre de usuario", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'usuario123'}))
-    password = forms.CharField(label="Contraseña", widget=forms.PasswordInput(attrs={'class': 'form-control', 'placeholder': '********'}))
+    username = forms.CharField(label="Nombre de usuario", widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'usuario123'}))
+    password = forms.CharField(label="Contraseña", widget=forms.PasswordInput(attrs={'class': 'cf-input', 'placeholder': '********'}))
 
 class RegistroForm(UserCreationForm):
-    first_name = forms.CharField(max_length=30, required=True, label="Nombre", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tu nombre'}))
-    last_name = forms.CharField(max_length=30, required=True, label="Apellido", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Tu apellido'}))
-    email = forms.EmailField(required=True, label="Email", widget=forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'ejemplo@correo.com'}))
-    username = forms.CharField(label="Nombre de usuario", widget=forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'usuario123'}))
+    first_name = forms.CharField(max_length=30, required=True, label="Nombre", widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Tu nombre'}))
+    last_name = forms.CharField(max_length=30, required=True, label="Apellido", widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Tu apellido'}))
+    email = forms.EmailField(required=True, label="Email", widget=forms.EmailInput(attrs={'class': 'cf-input', 'placeholder': 'ejemplo@correo.com'}))
+    username = forms.CharField(label="Nombre de usuario", widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'usuario123'}))
 
     class Meta(UserCreationForm.Meta):
         model = User
@@ -21,7 +21,7 @@ class RegistroForm(UserCreationForm):
         # Aseguramos que los campos de contraseña también tengan la clase form-control
         for field in self.fields:
             if 'password' in field:
-                self.fields[field].widget.attrs.update({'class': 'form-control', 'placeholder': '********'})
+                self.fields[field].widget.attrs.update({'class': 'cf-input', 'placeholder': '********'})
 
     def save(self, commit=True):
         user = super().save(commit=False)

@@ -1,144 +1,113 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Proyectos - {{ request.session.org_name }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/proyectos.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="cf-page-header">
     <div>
-        <h2 class="mb-0"><i class="bi bi-kanban me-2"></i>Proyectos</h2>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'home_organizacion' %}">Inicio</a></li>
-                <li class="breadcrumb-item active">Proyectos</li>
-            </ol>
+        <h2 class="cf-page-title"><i class="fa-solid fa-table-columns"></i> Proyectos</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'home_organizacion' %}">Inicio</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">Proyectos</span>
         </nav>
     </div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#projectModal" onclick="resetForm()">
-        <i class="bi bi-plus-lg me-1"></i>Nuevo Proyecto
+    <button type="button" class="cf-btn cf-btn--primary" data-cf-modal="projectModal" onclick="resetForm()">
+        <i class="fa-solid fa-plus"></i> Nuevo Proyecto
     </button>
 </div>
 
 {% if projects %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+<div class="cf-grid cf-grid--cards">
     {% for proj in projects %}
-    <div class="col">
-        <div class="card h-100 shadow-sm border-0 position-relative">
-            <a href="{% url 'detalle_proyecto' proj.id %}" class="stretched-link"></a>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h5 class="card-title mb-0 text-primary">{{ proj.name }}</h5>
-                    <button class="btn btn-sm btn-outline-secondary position-relative z-3" onclick="event.preventDefault(); editProject({{ proj.id }}, '{{ proj.name|escapejs }}', '{{ proj.description|default:""|escapejs }}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                </div>
-                
-                <p class="text-muted small text-truncate" style="max-width: 100%;">
-                    {{ proj.description|default:"Sin descripción" }}
-                </p>
-                
-                <div class="mt-4">
-                    <label class="text-muted small d-block">Balance del Proyecto</label>
-                    <div class="fs-4 fw-bold text-dark">
-                        {{ proj.balance_usd|default:0|floatformat:2 }} <span class="small text-muted">$</span>
-                    </div>
-                    <div class="text-muted small">
-                        {{ proj.balance_bs|default:0|floatformat:2 }} <span class="small">Bs.</span>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer bg-transparent border-0 text-end pb-3 z-3">
-                <button class="btn btn-sm btn-link text-danger p-0" onclick="event.preventDefault(); confirmDelete({{ proj.id }})">
-                    <i class="bi bi-trash me-1"></i>Eliminar
+    <div class="cf-card cf-card--clickable project-card">
+        <a href="{% url 'detalle_proyecto' proj.id %}" class="cf-card-link"></a>
+        <div class="cf-card__body">
+            <div class="cf-flex cf-justify-between cf-items-start cf-mb-3">
+                <h5 class="cf-card__title">{{ proj.name }}</h5>
+                <button class="cf-btn cf-btn--sm cf-btn--outline-secondary cf-z-3" onclick="event.preventDefault(); editProject({{ proj.id }}, '{{ proj.name|escapejs }}', '{{ proj.description|default:""|escapejs }}')">
+                    <i class="fa-solid fa-pencil"></i>
                 </button>
             </div>
+            <p class="cf-text-muted cf-fs-sm cf-text-truncate">{{ proj.description|default:"Sin descripción" }}</p>
+            <div class="cf-mt-4">
+                <span class="cf-stat-label">Balance del Proyecto</span>
+                <div class="cf-stat-value">{{ proj.balance_usd|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">$</span></div>
+                <div class="cf-text-muted cf-fs-sm">{{ proj.balance_bs|default:0|floatformat:2 }} Bs.</div>
+            </div>
+        </div>
+        <div class="cf-card__footer">
+            <button class="cf-btn cf-btn--link-danger cf-z-3" onclick="event.preventDefault(); confirmDelete({{ proj.id }})">
+                <i class="fa-solid fa-trash cf-me-1"></i> Eliminar
+            </button>
         </div>
     </div>
     {% endfor %}
 </div>
 {% else %}
-<div class="d-flex flex-column align-items-center justify-content-center text-muted w-100" style="min-height: 50vh;">
-    <i class="bi bi-kanban fs-1 mb-3"></i>
-    <p class="fs-5 mb-0 text-center">No hay proyectos registrados.</p>
+<div class="cf-empty-state">
+    <i class="fa-solid fa-table-columns"></i>
+    <p class="cf-fs-xl">No hay proyectos registrados.</p>
 </div>
 {% endif %}
 
-<!-- Modal Proyecto (Crear/Editar) -->
-<div class="modal fade" id="projectModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Nuevo Proyecto</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="projectForm" method="post" action="{% url 'crear_proyecto' %}">
-                {% csrf_token %}
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nombre del Proyecto</label>
-                        {{ form.name }}
-                    </div>
-                    <div class="mb-0">
-                        <label class="form-label fw-bold">Descripción</label>
-                        {{ form.description }}
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-primary px-4">Guardar</button>
-                </div>
-            </form>
+<div class="cf-modal" id="projectModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title" id="modalTitle">Nuevo Proyecto</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal" aria-label="Cerrar">&times;</button>
         </div>
+        <form id="projectForm" method="post" action="{% url 'crear_proyecto' %}">
+            {% csrf_token %}
+            <div class="cf-modal__body">
+                <div class="cf-form-group">
+                    <label class="cf-label">Nombre del Proyecto</label>
+                    {{ form.name }}
+                </div>
+                <div class="cf-form-group cf-mb-0">
+                    <label class="cf-label">Descripción</label>
+                    {{ form.description }}
+                </div>
+            </div>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Guardar</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Modal Eliminar -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                ¿Está seguro de que desea eliminar este proyecto? Se perderá el rastro de las transacciones asociadas en este contexto.
-            </div>
-            <div class="modal-footer bg-light">
-                <form id="deleteForm" method="post" action="">
-                    {% csrf_token %}
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger px-4">Eliminar</button>
-                </form>
-            </div>
+<div class="cf-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--danger">
+            <h5 class="cf-modal__title">Confirmar Eliminación</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal" aria-label="Cerrar">&times;</button>
+        </div>
+        <div class="cf-modal__body">
+            ¿Está seguro de que desea eliminar este proyecto? Se perderá el rastro de las transacciones asociadas en este contexto.
+        </div>
+        <div class="cf-modal__footer">
+            <form id="deleteForm" method="post" action="">
+                {% csrf_token %}
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--danger">Eliminar</button>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/organizations/proyectos.js' %}"></script>
 <script>
-    const projectModal = new bootstrap.Modal(document.getElementById('projectModal'));
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-
-    function resetForm() {
-        document.getElementById('projectForm').reset();
-        document.getElementById('projectForm').action = "{% url 'crear_proyecto' %}";
-        document.getElementById('modalTitle').innerText = "Nuevo Proyecto";
-    }
-
-    function editProject(id, name, description) {
-        const form = document.getElementById('projectForm');
-        form.action = `/proyectos/guardar/${id}/`;
-        document.getElementById('modalTitle').innerText = "Editar Proyecto";
-        
-        form.querySelector('[name="name"]').value = name;
-        form.querySelector('[name="description"]').value = description;
-        
-        projectModal.show();
-    }
-
-    function confirmDelete(id) {
-        document.getElementById('deleteForm').action = `/proyectos/eliminar/${id}/`;
-        deleteModal.show();
-    }
+    initProyectos({
+        crearUrl: "{% url 'crear_proyecto' %}"
+    });
 </script>
 {% endblock %}

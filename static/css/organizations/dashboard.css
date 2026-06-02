@@ -1,0 +1,13 @@
+.org-dashboard .cf-card--selected {
+    border-left: 4px solid var(--color-morado);
+}
+
+.org-dashboard .cf-card__footer .cf-btn {
+    width: 100%;
+}
+
+.org-empty-icon {
+    font-size: 4rem;
+    color: var(--text-subtle);
+    margin-bottom: 1rem;
+}

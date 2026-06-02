@@ -1,46 +1,47 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Iniciar Sesión - Control de Gastos{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/accounts/auth.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="card auth-card mx-auto">
-    <div class="card-body">
-        <div class="text-center mb-4">
-            <i class="bi bi-wallet2 fs-1 text-primary"></i>
-            <h3 class="mt-2 fw-bold">Iniciar Sesión</h3>
-            <p class="text-muted">Ingresa a tu cuenta de Control de Gastos</p>
+<div class="cf-card auth-card">
+    <div class="cf-card__body">
+        <div class="cf-text-center cf-mb-4">
+            <i class="fa-solid fa-wallet auth-logo"></i>
+            <h3 class="auth-title">Iniciar Sesión</h3>
+            <p class="auth-subtitle">Ingresa a tu cuenta de Control de Gastos</p>
         </div>
-        
+
         <form method="post">
             {% csrf_token %}
             {% for field in form %}
-                <div class="mb-3">
-                    <label for="{{ field.id_for_label }}" class="form-label fw-medium">{{ field.label }}</label>
-                    <div class="input-group">
-                        <span class="input-group-text bg-light border-end-0">
-                            {% if field.name == 'username' %}
-                                <i class="bi bi-person text-muted"></i>
-                            {% elif field.name == 'password' %}
-                                <i class="bi bi-lock text-muted"></i>
-                            {% endif %}
-                        </span>
-                        {{ field }}
-                    </div>
-                    {% if field.errors %}
-                        {% for error in field.errors %}
-                            <div class="text-danger small mt-1"><i class="bi bi-exclamation-circle me-1"></i>{{ error }}</div>
-                        {% endfor %}
-                    {% endif %}
+            <div class="cf-form-group">
+                <label for="{{ field.id_for_label }}" class="cf-label">{{ field.label }}</label>
+                <div class="cf-input-group">
+                    <span class="cf-input-group__addon">
+                        {% if field.name == 'username' %}
+                        <i class="fa-solid fa-user cf-text-muted"></i>
+                        {% elif field.name == 'password' %}
+                        <i class="fa-solid fa-lock cf-text-muted"></i>
+                        {% endif %}
+                    </span>
+                    {{ field }}
                 </div>
-            {% endfor %}
-            
-            <div class="d-grid mt-4">
-                <button type="submit" class="btn btn-primary btn-lg shadow-sm py-2">
-                    <span class="fw-bold">Entrar</span> <i class="bi bi-box-arrow-in-right ms-2"></i>
-                </button>
+                {% for error in field.errors %}
+                <div class="cf-field-error"><i class="fa-solid fa-circle-exclamation cf-me-1"></i>{{ error }}</div>
+                {% endfor %}
             </div>
+            {% endfor %}
+
+            <button type="submit" class="cf-btn cf-btn--primary cf-btn--lg cf-mt-4">
+                <span class="cf-fw-bold">Entrar</span>
+                <i class="fa-solid fa-right-to-bracket"></i>
+            </button>
         </form>
-        
     </div>
 </div>
 {% endblock %}

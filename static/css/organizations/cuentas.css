@@ -1,0 +1,7 @@
+.account-card .cf-card__title {
+    color: var(--color-morado);
+}
+
+.account-card .cf-card__footer {
+    text-align: right;
+}

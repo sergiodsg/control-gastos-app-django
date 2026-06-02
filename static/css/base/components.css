@@ -1,0 +1,824 @@
+/* ============================================
+   BUTTONS
+   ============================================ */
+.cf-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.6rem 1.25rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    border: 1px solid transparent;
+    transition: var(--transition);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.cf-btn--primary {
+    background: var(--color-morado);
+    color: #fff;
+    box-shadow: var(--shadow-btn);
+}
+
+.cf-btn--primary:hover {
+    background: var(--color-azul);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+.cf-btn--secondary {
+    background: var(--bg-surface);
+    color: var(--text-main);
+    border-color: var(--border-default);
+}
+
+.cf-btn--secondary:hover {
+    background: var(--bg-muted);
+}
+
+.cf-btn--outline {
+    background: transparent;
+    color: var(--color-morado);
+    border-color: var(--color-morado);
+}
+
+.cf-btn--outline:hover {
+    background: var(--color-morado);
+    color: #fff;
+}
+
+.cf-btn--outline-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border-color: var(--border-default);
+}
+
+.cf-btn--outline-secondary:hover {
+    background: var(--bg-muted);
+    color: var(--text-main);
+}
+
+.cf-btn--outline-danger {
+    background: transparent;
+    color: var(--color-danger);
+    border-color: var(--color-danger-border);
+}
+
+.cf-btn--outline-danger:hover {
+    background: var(--color-danger-bg);
+}
+
+.cf-btn--outline-success {
+    background: transparent;
+    color: var(--color-success);
+    border-color: var(--color-success-border);
+}
+
+.cf-btn--outline-success:hover {
+    background: var(--color-success-bg);
+}
+
+.cf-btn--danger {
+    background: var(--color-red);
+    color: #fff;
+}
+
+.cf-btn--danger:hover {
+    background: #c41e3a;
+    color: #fff;
+}
+
+.cf-btn--success {
+    background: var(--color-success);
+    color: #fff;
+}
+
+.cf-btn--success:hover {
+    background: #185a42;
+    color: #fff;
+}
+
+.cf-btn--dark {
+    background: var(--color-azulmarino);
+    color: #fff;
+}
+
+.cf-btn--dark:hover {
+    background: var(--color-azul);
+    color: #fff;
+}
+
+.cf-btn--link {
+    background: none;
+    border: none;
+    color: var(--color-morado);
+    padding: 0.25rem 0.5rem;
+    box-shadow: none;
+}
+
+.cf-btn--link-danger {
+    background: none;
+    border: none;
+    color: var(--color-red);
+    padding: 0;
+    box-shadow: none;
+}
+
+.cf-btn--link-danger:hover {
+    color: #c41e3a;
+}
+
+.cf-btn--sm {
+    padding: 0.35rem 0.75rem;
+    font-size: 0.8rem;
+    border-radius: var(--radius-sm);
+}
+
+.cf-btn--xs {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.7rem;
+    border-radius: var(--radius-sm);
+}
+
+.cf-btn--lg {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+}
+
+.cf-btn--icon {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+}
+
+.cf-btn-group {
+    display: inline-flex;
+    gap: 0.25rem;
+}
+
+/* Radio button group (transaction type) */
+.cf-radio-group {
+    display: flex;
+    width: 100%;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    border: 1px solid var(--border-default);
+}
+
+.cf-radio-group input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.cf-radio-group label {
+    flex: 1;
+    text-align: center;
+    padding: 0.65rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    transition: var(--transition);
+    border-right: 1px solid var(--border-default);
+}
+
+.cf-radio-group label:last-child {
+    border-right: none;
+}
+
+.cf-radio-group input:checked + label.cf-radio--danger {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+.cf-radio-group input:checked + label.cf-radio--success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+/* ============================================
+   TABS (pill style from reference image)
+   ============================================ */
+.cf-tab-group {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 6px;
+}
+
+.cf-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 10px 20px;
+    border-radius: var(--radius-md);
+    color: #4a5568;
+    font-weight: 500;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: none;
+    background: transparent;
+    transition: var(--transition);
+    cursor: pointer;
+}
+
+.cf-tab:hover {
+    background: rgba(50, 64, 123, 0.06);
+    color: var(--color-morado);
+}
+
+.cf-tab.is-active {
+    background: var(--color-morado);
+    color: #fff;
+    box-shadow: var(--shadow-btn);
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.cf-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.85rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.78rem;
+    font-weight: 600;
+    line-height: 1.4;
+}
+
+.cf-badge--success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success-border);
+}
+
+.cf-badge--admin,
+.cf-badge--warning {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning-border);
+}
+
+.cf-badge--danger {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger-border);
+}
+
+.cf-badge--info {
+    background: var(--color-info-bg);
+    color: var(--color-info);
+    border: 1px solid var(--color-info-border);
+}
+
+.cf-badge--primary {
+    background: var(--color-morado);
+    color: #fff;
+}
+
+.cf-badge--pill {
+    border-radius: var(--radius-pill);
+}
+
+.cf-badge--dot {
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border-radius: 4px;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.cf-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    overflow: hidden;
+    transition: var(--transition);
+}
+
+.cf-card:hover {
+    box-shadow: var(--shadow-soft);
+}
+
+.cf-card--flat {
+    box-shadow: none;
+}
+
+.cf-card--primary {
+    background: linear-gradient(135deg, var(--color-morado) 0%, var(--color-azul) 100%);
+    color: #fff;
+    border: none;
+}
+
+.cf-card--surface {
+    background: var(--bg-surface);
+    box-shadow: none;
+}
+
+.cf-card__body {
+    padding: 1.25rem;
+}
+
+.cf-card__body--lg {
+    padding: 1.5rem;
+}
+
+.cf-card__header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-card);
+}
+
+.cf-card__footer {
+    padding: 0.75rem 1.25rem 1rem;
+    border-top: 1px solid var(--border-subtle);
+    background: transparent;
+}
+
+.cf-card__title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 0;
+}
+
+.cf-card--accent-left {
+    border-left: 4px solid var(--color-morado);
+}
+
+.cf-card--clickable {
+    position: relative;
+    cursor: pointer;
+}
+
+.cf-card--clickable:hover {
+    transform: translateY(-2px);
+}
+
+/* ============================================
+   FORMS
+   ============================================ */
+.cf-label,
+.form-label {
+    display: block;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 0.4rem;
+    color: var(--text-main);
+}
+
+.cf-input,
+.cf-select,
+.cf-textarea,
+.form-control,
+.form-select {
+    display: block;
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-sm);
+    background: var(--bg-body);
+    color: var(--text-main);
+    font-size: 0.9rem;
+    transition: var(--transition);
+}
+
+.cf-input:focus,
+.cf-select:focus,
+.cf-textarea:focus,
+.form-control:focus,
+.form-select:focus {
+    outline: none;
+    border-color: var(--color-morado);
+    box-shadow: 0 0 0 3px rgba(50, 64, 123, 0.12);
+}
+
+.cf-input--sm,
+.form-control-sm,
+.form-select-sm {
+    padding: 0.4rem 0.65rem;
+    font-size: 0.82rem;
+}
+
+.cf-input-group {
+    display: flex;
+    align-items: stretch;
+}
+
+.cf-input-group__addon {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0.85rem;
+    background: var(--bg-muted);
+    border: 1px solid var(--border-default);
+    border-right: none;
+    border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+.cf-input-group .cf-input,
+.cf-input-group .form-control {
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.cf-form-group {
+    margin-bottom: 1rem;
+}
+
+.cf-form-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+@media (max-width: 640px) {
+    .cf-form-row { grid-template-columns: 1fr; }
+}
+
+.cf-switch {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cf-switch input[type="checkbox"] {
+    width: 2.2rem;
+    height: 1.2rem;
+    appearance: none;
+    background: var(--border-default);
+    border-radius: var(--radius-pill);
+    position: relative;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cf-switch input[type="checkbox"]::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: calc(1.2rem - 4px);
+    height: calc(1.2rem - 4px);
+    background: #fff;
+    border-radius: 50%;
+    transition: var(--transition);
+}
+
+.cf-switch input[type="checkbox"]:checked {
+    background: var(--color-morado);
+}
+
+.cf-switch input[type="checkbox"]:checked::after {
+    left: calc(100% - 1.2rem + 2px);
+}
+
+.cf-field-error {
+    color: var(--color-red);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+/* Radio/checkbox options (config) */
+.cf-option {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cf-option:hover {
+    border-color: var(--color-morado);
+}
+
+.cf-option.is-selected {
+    border-color: var(--color-morado);
+    background: rgba(50, 64, 123, 0.06);
+}
+
+.cf-option input[type="radio"] {
+    accent-color: var(--color-morado);
+}
+
+/* ============================================
+   TABLES
+   ============================================ */
+.cf-table-wrap {
+    overflow-x: auto;
+}
+
+.cf-table,
+.table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cf-table th,
+.cf-table td,
+.table th,
+.table td {
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+}
+
+.cf-table th,
+.table th {
+    background: var(--bg-surface);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+}
+
+.cf-table tbody tr,
+.table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.cf-table tbody tr:hover,
+.table-hover tbody tr:hover {
+    background: var(--bg-surface);
+}
+
+.cf-table .cf-ps-4 { padding-left: 1.25rem; }
+.cf-table .cf-pe-4 { padding-right: 1.25rem; }
+
+/* ============================================
+   ALERTS
+   ============================================ */
+.cf-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    margin-bottom: 0.75rem;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+    position: relative;
+}
+
+.cf-alert--success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success-border);
+}
+
+.cf-alert--danger,
+.cf-alert--error {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger-border);
+}
+
+.cf-alert--warning {
+    background: var(--color-warning-bg);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning-border);
+}
+
+.cf-alert--info {
+    background: var(--color-info-bg);
+    color: var(--color-info);
+    border: 1px solid var(--color-info-border);
+}
+
+.cf-alert__close {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    opacity: 0.6;
+    cursor: pointer;
+    line-height: 1;
+}
+
+.cf-alert__close:hover {
+    opacity: 1;
+}
+
+/* ============================================
+   BREADCRUMB
+   ============================================ */
+.cf-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-top: 0.35rem;
+}
+
+.cf-breadcrumb a {
+    color: var(--color-morado);
+}
+
+.cf-breadcrumb a:hover {
+    text-decoration: underline;
+}
+
+.cf-breadcrumb__sep::before {
+    content: '/';
+    margin-right: 0.35rem;
+    color: var(--text-subtle);
+}
+
+.cf-breadcrumb__active {
+    color: var(--text-muted);
+}
+
+/* ============================================
+   PAGINATION
+   ============================================ */
+.cf-pagination {
+    display: flex;
+    justify-content: center;
+    gap: 0.35rem;
+    padding: 1rem 0;
+    list-style: none;
+}
+
+.cf-pagination a,
+.cf-pagination span {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 0.5rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border: 1px solid var(--border-default);
+    color: var(--text-main);
+    text-decoration: none;
+    transition: var(--transition);
+}
+
+.cf-pagination a:hover {
+    background: var(--bg-surface);
+    border-color: var(--color-morado);
+    color: var(--color-morado);
+}
+
+.cf-pagination .is-active span {
+    background: var(--color-morado);
+    border-color: var(--color-morado);
+    color: #fff;
+}
+
+/* ============================================
+   PROGRESS
+   ============================================ */
+.cf-progress {
+    height: 10px;
+    background: var(--bg-muted);
+    border-radius: var(--radius-pill);
+    overflow: hidden;
+}
+
+.cf-progress__bar {
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--color-morado);
+    transition: width 0.4s ease;
+}
+
+.cf-progress__bar--success {
+    background: var(--color-success);
+}
+
+/* ============================================
+   SPINNER
+   ============================================ */
+.cf-spinner {
+    display: inline-block;
+    width: 2rem;
+    height: 2rem;
+    border: 3px solid var(--border-subtle);
+    border-top-color: var(--color-morado);
+    border-radius: 50%;
+    animation: cf-spin 0.7s linear infinite;
+}
+
+@keyframes cf-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ============================================
+   FILTER BAR
+   ============================================ */
+.cf-filter-bar {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1rem 1.25rem;
+    margin-bottom: 1.25rem;
+}
+
+.cf-filter-bar .cf-form-row {
+    align-items: end;
+}
+
+/* KPI stat */
+.cf-stat-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.cf-stat-value {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.cf-stat-value--lg {
+    font-size: 2rem;
+}
+
+/* Icon in components */
+.cf-icon {
+    flex-shrink: 0;
+}
+
+.cf-icon-box {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-sm);
+}
+
+.cf-icon-box--success {
+    background: var(--color-success-bg);
+    color: var(--color-success);
+}
+
+.cf-icon-box--danger {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+}
+
+/* Rate list item */
+.cf-rate-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+    background: var(--bg-muted);
+    border-radius: var(--radius-sm);
+    margin-bottom: 0.5rem;
+}
+
+/* Auth card */
+.auth-card {
+    width: 100%;
+    max-width: 450px;
+}
+
+.auth-card .cf-card__body {
+    padding: 2.5rem;
+}
+
+.auth-card .cf-input-group .cf-input-group__addon {
+    border-top-left-radius: var(--radius-sm);
+    border-bottom-left-radius: var(--radius-sm);
+}
+
+/* Visually hidden */
+.cf-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
