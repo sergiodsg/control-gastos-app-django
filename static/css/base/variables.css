@@ -1,47 +1,47 @@
 :root {
-    /* Paleta Paldaca */
-    --color-red: #ed2546;
-    --color-morado: #32407b;
-    --color-azulmarino: #141644;
-    --color-azul: #282c89;
+    /* Paleta Nueva (Gris Oscuro y Neutro) */
+    --color-neutro-light: #f3f4f6; /* Un gris neutro claro */
+    --color-dark-gray: #374151;   /* Gris oscuro principal */
+    --color-negro-carbon: #111827; /* Casi negro para el sidebar */
+    --color-gris-claro: #9ca3af;   /* Gris para acentos secundarios */
 
-    /* Alias legacy */
-    --e-global-color-red: var(--color-red);
-    --e-global-color-moradopaldaca: var(--color-morado);
-    --e-global-color-azulmarino: var(--color-azulmarino);
-    --e-global-color-azul: var(--color-azul);
+    /* Alias legacy adaptados */
+    --color-red: var(--color-neutro-light);
+    --color-morado: var(--color-dark-gray);
+    --color-azulmarino: var(--color-negro-carbon);
+    --color-azul: #4b5563;
 
     /* Superficies */
     --bg-body: #ffffff;
-    --bg-surface: #f8f9fc;
+    --bg-surface: #f9fafb;
     --bg-card: #ffffff;
-    --bg-muted: #f4f6fb;
+    --bg-muted: #f3f4f6;
 
     /* Texto */
-    --text-main: #1a1f36;
-    --text-muted: #6b7280;
+    --text-main: #111827;
+    --text-muted: #4b5563;
     --text-subtle: #9ca3af;
 
     /* Bordes y sombras */
-    --border-subtle: #e8ecf4;
-    --border-default: #dbe0e7;
-    --shadow-soft: 0 4px 20px rgba(40, 44, 137, 0.08);
-    --shadow-card: 0 2px 12px rgba(20, 22, 68, 0.06);
-    --shadow-btn: 0 4px 14px rgba(50, 64, 123, 0.35);
+    --border-subtle: #e5e7eb;
+    --border-default: #d1d5db;
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
+    --shadow-btn: 0 4px 14px rgba(0, 0, 0, 0.15);
 
     /* Semánticos */
-    --color-success: #206b4e;
-    --color-success-bg: #f0faf5;
-    --color-success-border: #b8e6d0;
-    --color-danger: #c0392b;
+    --color-success: #059669;
+    --color-success-bg: #ecfdf5;
+    --color-success-border: #d1fae5;
+    --color-danger: #ef4444; 
     --color-danger-bg: #fef2f2;
-    --color-danger-border: #fecaca;
-    --color-warning: #7a4d00;
-    --color-warning-bg: #fff1d1;
-    --color-warning-border: #f0d090;
-    --color-info: #1e5a8a;
-    --color-info-bg: #eff6ff;
-    --color-info-border: #bfdbfe;
+    --color-danger-border: #fee2e2;
+    --color-warning: #d97706;
+    --color-warning-bg: #fffbeb;
+    --color-warning-border: #fef3c7;
+    --color-info: #4b5563;
+    --color-info-bg: #f9fafb;
+    --color-info-border: #e5e7eb;
 
     /* Layout */
     --radius-sm: 8px;
@@ -54,6 +54,6 @@
     --app-sidebar-w-expanded: 280px;
     --app-sidebar-w-collapsed: 86px;
     --app-sidebar-bg: var(--color-azulmarino);
-    --app-sidebar-border: rgba(255, 255, 255, 0.14);
-    --app-sidebar-active-bg: rgba(237, 37, 70, 0.22);
+    --app-sidebar-border: rgba(255, 255, 255, 0.1);
+    --app-sidebar-active-bg: rgba(255, 255, 255, 0.1);
 }

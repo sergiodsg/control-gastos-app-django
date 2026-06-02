@@ -107,7 +107,7 @@
 }
 
 .cf-dropdown__item--danger {
-    color: var(--color-red);
+    color: var(--color-danger);
 }
 
 .cf-dropdown__divider {

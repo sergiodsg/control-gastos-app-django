@@ -83,12 +83,12 @@
 }
 
 .cf-btn--danger {
-    background: var(--color-red);
+    background: var(--color-danger);
     color: #fff;
 }
 
 .cf-btn--danger:hover {
-    background: #c41e3a;
+    background: #dc2626;
     color: #fff;
 }
 
@@ -123,7 +123,7 @@
 .cf-btn--link-danger {
     background: none;
     border: none;
-    color: var(--color-red);
+    color: var(--color-danger);
     padding: 0;
     box-shadow: none;
 }
@@ -184,20 +184,25 @@
     font-weight: 600;
     transition: var(--transition);
     border-right: 1px solid var(--border-default);
+    color: var(--text-muted);
 }
 
 .cf-radio-group label:last-child {
     border-right: none;
 }
 
+.cf-radio-group label:hover {
+    background: var(--bg-muted);
+}
+
 .cf-radio-group input:checked + label.cf-radio--danger {
-    background: var(--color-danger-bg);
-    color: var(--color-danger);
+    background: var(--color-danger);
+    color: #fff;
 }
 
 .cf-radio-group input:checked + label.cf-radio--success {
-    background: var(--color-success-bg);
-    color: var(--color-success);
+    background: var(--color-success);
+    color: #fff;
 }
 
 /* ============================================
@@ -484,7 +489,7 @@
 }
 
 .cf-field-error {
-    color: var(--color-red);
+    color: var(--color-danger);
     font-size: 0.8rem;
     margin-top: 0.25rem;
 }

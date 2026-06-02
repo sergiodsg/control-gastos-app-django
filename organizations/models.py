@@ -100,8 +100,8 @@ class Valuation(models.Model):
 
 class Transaction(models.Model):
     STATUS_CHOICES = [
-        ('pendiente', 'Pendiente'),
         ('completado', 'Completado'),
+        ('pendiente', 'Pendiente'),
         ('cancelado', 'Cancelado'),
     ]
 
@@ -116,7 +116,7 @@ class Transaction(models.Model):
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Proyecto")
     valuation = models.ForeignKey(Valuation, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Valuación")
     
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendiente', verbose_name="Estado")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completado', verbose_name="Estado")
     
     amount_bs = models.DecimalField(max_digits=20, decimal_places=2, verbose_name="Monto en Bolívares")
     amount_usd = models.DecimalField(max_digits=20, decimal_places=2, verbose_name="Monto en Dólares")

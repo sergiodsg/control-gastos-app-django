@@ -45,6 +45,9 @@ class TransactionForm(forms.ModelForm):
         project = kwargs.pop('project', None)
         super().__init__(*args, **kwargs)
         
+        # Estado por defecto: Completado
+        self.fields['status'].initial = 'completado'
+        
         if project:
             # Si estamos en un proyecto, restringir organizaciones a las que tienen acceso
             orgs_owned = Organization.objects.filter(projects=project)
@@ -57,6 +60,7 @@ class TransactionForm(forms.ModelForm):
             # Filtrar cuentas y categorías por la organización seleccionada (o la actual si no hay post)
             selected_org = self.data.get('organization') or (self.instance.organization_id if self.instance.pk else organization.id if organization else None)
             if selected_org:
+                self.fields['organization'].initial = selected_org
                 self.fields['account'].queryset = Account.objects.filter(organization_id=selected_org)
                 self.fields['category'].queryset = Category.objects.filter(organization_id=selected_org)
             else:

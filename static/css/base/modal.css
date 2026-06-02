@@ -53,7 +53,7 @@
 }
 
 .cf-modal__header--danger {
-    background: var(--color-red);
+    background: var(--color-danger);
     color: #fff;
     border-bottom: none;
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;

@@ -20,12 +20,68 @@
         <a href="{% url 'exportar_pdf_transacciones' %}?filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}" class="cf-btn cf-btn--outline-danger" target="_blank">
             <i class="fa-solid fa-file-pdf"></i> <span class="cf-hidden-sm-label">Reporte PDF</span>
         </a>
-        <a href="{% url 'lista_categorias' %}" class="cf-btn cf-btn--outline-secondary">
-            <i class="fa-solid fa-tags"></i> <span class="cf-hidden-sm-label">Categorías</span>
-        </a>
         <button type="button" class="cf-btn cf-btn--primary" data-cf-modal="transactionModal" onclick="resetForm()">
             <i class="fa-solid fa-plus"></i> Transacción
         </button>
+    </div>
+</div>
+
+<div class="cf-grid cf-grid--kpi cf-mb-4">
+    <div class="cf-card cf-card--primary">
+        <div class="cf-card__body cf-p-5">
+            <i class="fa-solid fa-building-columns cf-icon"></i>
+            <h5 class="cf-mb-2" style="opacity: 0.85;">Balance Filtrado</h5>
+            <div class="currency-usd-content">
+                <div class="cf-stat-value cf-text-white cf-fw-bold">${{ totals.balance_usd|floatformat:2 }}</div>
+                <div style="opacity: 0.85;" class="cf-fs-sm">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <div class="cf-stat-value cf-text-white cf-fw-bold">Bs. {{ totals.balance_bs|floatformat:2 }}</div>
+                <div style="opacity: 0.85;" class="cf-fs-sm">${{ totals.balance_usd|floatformat:2 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <div class="cf-flex cf-justify-between cf-items-start cf-mb-2">
+                <div>
+                    <h5 class="cf-text-muted cf-mb-1">Ingresos</h5>
+                    <div class="currency-usd-content">
+                        <div class="cf-stat-value cf-text-success">${{ totals.income_usd|floatformat:2 }}</div>
+                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">{{ totals.income_bs|floatformat:2 }} Bs.</div>
+                    </div>
+                    <div class="currency-bs-content cf-hidden">
+                        <div class="cf-stat-value cf-text-success">Bs. {{ totals.income_bs|floatformat:2 }}</div>
+                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">${{ totals.income_usd|floatformat:2 }}</div>
+                    </div>
+                </div>
+                <div class="cf-icon-box cf-icon-box--success">
+                    <i class="fa-solid fa-arrow-trend-up"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <div class="cf-flex cf-justify-between cf-items-start cf-mb-2">
+                <div>
+                    <h5 class="cf-text-muted cf-mb-1">Gastos</h5>
+                    <div class="currency-usd-content">
+                        <div class="cf-stat-value cf-text-danger">${{ totals.expense_usd|floatformat:2 }}</div>
+                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
+                    </div>
+                    <div class="currency-bs-content cf-hidden">
+                        <div class="cf-stat-value cf-text-danger">Bs. {{ totals.expense_bs|floatformat:2 }}</div>
+                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">${{ totals.expense_usd|floatformat:2 }}</div>
+                    </div>
+                </div>
+                <div class="cf-icon-box cf-icon-box--danger">
+                    <i class="fa-solid fa-arrow-trend-down"></i>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -141,8 +197,9 @@
             <h5 class="cf-modal__title" id="modalTitle">Nueva Transacción</h5>
             <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
         </div>
-        <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
+                <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
             {% csrf_token %}
+            {{ form.organization }}
             <div class="cf-modal__body">
                 <div class="cf-form-group">
                     <label class="cf-label">Tipo de Transacción</label>
@@ -155,6 +212,7 @@
                 </div>
                 <div class="cf-form-row">
                     <div class="cf-form-group"><label class="cf-label">Fecha</label>{{ form.date }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Estado</label>{{ form.status }}</div>
                     <div class="cf-form-group"><label class="cf-label">Cuenta</label>{{ form.account }}</div>
                     <div class="cf-form-group">
                         <label class="cf-label cf-flex cf-justify-between">
@@ -182,12 +240,11 @@
                         <input type="text" id="id_reference_number_custom" class="cf-input" placeholder="Nro. Referencia">
                         <div class="cf-hidden">{{ form.reference_number }}</div>
                     </div>
-                    <div class="cf-form-group"><label class="cf-label">Estado</label>{{ form.status }}</div>
-                    <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ form.description }}</div>
                     <div class="cf-form-group"><label class="cf-label">Categoría</label>{{ form.category }}</div>
                     <div class="cf-form-group"><label class="cf-label">Proyecto</label>{{ form.project }}</div>
+                    <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ form.description }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Notas</label>{{ form.notes }}</div>
-                    <div class="cf-form-group cf-mb-0" id="valuationContainer" style="display: none;">
+                    <div class="cf-form-group cf-mb-0" id="valuationContainer" style="grid-column: 1 / -1; display: none;">
                         <label class="cf-label">Valuación (Créditos)</label>{{ form.valuation }}
                     </div>
                 </div>

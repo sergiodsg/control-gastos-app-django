@@ -18,24 +18,17 @@
     <aside class="app-sidebar" id="appSidebar" aria-label="Menú principal">
         <div class="app-sidebar-brand">
             <a href="{% url 'home_organizacion' %}" class="app-sidebar-brand-link" title="CashFlow">
-                <img
-                    src="{% static 'img/logo blanco.png' %}"
-                    alt="Consorcio Paldaca"
-                    class="app-sidebar-logo app-sidebar-logo--full"
-                >
-                <img
-                    src="{% static 'img/logo blanco recortado.png' %}"
-                    alt="CP"
-                    class="app-sidebar-logo app-sidebar-logo--compact"
-                >
+                <div class="app-sidebar-logo-text app-sidebar-logo--full">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span>CashFlow</span>
+                </div>
+                <div class="app-sidebar-logo-icon app-sidebar-logo--compact">
+                    <i class="fa-solid fa-wallet"></i>
+                </div>
             </a>
         </div>
 
         <nav class="app-sidebar-nav">
-            <a href="{% url 'dashboard' %}" class="app-sidebar-link{% if current_url == 'dashboard' or current_url == 'crear_organizacion' or current_url == 'seleccionar_organizacion' %} is-active{% endif %}">
-                <i class="fa-solid fa-building app-sidebar-icon" aria-hidden="true"></i>
-                <span class="app-sidebar-label">Mis Organizaciones</span>
-            </a>
             {% if request.session.org_id %}
             <a href="{% url 'home_organizacion' %}" class="app-sidebar-link{% if current_url == 'home_organizacion' %} is-active{% endif %}">
                 <i class="fa-solid fa-house app-sidebar-icon" aria-hidden="true"></i>
@@ -132,10 +125,10 @@
         </div>
     </div>
 
-    <script src="{% static 'js/base/modal.js' %}"></script>
-    <script src="{% static 'js/base/dropdown.js' %}"></script>
-    <script src="{% static 'js/base/alert.js' %}"></script>
-    <script src="{% static 'js/base/base.js' %}"></script>
+    <script src="{% static 'js/Base/modal.js' %}"></script>
+    <script src="{% static 'js/Base/dropdown.js' %}"></script>
+    <script src="{% static 'js/Base/alert.js' %}"></script>
+    <script src="{% static 'js/Base/base.js' %}"></script>
     {% block extra_js %}{% endblock %}
 </body>
 </html>

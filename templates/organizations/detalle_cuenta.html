@@ -29,8 +29,14 @@
                 <h6 class="cf-fs-sm cf-fw-bold" style="opacity: 0.85; text-transform: uppercase;">Saldo Actual</h6>
                 <i class="fa-solid fa-building-columns" style="opacity: 0.75;"></i>
             </div>
-            <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
-            <div style="opacity: 0.85;">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+            <div class="currency-usd-content">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.balance_usd|floatformat:2 }} $</div>
+            </div>
         </div>
     </div>
     <div class="cf-card" style="background: var(--color-success); color: #fff; border: none;">
@@ -39,18 +45,30 @@
                 <h6 class="cf-fs-sm cf-fw-bold" style="opacity: 0.85; text-transform: uppercase;">Ingresos Totales</h6>
                 <i class="fa-solid fa-circle-arrow-up" style="opacity: 0.75;"></i>
             </div>
-            <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
-            <div style="opacity: 0.85;">{{ totals.income_bs|floatformat:2 }} Bs.</div>
+            <div class="currency-usd-content">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.income_bs|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.income_usd|floatformat:2 }} $</div>
+            </div>
         </div>
     </div>
-    <div class="cf-card" style="background: var(--color-red); color: #fff; border: none;">
+    <div class="cf-card" style="background: var(--color-danger); color: #fff; border: none;">
         <div class="cf-card__body cf-p-5">
             <div class="cf-flex cf-justify-between cf-items-center cf-mb-2">
                 <h6 class="cf-fs-sm cf-fw-bold" style="opacity: 0.85; text-transform: uppercase;">Egresos Totales</h6>
                 <i class="fa-solid fa-circle-arrow-down" style="opacity: 0.75;"></i>
             </div>
-            <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
-            <div style="opacity: 0.85;">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
+            <div class="currency-usd-content">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.expense_usd|floatformat:2 }} $</div>
+            </div>
         </div>
     </div>
 </div>
