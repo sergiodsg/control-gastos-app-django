@@ -24,7 +24,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-_$^hwshfb*4h^n(ed#z%%b+ic(^^(ly@hqsb#dcjtp*w$2(j41'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '.onrender.com', 'cashflow.cpaldaca.com']
 
@@ -115,8 +115,12 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = os.path.join(BASE_DIR, '..', 'public_html', 'static')
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = os.path.join(BASE_DIR, '..','static')
+# Sin manifest: nuevos CSS/JS en static/ se sirven sin volver a ejecutar collectstatic.
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+# En local (DEBUG=False) sirve también desde STATICFILES_DIRS.
+WHITENOISE_USE_FINDERS = True
 
 LOGIN_REDIRECT_URL = 'dashboard'
 LOGOUT_REDIRECT_URL = 'login'

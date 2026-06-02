@@ -24,7 +24,6 @@ def dashboard(request):
     organizations = [access.organization for access in accesses]
     return render(request, 'organizations/dashboard.html', {
         'organizations': organizations,
-        'hide_sidebar': True
     })
 
 @login_required
