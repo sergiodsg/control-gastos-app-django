@@ -60,6 +60,30 @@ class Project(models.Model):
     def __str__(self):
         return self.name
 
+class ProjectOrganizationAccess(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='shared_organizations', verbose_name="Proyecto")
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='shared_projects', verbose_name="Organización")
+
+    class Meta:
+        verbose_name = "Acceso de organización a proyecto"
+        verbose_name_plural = "Accesos de organizaciones a proyectos"
+        unique_together = ('project', 'organization')
+
+    def __str__(self):
+        return f"{self.organization.name} - {self.project.name}"
+
+class ProjectUserAccess(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='project_accesses', verbose_name="Usuario")
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='user_accesses', verbose_name="Proyecto")
+
+    class Meta:
+        verbose_name = "Acceso de usuario a proyecto"
+        verbose_name_plural = "Accesos de usuarios a proyectos"
+        unique_together = ('user', 'project')
+
+    def __str__(self):
+        return f"{self.user.username} - {self.project.name}"
+
 class Valuation(models.Model):
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='valuations', verbose_name="Proyecto")
     name = models.CharField(max_length=255, verbose_name="Nombre de la valuación", default="Valuación")
@@ -76,8 +100,8 @@ class Valuation(models.Model):
 
 class Transaction(models.Model):
     STATUS_CHOICES = [
-        ('pendiente', 'Pendiente'),
         ('completado', 'Completado'),
+        ('pendiente', 'Pendiente'),
         ('cancelado', 'Cancelado'),
     ]
 
@@ -92,7 +116,7 @@ class Transaction(models.Model):
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Proyecto")
     valuation = models.ForeignKey(Valuation, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Valuación")
     
-    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pendiente', verbose_name="Estado")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='completado', verbose_name="Estado")
     
     amount_bs = models.DecimalField(max_digits=20, decimal_places=2, verbose_name="Monto en Bolívares")
     amount_usd = models.DecimalField(max_digits=20, decimal_places=2, verbose_name="Monto en Dólares")

@@ -1,0 +1,142 @@
+.cf-navbar {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border-subtle);
+    box-shadow: var(--shadow-card);
+    padding: 0.65rem 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.cf-navbar__inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.25rem;
+    max-width: 100%;
+}
+
+.cf-navbar__title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.cf-navbar__brand {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--color-azulmarino);
+    text-decoration: none;
+}
+
+.cf-navbar__brand:hover {
+    color: var(--color-morado);
+}
+
+.cf-navbar__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+}
+
+/* Dropdown */
+.cf-dropdown {
+    position: relative;
+}
+
+.cf-dropdown__toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: var(--transition);
+    text-decoration: none;
+}
+
+.cf-dropdown__toggle:hover {
+    background: var(--bg-surface);
+}
+
+.cf-dropdown__toggle i {
+    font-size: 1.25rem;
+    color: var(--color-morado);
+}
+
+.cf-dropdown__menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 200px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-soft);
+    padding: 0.35rem 0;
+    display: none;
+    z-index: 1100;
+}
+
+.cf-dropdown.is-open .cf-dropdown__menu {
+    display: block;
+    animation: cf-fade-in 0.15s ease;
+}
+
+.cf-dropdown__item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 1rem;
+    color: var(--text-main);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: background 0.15s ease;
+    width: 100%;
+    border: none;
+    background: none;
+    cursor: pointer;
+    text-align: left;
+}
+
+.cf-dropdown__item:hover {
+    background: var(--bg-surface);
+}
+
+.cf-dropdown__item--danger {
+    color: var(--color-danger);
+}
+
+.cf-dropdown__divider {
+    height: 1px;
+    background: var(--border-subtle);
+    margin: 0.35rem 0;
+}
+
+.cf-dropdown__label {
+    padding: 0.35rem 1rem;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+
+.user-name-text {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 400px) {
+    .user-name-text {
+        display: none;
+    }
+}
+
+@media (max-width: 992px) {
+    .cf-navbar__inner {
+        padding: 0.85rem 1rem;
+    }
+}

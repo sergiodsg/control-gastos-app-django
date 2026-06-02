@@ -1,0 +1,42 @@
+.auth-card .auth-logo {
+    font-size: 2.5rem;
+    color: var(--color-morado);
+    margin-bottom: 0.5rem;
+}
+
+.auth-card .auth-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.auth-card .auth-subtitle {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+}
+
+.auth-card .cf-btn--primary {
+    width: 100%;
+    padding: 0.75rem;
+    font-size: 1rem;
+}
+
+.auth-card .cf-input-group {
+    margin-bottom: 0;
+}
+
+.auth-card .cf-form-group {
+    margin-bottom: 1rem;
+}
+
+.auth-register-link {
+    text-align: center;
+    margin-top: 1.25rem;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.auth-register-link a {
+    font-weight: 600;
+}

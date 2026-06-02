@@ -1,5 +1,8 @@
 from django.contrib import admin
-from .models import Organization, OrganizationAccess, Account, Category, Project, Valuation, Transaction
+from .models import (
+    Organization, OrganizationAccess, Account, Category, 
+    Project, Valuation, Transaction, ProjectOrganizationAccess, ProjectUserAccess
+)
 
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
@@ -28,6 +31,18 @@ class ProjectAdmin(admin.ModelAdmin):
     list_display = ('id', 'name', 'organization')
     list_filter = ('organization',)
     search_fields = ('name',)
+
+@admin.register(ProjectOrganizationAccess)
+class ProjectOrganizationAccessAdmin(admin.ModelAdmin):
+    list_display = ('id', 'project', 'organization')
+    list_filter = ('project', 'organization')
+    search_fields = ('project__name', 'organization__name')
+
+@admin.register(ProjectUserAccess)
+class ProjectUserAccessAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'project')
+    list_filter = ('user', 'project')
+    search_fields = ('user__username', 'project__name')
 
 @admin.register(Valuation)
 class ValuationAdmin(admin.ModelAdmin):

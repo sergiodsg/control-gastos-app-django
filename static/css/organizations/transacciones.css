@@ -1,0 +1,9 @@
+.tx-actions {
+    flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+    .tx-actions .cf-btn span.cf-hidden-sm-label {
+        display: none;
+    }
+}

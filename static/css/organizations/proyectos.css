@@ -1,0 +1,16 @@
+.project-card {
+    animation: cf-fade-up 0.4s ease;
+}
+
+.project-card .cf-card__title {
+    color: var(--color-morado);
+}
+
+.project-card .cf-card__footer {
+    text-align: right;
+}
+
+@keyframes cf-fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}

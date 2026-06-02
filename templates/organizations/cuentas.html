@@ -1,251 +1,146 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Mis Cuentas - {{ request.session.org_name }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/cuentas.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="cf-page-header">
     <div>
-        <h2 class="mb-0"><i class="bi bi-wallet2 me-2"></i>Mis Cuentas</h2>
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{% url 'home_organizacion' %}">Inicio</a></li>
-                <li class="breadcrumb-item active">Mis Cuentas</li>
-            </ol>
+        <h2 class="cf-page-title"><i class="fa-solid fa-wallet"></i> Mis Cuentas</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'home_organizacion' %}">Inicio</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">Mis Cuentas</span>
         </nav>
     </div>
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#accountModal" onclick="resetForm()">
-        <i class="bi bi-plus-lg me-1"></i>Nueva Cuenta
+    <button type="button" class="cf-btn cf-btn--primary" data-cf-modal="accountModal" onclick="resetForm()">
+        <i class="fa-solid fa-plus"></i> Nueva Cuenta
     </button>
 </div>
 
 {% if accounts %}
-<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+<div class="cf-grid cf-grid--cards">
     {% for acc in accounts %}
-    <div class="col">
-        <div class="card h-100 shadow-sm border-0 position-relative">
-            <a href="{% url 'detalle_cuenta' acc.id %}" class="stretched-link"></a>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <h5 class="card-title mb-0 text-primary">{{ acc.name }}</h5>
-                    <button class="btn btn-sm btn-outline-secondary position-relative z-3" onclick="event.preventDefault(); editAccount({{ acc.id }}, '{{ acc.name|escapejs }}')">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                </div>
-                
-                <div class="mt-auto">
-                    <label class="text-muted small d-block">Saldo Actual</label>
-                    <div class="fs-4 fw-bold text-dark">
-                        {{ acc.balance_usd|default:0|floatformat:2 }} <span class="small text-muted">$</span>
-                    </div>
-                    <div class="text-muted small">
-                        {{ acc.balance_bs|default:0|floatformat:2 }} <span class="small">Bs.</span>
-                    </div>
-                </div>
-            </div>
-            <div class="card-footer bg-transparent border-0 text-end pb-3 z-3">
-                <button class="btn btn-sm btn-link text-danger p-0" onclick="event.preventDefault(); confirmDelete({{ acc.id }})">
-                    <i class="bi bi-trash me-1"></i>Eliminar
+    <div class="cf-card cf-card--clickable account-card">
+        <a href="{% url 'detalle_cuenta' acc.id %}" class="cf-card-link"></a>
+        <div class="cf-card__body">
+            <div class="cf-flex cf-justify-between cf-items-start cf-mb-3">
+                <h5 class="cf-card__title">{{ acc.name }}</h5>
+                <button class="cf-btn cf-btn--sm cf-btn--outline-secondary cf-z-3" onclick="event.preventDefault(); editAccount({{ acc.id }}, '{{ acc.name|escapejs }}')">
+                    <i class="fa-solid fa-pencil"></i>
                 </button>
             </div>
+            <span class="cf-stat-label">Saldo Actual</span>
+            <div class="currency-usd-content">
+                <div class="cf-stat-value">{{ acc.balance_usd|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">$</span></div>
+                <div class="cf-text-muted cf-fs-sm">{{ acc.balance_bs|default:0|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <div class="cf-stat-value">{{ acc.balance_bs|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">Bs.</span></div>
+                <div class="cf-text-muted cf-fs-sm">{{ acc.balance_usd|default:0|floatformat:2 }} $</div>
+            </div>
+        </div>
+        <div class="cf-card__footer">
+            <button class="cf-btn cf-btn--link-danger cf-z-3" onclick="event.preventDefault(); confirmDelete({{ acc.id }})">
+                <i class="fa-solid fa-trash cf-me-1"></i> Eliminar
+            </button>
         </div>
     </div>
     {% endfor %}
 </div>
 {% else %}
-<div class="d-flex flex-column align-items-center justify-content-center text-muted w-100" style="min-height: 50vh;">
-    <i class="bi bi-piggy-bank fs-1 mb-3"></i>
-    <p class="fs-5 mb-0 text-center">No hay cuentas registradas.</p>
+<div class="cf-empty-state">
+    <i class="fa-solid fa-piggy-bank"></i>
+    <p class="cf-fs-xl">No hay cuentas registradas.</p>
 </div>
 {% endif %}
 
-<!-- Modal Cuenta (Crear/Editar) -->
-<div class="modal fade" id="accountModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="modalTitle">Nueva Cuenta</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="accountForm" method="post" action="{% url 'crear_cuenta' %}">
-                {% csrf_token %}
-                <div class="modal-body p-4">
-                    <div class="mb-3">
-                        <label class="form-label fw-bold">Nombre de la Cuenta</label>
-                        {{ form.name }}
-                    </div>
-                    
-                    <div id="initialAmountFields">
-                        <hr class="my-4">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0 text-muted">Saldo Inicial (Opcional)</h6>
-                            <button type="button" class="btn btn-xs btn-outline-primary py-0 px-2" id="currencyToggleBtn" style="font-size: 0.7rem;">
-                                Cambiar a <span id="nextCurrencyLabel">BS</span>
-                            </button>
-                        </div>
-                        <div class="row g-3">
-                            <div class="col-md-7">
-                                <label class="form-label small fw-bold">Monto</label>
-                                <div class="input-group">
-                                    <span class="input-group-text py-1 px-2" id="currencyAddon" style="font-size: 0.85rem;">$</span>
-                                    <input type="number" step="0.01" class="form-control" id="id_amount_display" placeholder="0.00">
-                                </div>
-                            </div>
-                            <div class="col-md-5">
-                                <label class="form-label small fw-bold">Tasa</label>
-                                {{ form.daily_rate }}
-                                <div class="form-check form-switch mt-1">
-                                    <input class="form-check-input" type="checkbox" id="manualRateSwitch" style="transform: scale(0.8);">
-                                    <label class="form-check-label" for="manualRateSwitch" style="font-size: 0.7rem;">Manual</label>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="d-none">
-                            {{ form.initial_amount_usd }}
-                            {{ form.initial_amount_bs }}
-                        </div>
-                        <p class="text-muted small mt-3 mb-0" style="font-size: 0.75rem;">
-                            <i class="bi bi-info-circle me-1"></i>Se creará una transacción de crédito automáticamente.
-                        </p>
-                    </div>
-                </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-                    <button type="submit" class="btn btn-primary px-4">Guardar</button>
-                </div>
-            </form>
+<div class="cf-modal" id="accountModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title" id="modalTitle">Nueva Cuenta</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
         </div>
+        <form id="accountForm" method="post" action="{% url 'crear_cuenta' %}">
+            {% csrf_token %}
+            <div class="cf-modal__body">
+                <div class="cf-form-group">
+                    <label class="cf-label">Nombre de la Cuenta</label>
+                    {{ form.name }}
+                </div>
+                <div id="initialAmountFields">
+                    <div class="cf-divider"></div>
+                    <div class="cf-flex cf-justify-between cf-items-center cf-mb-3">
+                        <h6 class="cf-text-muted cf-mb-0">Saldo Inicial (Opcional)</h6>
+                        <button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="currencyToggleBtn">
+                            Cambiar a <span id="nextCurrencyLabel">BS</span>
+                        </button>
+                    </div>
+                    <div class="cf-form-row">
+                        <div class="cf-form-group">
+                            <label class="cf-label cf-fs-sm">Monto</label>
+                            <div class="cf-input-group">
+                                <span class="cf-input-group__addon" id="currencyAddon">$</span>
+                                <input type="number" step="0.01" class="cf-input" id="id_amount_display" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="cf-form-group">
+                            <label class="cf-label cf-fs-sm">Tasa</label>
+                            {{ form.daily_rate }}
+                            <div class="cf-switch cf-mt-1">
+                                <input type="checkbox" id="manualRateSwitch">
+                                <label for="manualRateSwitch" class="cf-fs-sm">Manual</label>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cf-hidden">
+                        {{ form.initial_amount_usd }}
+                        {{ form.initial_amount_bs }}
+                    </div>
+                    <p class="cf-text-muted cf-fs-sm cf-mt-3 cf-mb-0">
+                        <i class="fa-solid fa-circle-info cf-me-1"></i>Se creará una transacción de crédito automáticamente.
+                    </p>
+                </div>
+            </div>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Guardar</button>
+            </div>
+        </form>
     </div>
 </div>
 
-<!-- Modal Eliminar -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title">Confirmar Eliminación</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4">
-                ¿Está seguro de que desea eliminar esta cuenta? Se perderá el rastro de las transacciones asociadas.
-            </div>
-            <div class="modal-footer bg-light">
-                <form id="deleteForm" method="post" action="">
-                    {% csrf_token %}
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-danger px-4">Eliminar</button>
-                </form>
-            </div>
+<div class="cf-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--danger">
+            <h5 class="cf-modal__title">Confirmar Eliminación</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <div class="cf-modal__body">
+            ¿Está seguro de que desea eliminar esta cuenta? Se perderá el rastro de las transacciones asociadas.
+        </div>
+        <div class="cf-modal__footer">
+            <form id="deleteForm" method="post" action="">
+                {% csrf_token %}
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--danger">Eliminar</button>
+            </form>
         </div>
     </div>
 </div>
 {% endblock %}
 
 {% block extra_js %}
+<script src="{% static 'js/organizations/cuentas.js' %}"></script>
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const accountModal = new bootstrap.Modal(document.getElementById('accountModal'));
-        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-
-        const bcvRate = parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1;
-        let currentInputCurrency = 'USD';
-
-        window.resetForm = function() {
-            const form = document.getElementById('accountForm');
-            form.reset();
-            form.action = "{% url 'crear_cuenta' %}";
-            document.getElementById('modalTitle').innerText = "Nueva Cuenta";
-            document.getElementById('initialAmountFields').classList.remove('d-none');
-            
-            document.getElementById('manualRateSwitch').checked = false;
-            const rateField = document.querySelector('input[name="daily_rate"]');
-            rateField.value = bcvRate;
-            rateField.readOnly = true;
-            
-            currentInputCurrency = 'USD';
-            document.getElementById('id_amount_display').value = "";
-            updateCurrencyUI();
-        }
-
-        window.editAccount = function(id, name) {
-            const form = document.getElementById('accountForm');
-            form.action = `/cuentas/guardar/${id}/`;
-            document.getElementById('modalTitle').innerText = "Editar Cuenta";
-            document.getElementById('initialAmountFields').classList.add('d-none');
-            
-            form.querySelector('[name="name"]').value = name;
-            
-            accountModal.show();
-        }
-
-        window.confirmDelete = function(id) {
-            document.getElementById('deleteForm').action = `/cuentas/eliminar/${id}/`;
-            deleteModal.show();
-        }
-
-        const currencyToggleBtn = document.getElementById('currencyToggleBtn');
-        const nextCurrencyLabel = document.getElementById('nextCurrencyLabel');
-        const currencyAddon = document.getElementById('currencyAddon');
-        const amountDisplay = document.getElementById('id_amount_display');
-        const amountUsdField = document.querySelector('input[name="initial_amount_usd"]');
-        const amountBsField = document.querySelector('input[name="initial_amount_bs"]');
-        const dailyRateField = document.querySelector('input[name="daily_rate"]');
-        const manualRateSwitch = document.getElementById('manualRateSwitch');
-
-        function updateCurrencyUI() {
-            if (!currencyAddon || !nextCurrencyLabel) return;
-            if (currentInputCurrency === 'USD') {
-                currencyAddon.innerText = '$';
-                nextCurrencyLabel.innerText = 'BS';
-            } else {
-                currencyAddon.innerText = 'Bs';
-                nextCurrencyLabel.innerText = 'USD';
-            }
-            syncHiddenFields();
-        }
-
-        function syncHiddenFields() {
-            if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
-            const val = parseFloat(amountDisplay.value) || 0;
-            const rate = parseFloat(dailyRateField.value) || 1;
-            
-            if (currentInputCurrency === 'USD') {
-                amountUsdField.value = val.toFixed(2);
-                amountBsField.value = (val * rate).toFixed(2);
-            } else {
-                amountBsField.value = val.toFixed(2);
-                amountUsdField.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
-            }
-        }
-
-        if (currencyToggleBtn) {
-            currencyToggleBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const currentVal = parseFloat(amountDisplay.value) || 0;
-                const rate = parseFloat(dailyRateField.value) || 1;
-                
-                if (currentInputCurrency === 'USD') {
-                    amountDisplay.value = (currentVal * rate).toFixed(2);
-                    currentInputCurrency = 'BS';
-                } else {
-                    amountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
-                    currentInputCurrency = 'USD';
-                }
-                updateCurrencyUI();
-            });
-        }
-
-        if (amountDisplay) amountDisplay.addEventListener('input', syncHiddenFields);
-        if (dailyRateField) dailyRateField.addEventListener('input', syncHiddenFields);
-
-        if (manualRateSwitch) {
-            manualRateSwitch.addEventListener('change', function(e) {
-                dailyRateField.readOnly = !e.target.checked;
-                if (!e.target.checked) {
-                    dailyRateField.value = bcvRate;
-                    syncHiddenFields();
-                }
-            });
-        }
+    initCuentas({
+        crearUrl: "{% url 'crear_cuenta' %}",
+        bcvRate: parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1
     });
 </script>
 {% endblock %}

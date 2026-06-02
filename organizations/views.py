@@ -1,17 +1,18 @@
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from django.contrib import messages
-from django.db.models import Sum
+from django.db.models import Sum, OuterRef, Subquery, Value
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 from datetime import timedelta
-import urllib.request
 import json
 from django.db import models
 from django.core.paginator import Paginator
 from decimal import Decimal
-from django.core.cache import cache
+from BCV.services.bcv_scrapper import as_dashboard_rates, get_rate_for_date
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -25,7 +26,7 @@ def dashboard(request):
     organizations = [access.organization for access in accesses]
     return render(request, 'organizations/dashboard.html', {
         'organizations': organizations,
-        'hide_sidebar': True
+        'hide_sidebar': True,
     })
 
 @login_required
@@ -76,33 +77,14 @@ def get_filtered_totals_both(org_id, filter_type):
         'expense_bs': abs(res['expense_bs'] or 0),
     }
 
-def fetch_api_rate(url):
-    cache_key = f'rate_api_{url}'
-    cached_data = cache.get(cache_key)
-    if cached_data:
-        return cached_data
-        
+def get_bcv_rate(target_date=None):
     try:
-        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
-        with urllib.request.urlopen(req, timeout=5) as response:
-            data = json.loads(response.read().decode())
-            cache.set(cache_key, data, 3600)  # Cache por 1 hora
-            return data
+        rate_date = target_date or timezone.localdate()
+        rate = get_rate_for_date(rate_date, currency="USD")
+        if rate is not None:
+            return float(rate)
     except Exception:
-        return None
-
-def get_bcv_rate():
-    rate = cache.get('bcv_rate_val')
-    if rate:
-        return rate
-        
-    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
-    if dolares_data:
-        for item in dolares_data:
-            if item.get('fuente', '').lower() == 'oficial':
-                val = item.get('promedio', 1)
-                cache.set('bcv_rate_val', val, 3600)
-                return val
+        pass
     return 1
 
 @login_required
@@ -127,31 +109,15 @@ def home_organizacion(request):
     else:
         exp_totals = get_filtered_totals_both(org_id, expense_filter)
     
-    # Cache para listas completas de tasas
-    dolares_data = fetch_api_rate('https://ve.dolarapi.com/v1/dolares')
-    euros_data = fetch_api_rate('https://ve.dolarapi.com/v1/euros')
-    
-    rates = {
-        'usd_bcv': None,
-        'usd_paralelo': None,
-        'eur_bcv': None,
-        'eur_paralelo': None,
-    }
-    
-    def find_rate(data, fuente_slug):
-        if not isinstance(data, list): return None
-        for item in data:
-            if item.get('fuente', '').lower() == fuente_slug:
-                return item
-        return None
-
-    if dolares_data:
-        rates['usd_bcv'] = find_rate(dolares_data, 'oficial')
-        rates['usd_paralelo'] = find_rate(dolares_data, 'paralelo')
-    
-    if euros_data:
-        rates['eur_bcv'] = find_rate(euros_data, 'oficial')
-        rates['eur_paralelo'] = find_rate(euros_data, 'paralelo')
+    try:
+        rates = as_dashboard_rates()
+    except Exception:
+        rates = {
+            'usd_bcv': None,
+            'usd_paralelo': None,
+            'eur_bcv': None,
+            'eur_paralelo': None,
+        }
     
     recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
     
@@ -264,6 +230,16 @@ def lista_transacciones(request):
         
     transactions_list = transactions_list.order_by('-date', '-id')
     
+    # Calcular totales filtrados
+    totals = transactions_list.aggregate(
+        balance_usd=Sum('amount_usd'),
+        balance_bs=Sum('amount_bs'),
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
+    )
+    
     paginator = Paginator(transactions_list, 20)
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
@@ -289,6 +265,14 @@ def lista_transacciones(request):
         'filter_type': filter_type,
         'date_from': date_from,
         'date_to': date_to,
+        'totals': {
+            'balance_usd': totals['balance_usd'] or 0,
+            'balance_bs': totals['balance_bs'] or 0,
+            'income_usd': totals['income_usd'] or 0,
+            'income_bs': totals['income_bs'] or 0,
+            'expense_usd': abs(totals['expense_usd'] or 0),
+            'expense_bs': abs(totals['expense_bs'] or 0),
+        },
         'filter_options': [
             ('day', 'Último día'),
             ('week', 'Última semana'),
@@ -374,7 +358,8 @@ def exportar_pdf_transacciones(request):
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=landscape(letter),
                             rightMargin=1.5*cm, leftMargin=1.5*cm,
-                            topMargin=1.5*cm, bottomMargin=1.5*cm)
+                            topMargin=1.5*cm, bottomMargin=1.5*cm,
+                            title=f"Balance General - {org.name}")
     
     elements = []
     styles = getSampleStyleSheet()
@@ -541,15 +526,46 @@ def guardar_transaccion(request, trans_id=None):
     org = get_object_or_404(Organization, id=org_id)
     instance = None
     if trans_id:
-        instance = get_object_or_404(Transaction, id=trans_id, organization=org)
+        # Si es edición, buscamos la transacción original.
+        # Se permite si el usuario tiene acceso a la organización de la transacción
+        # O si la transacción pertenece a un proyecto al que la organización actual tiene acceso.
+        projects_with_access = Project.objects.filter(
+            models.Q(organization=org) | models.Q(shared_organizations__organization=org),
+            user_accesses__user=request.user
+        )
+        
+        transactions_with_access = Transaction.objects.filter(
+            models.Q(organization=org) | 
+            models.Q(organization__user_accesses__user=request.user) |
+            models.Q(project__in=projects_with_access)
+        ).distinct()
+        
+        transaction_to_edit = get_object_or_404(transactions_with_access, id=trans_id)
+        instance = transaction_to_edit
+    
+    redirect_to = request.POST.get('next', 'lista_transacciones')
     
     if request.method == 'POST':
-        form = TransactionForm(request.POST, instance=instance, organization=org)
+        # Si viene de un proyecto, necesitamos pasar el proyecto al formulario
+        proj_id = request.POST.get('project')
+        project_context = None
+        if proj_id:
+            project_context = get_object_or_404(Project, id=proj_id)
+            # Verificar acceso al proyecto
+            projects_owned = Project.objects.filter(organization=org)
+            projects_shared = Project.objects.filter(shared_organizations__organization=org)
+            if not (projects_owned | projects_shared).filter(id=proj_id).exists():
+                messages.error(request, "No tiene acceso a este proyecto.")
+                return redirect(redirect_to)
+
+        form = TransactionForm(request.POST, instance=instance, organization=org, project=project_context)
         if form.is_valid():
-            transaction = form.save(commit=False)
-            transaction.organization = org
-            transaction.save()
+            transaction = form.save()
             messages.success(request, "Transacción guardada correctamente.")
+            
+            # Si se especificó una redirección (ej. volver al proyecto)
+            if 'next' in request.POST:
+                return redirect(request.POST['next'])
         else:
             messages.error(request, "Error al guardar la transacción. Verifique los datos.")
     
@@ -562,19 +578,50 @@ def eliminar_transaccion(request, trans_id):
         return redirect('dashboard')
     
     org = get_object_or_404(Organization, id=org_id)
-    transaction = get_object_or_404(Transaction, id=trans_id, organization=org)
+    
+    # Verificar acceso: Directo a la org O via proyecto compartido
+    projects_with_access = Project.objects.filter(
+        models.Q(organization=org) | models.Q(shared_organizations__organization=org),
+        user_accesses__user=request.user
+    )
+    
+    transactions_with_access = Transaction.objects.filter(
+        models.Q(organization=org) | 
+        models.Q(organization__user_accesses__user=request.user) |
+        models.Q(project__in=projects_with_access)
+    ).distinct()
+    
+    transaction = get_object_or_404(transactions_with_access, id=trans_id)
+    
+    redirect_to = request.GET.get('next', 'lista_transacciones')
     
     if request.method == 'POST':
         transaction.delete()
         messages.success(request, "Transacción eliminada.")
     
-    return redirect('lista_transacciones')
+    return redirect(redirect_to)
 
 @login_required
 def detalle_transaccion(request, trans_id):
     org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
+        
     org = get_object_or_404(Organization, id=org_id)
-    transaction = get_object_or_404(Transaction, id=trans_id, organization=org)
+    
+    # Verificar acceso: Directo a la org O via proyecto compartido
+    projects_with_access = Project.objects.filter(
+        models.Q(organization=org) | models.Q(shared_organizations__organization=org),
+        user_accesses__user=request.user
+    )
+    
+    transactions_with_access = Transaction.objects.filter(
+        models.Q(organization=org) | 
+        models.Q(organization__user_accesses__user=request.user) |
+        models.Q(project__in=projects_with_access)
+    ).distinct()
+    
+    transaction = get_object_or_404(transactions_with_access, id=trans_id)
     return render(request, 'organizations/partials/detalle_transaccion.html', {'transaction': transaction})
 
 # --- Categorías ---
@@ -758,9 +805,47 @@ def lista_proyectos(request):
         return redirect('dashboard')
 
     org = get_object_or_404(Organization, id=org_id)
-    projects = Project.objects.filter(organization=org).annotate(
-        balance_usd=Sum('transactions__amount_usd'),
-        balance_bs=Sum('transactions__amount_bs')
+    
+    # Proyectos que pertenecen a la organización o a los que tiene acceso
+    # Y que el usuario actual tenga acceso explícito (ProjectUserAccess)
+    projects_qs = Project.objects.filter(
+        models.Q(organization=org) | models.Q(shared_organizations__organization=org),
+        user_accesses__user=request.user
+    ).distinct()
+
+    # Subconsultas para calcular balance de MI organización
+    org_usd_subquery = Transaction.objects.filter(
+        project_id=OuterRef('pk'),
+        organization_id=org_id
+    ).order_by().values('project').annotate(
+        total=Sum('amount_usd')
+    ).values('total')
+
+    org_bs_subquery = Transaction.objects.filter(
+        project_id=OuterRef('pk'),
+        organization_id=org_id
+    ).order_by().values('project').annotate(
+        total=Sum('amount_bs')
+    ).values('total')
+
+    # Subconsultas para calcular balance TOTAL del proyecto (todas las orgs)
+    total_usd_subquery = Transaction.objects.filter(
+        project_id=OuterRef('pk')
+    ).order_by().values('project').annotate(
+        total=Sum('amount_usd')
+    ).values('total')
+
+    total_bs_subquery = Transaction.objects.filter(
+        project_id=OuterRef('pk')
+    ).order_by().values('project').annotate(
+        total=Sum('amount_bs')
+    ).values('total')
+
+    projects = projects_qs.annotate(
+        org_balance_usd=Coalesce(Subquery(org_usd_subquery), Value(0, output_field=models.DecimalField())),
+        org_balance_bs=Coalesce(Subquery(org_bs_subquery), Value(0, output_field=models.DecimalField())),
+        total_balance_usd=Coalesce(Subquery(total_usd_subquery), Value(0, output_field=models.DecimalField())),
+        total_balance_bs=Coalesce(Subquery(total_bs_subquery), Value(0, output_field=models.DecimalField()))
     )
 
     form = ProjectForm()
@@ -779,14 +864,22 @@ def guardar_proyecto(request, proj_id=None):
     org = get_object_or_404(Organization, id=org_id)
     instance = None
     if proj_id:
+        # Solo el dueño puede editar el proyecto
         instance = get_object_or_404(Project, id=proj_id, organization=org)
 
     if request.method == 'POST':
         form = ProjectForm(request.POST, instance=instance)
         if form.is_valid():
             project = form.save(commit=False)
-            project.organization = org
+            if not instance:
+                project.organization = org
             project.save()
+            
+            # Si es un proyecto nuevo, darle acceso al creador automáticamente
+            if not instance:
+                from .models import ProjectUserAccess
+                ProjectUserAccess.objects.get_or_create(user=request.user, project=project)
+                
             messages.success(request, "Proyecto guardado correctamente.")
         else:
             messages.error(request, "Error al guardar el proyecto.")
@@ -800,6 +893,7 @@ def eliminar_proyecto(request, proj_id):
         return redirect('dashboard')
 
     org = get_object_or_404(Organization, id=org_id)
+    # Solo el dueño puede eliminar
     project = get_object_or_404(Project, id=proj_id, organization=org)
 
     if request.method == 'POST':
@@ -815,10 +909,54 @@ def detalle_proyecto(request, proj_id):
         return redirect('dashboard')
 
     org = get_object_or_404(Organization, id=org_id)
-    project = get_object_or_404(Project, id=proj_id, organization=org)
+    
+    # Verificar acceso: El proyecto debe pertenecer u estar compartido con la org, 
+    # Y el usuario debe tener acceso.
+    projects_owned = Project.objects.filter(organization=org)
+    projects_shared = Project.objects.filter(shared_organizations__organization=org)
+    project_qs = (projects_owned | projects_shared).distinct()
+    
+    project = get_object_or_404(project_qs, id=proj_id, user_accesses__user=request.user)
 
-    # Anotar valuaciones con el monto cubierto por transacciones de crédito
-    # Consideramos "crédito" como transacciones con monto positivo (ingresos)
+    # --- Lógica de Filtrado ---
+    filter_type = request.GET.get('filter_type', 'all')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    selected_org_id = request.GET.get('organization')
+
+    if date_from == 'None': date_from = None
+    if date_to == 'None': date_to = None
+    if selected_org_id == 'None' or selected_org_id == '': selected_org_id = None
+
+    # Ver TODAS las transacciones del proyecto (de cualquier organización con acceso)
+    transactions_list = Transaction.objects.filter(project=project)
+
+    if selected_org_id:
+        transactions_list = transactions_list.filter(organization_id=selected_org_id)
+
+    today = timezone.localdate()
+    if filter_type != 'all' and filter_type != 'custom':
+        if filter_type == 'day':
+            start_date = today
+        elif filter_type == 'week':
+            start_date = today - timedelta(days=7)
+        elif filter_type == '15days':
+            start_date = today - timedelta(days=15)
+        elif filter_type == 'month':
+            start_date = today - timedelta(days=30)
+        elif filter_type == 'quarter':
+            start_date = today - timedelta(days=90)
+        elif filter_type == '6months':
+            start_date = today - timedelta(days=180)
+        elif filter_type == 'year':
+            start_date = today - timedelta(days=365)
+        transactions_list = transactions_list.filter(date__gte=start_date)
+    elif filter_type == 'custom' and date_from and date_to:
+        transactions_list = transactions_list.filter(date__range=[date_from, date_to])
+
+    transactions_list = transactions_list.order_by('-date', '-id')
+
+    # Anotar valuaciones con el monto cubierto por transacciones de crédito de TODAS las organizaciones
     valuations = list(Valuation.objects.filter(project=project).annotate(
         covered_usd=Sum('transactions__amount_usd', filter=models.Q(transactions__amount_usd__gt=0)),
         covered_bs=Sum('transactions__amount_bs', filter=models.Q(transactions__amount_bs__gt=0))
@@ -831,13 +969,20 @@ def detalle_proyecto(request, proj_id):
             covered = val.covered_usd or 0
             val.progress = min(round((covered / val.amount_usd) * 100, 2), 100)
 
-    transactions_list = Transaction.objects.filter(project=project).order_by('-date', '-id')
-    
-    totals = transactions_list.aggregate(
+    # Totales para el balance del proyecto (transacciones filtradas)
+    totals_project = transactions_list.aggregate(
         balance_usd=Sum('amount_usd'),
         balance_bs=Sum('amount_bs'),
         income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
-        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0))
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
+    )
+    
+    # Totales solo para la organización actual (balance de la organización)
+    totals_org = transactions_list.filter(organization=org).aggregate(
+        balance_usd=Sum('amount_usd'),
+        balance_bs=Sum('amount_bs')
     )
 
     paginator = Paginator(transactions_list, 20)
@@ -845,19 +990,54 @@ def detalle_proyecto(request, proj_id):
     page_obj = paginator.get_page(page_number)
 
     val_form = ValuationForm()
+    trans_form = TransactionForm(organization=org, project=project)
     bcv_rate = get_bcv_rate()
+
+    # Organizaciones para el filtro y datos dinámicos
+    orgs_with_access = (Organization.objects.filter(projects=project) | Organization.objects.filter(shared_projects__project=project)).distinct()
+    
+    orgs_data = {}
+    for o in orgs_with_access:
+        orgs_data[o.id] = {
+            'accounts': list(Account.objects.filter(organization=o).values('id', 'name')),
+            'categories': list(Category.objects.filter(organization=o).values('id', 'name'))
+        }
+
+    filter_options = [
+        ('all', 'Todo el tiempo'),
+        ('day', 'Hoy'),
+        ('week', 'Esta semana'),
+        ('15days', 'Últimos 15 días'),
+        ('month', 'Último mes'),
+        ('quarter', 'Último trimestre'),
+        ('6months', 'Últimos 6 meses'),
+        ('year', 'Último año'),
+        ('custom', 'Personalizado'),
+    ]
 
     return render(request, 'organizations/detalle_proyecto.html', {
         'project': project,
         'valuations': valuations,
         'page_obj': page_obj,
         'val_form': val_form,
+        'trans_form': trans_form,
+        'orgs_data': json.dumps(orgs_data, cls=DecimalEncoder),
         'bcv_rate': bcv_rate,
+        'orgs_with_access': orgs_with_access,
+        'filter_type': filter_type,
+        'date_from': date_from,
+        'date_to': date_to,
+        'selected_org_id': selected_org_id,
+        'filter_options': filter_options,
         'totals': {
-            'balance_usd': totals['balance_usd'] or 0,
-            'balance_bs': totals['balance_bs'] or 0,
-            'income_usd': totals['income_usd'] or 0,
-            'expense_usd': abs(totals['expense_usd'] or 0),
+            'balance_usd': totals_project['balance_usd'] or 0,
+            'balance_bs': totals_project['balance_bs'] or 0,
+            'income_usd': totals_project['income_usd'] or 0,
+            'expense_usd': abs(totals_project['expense_usd'] or 0),
+            'income_bs': totals_project['income_bs'] or 0,
+            'expense_bs': abs(totals_project['expense_bs'] or 0),
+            'org_balance_usd': totals_org['balance_usd'] or 0,
+            'org_balance_bs': totals_org['balance_bs'] or 0,
         }
     })
 
@@ -867,7 +1047,14 @@ def detalle_proyecto(request, proj_id):
 def guardar_valuacion(request, proj_id, val_id=None):
     org_id = request.session.get('org_id')
     org = get_object_or_404(Organization, id=org_id)
-    project = get_object_or_404(Project, id=proj_id, organization=org)
+    
+    # Permitir si es dueño O si tiene acceso compartido
+    project = get_object_or_404(
+        Project.objects.filter(
+            models.Q(organization=org) | models.Q(shared_organizations__organization=org)
+        ).distinct(), 
+        id=proj_id
+    )
     
     instance = None
     if val_id:
@@ -889,8 +1076,20 @@ def guardar_valuacion(request, proj_id, val_id=None):
 def eliminar_valuacion(request, val_id):
     org_id = request.session.get('org_id')
     org = get_object_or_404(Organization, id=org_id)
-    valuation = get_object_or_404(Valuation, id=val_id, project__organization=org)
-    proj_id = valuation.project.id
+    
+    # Buscar la valuación y verificar que la organización tenga acceso al proyecto
+    valuation = get_object_or_404(Valuation, id=val_id)
+    project = valuation.project
+    
+    # Verificar acceso (Dueño o Compartido)
+    is_owner = project.organization == org
+    is_shared = project.shared_organizations.filter(organization=org).exists()
+    
+    if not (is_owner or is_shared):
+        messages.error(request, "No tiene permiso para eliminar esta valuación.")
+        return redirect('lista_proyectos')
+
+    proj_id = project.id
 
     if request.method == 'POST':
         valuation.delete()

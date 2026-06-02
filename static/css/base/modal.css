@@ -1,0 +1,125 @@
+/* Modal overlay and dialog */
+.cf-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+.cf-modal.is-open {
+    display: flex;
+}
+
+.cf-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(20, 22, 68, 0.45);
+    animation: cf-fade-in 0.2s ease;
+}
+
+.cf-modal__dialog {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: 0 20px 60px rgba(20, 22, 68, 0.2);
+    animation: cf-slide-up 0.25s ease;
+}
+
+.cf-modal__dialog--lg {
+    max-width: 800px;
+}
+
+.cf-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.cf-modal__header--primary {
+    background: var(--color-morado);
+    color: #fff;
+    border-bottom: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.cf-modal__header--danger {
+    background: var(--color-danger);
+    color: #fff;
+    border-bottom: none;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.cf-modal__title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.cf-modal__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(255, 255, 255, 0.15);
+    color: inherit;
+    border-radius: var(--radius-sm);
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.cf-modal__close:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+.cf-modal__header:not(.cf-modal__header--primary):not(.cf-modal__header--danger) .cf-modal__close {
+    background: var(--bg-muted);
+    color: var(--text-main);
+}
+
+.cf-modal__body {
+    padding: 1.25rem;
+}
+
+.cf-modal__footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid var(--border-subtle);
+    background: var(--bg-surface);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+}
+
+body.cf-modal-open {
+    overflow: hidden;
+}
+
+@keyframes cf-fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes cf-slide-up {
+    from {
+        opacity: 0;
+        transform: translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

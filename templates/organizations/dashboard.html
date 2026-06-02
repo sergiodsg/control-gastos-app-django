@@ -1,58 +1,57 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Mis Organizaciones - Control de Gastos{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/dashboard.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12 d-flex justify-content-between align-items-center">
-        <h2>Mis Organizaciones</h2>
-        <a href="{% url 'crear_organizacion' %}" class="btn btn-primary">
-            <i class="bi bi-plus-lg me-1"></i>Crear Organización
+<div class="org-dashboard">
+    <div class="cf-page-header">
+        <h2 class="cf-page-title">Mis Organizaciones</h2>
+        <a href="{% url 'crear_organizacion' %}" class="cf-btn cf-btn--primary">
+            <i class="fa-solid fa-plus"></i> Crear Organización
         </a>
     </div>
-</div>
 
-<div class="row">
     {% if organizations %}
+    <div class="cf-grid cf-grid--cards">
         {% for org in organizations %}
-            <div class="col-md-6 col-lg-4 mb-4">
-                <div class="card h-100 shadow-sm border-0 {% if org.id == request.session.org_id %}border-start border-primary border-4{% endif %}">
-                    <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <h5 class="card-title mb-0">{{ org.name }}</h5>
-                            {% if org.id == request.session.org_id %}
-                                <span class="badge bg-primary">Seleccionada</span>
-                            {% endif %}
-                        </div>
-                        <p class="text-muted small">Gestiona tus gastos en esta organización.</p>
-                    </div>
-                    <div class="card-footer bg-transparent border-0 pb-3">
-                        {% if org.id != request.session.org_id %}
-                            <a href="{% url 'seleccionar_organizacion' org.id %}" class="btn btn-outline-primary w-100">
-                                Seleccionar
-                            </a>
-                        {% else %}
-                            <a href="{% url 'home_organizacion' %}" class="btn btn-success w-100">
-                                <i class="bi bi-arrow-right-circle me-1"></i>Entrar
-                            </a>
-                        {% endif %}
-                    </div>
+        <div class="cf-card cf-h-100{% if org.id == request.session.org_id %} cf-card--selected{% endif %}">
+            <div class="cf-card__body">
+                <div class="cf-flex cf-justify-between cf-items-start cf-mb-3">
+                    <h5 class="cf-card__title">{{ org.name }}</h5>
+                    {% if org.id == request.session.org_id %}
+                    <span class="cf-badge cf-badge--primary">Seleccionada</span>
+                    {% endif %}
                 </div>
+                <p class="cf-text-muted cf-fs-sm">Gestiona tus gastos en esta organización.</p>
             </div>
-        {% endfor %}
-    {% else %}
-        <div class="col-12">
-            <div class="card text-center py-5 border-0 shadow-sm">
-                <div class="card-body">
-                    <i class="bi bi-building-add display-1 text-muted mb-4"></i>
-                    <h4>No tienes organizaciones</h4>
-                    <p class="text-muted mb-4">Para comenzar a gestionar tus gastos, primero debes crear una organización.</p>
-                    <a href="{% url 'crear_organizacion' %}" class="btn btn-primary btn-lg">
-                        Crear mi primera organización
-                    </a>
-                </div>
+            <div class="cf-card__footer">
+                {% if org.id != request.session.org_id %}
+                <a href="{% url 'seleccionar_organizacion' org.id %}" class="cf-btn cf-btn--outline">Seleccionar</a>
+                {% else %}
+                <a href="{% url 'home_organizacion' %}" class="cf-btn cf-btn--success">
+                    <i class="fa-solid fa-arrow-right"></i> Entrar
+                </a>
+                {% endif %}
             </div>
         </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="cf-card cf-text-center cf-p-5">
+        <div class="cf-card__body">
+            <i class="fa-solid fa-building org-empty-icon"></i>
+            <h4 class="cf-mb-2">No tienes organizaciones</h4>
+            <p class="cf-text-muted cf-mb-4">Para comenzar a gestionar tus gastos, primero debes crear una organización.</p>
+            <a href="{% url 'crear_organizacion' %}" class="cf-btn cf-btn--primary cf-btn--lg">
+                Crear mi primera organización
+            </a>
+        </div>
+    </div>
     {% endif %}
 </div>
 {% endblock %}

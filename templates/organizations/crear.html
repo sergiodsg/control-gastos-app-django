@@ -1,25 +1,28 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Nueva Organización - Control de Gastos{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/crear.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6">
-        <div class="card">
-            <div class="card-body">
-                <h3 class="card-title text-center mb-4">Nueva Organización</h3>
-                <form method="post">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="nombre" class="form-label">Nombre de la Organización</label>
-                        <input type="text" name="nombre" id="nombre" class="form-control" required>
-                    </div>
-                    <div class="d-grid gap-2">
-                        <button type="submit" class="btn btn-primary">Crear</button>
-                        <a href="{% url 'dashboard' %}" class="btn btn-outline-secondary">Cancelar</a>
-                    </div>
-                </form>
-            </div>
+<div class="org-create-form" style="margin: 0 auto;">
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <h3 class="cf-text-center cf-mb-4 cf-fw-bold">Nueva Organización</h3>
+            <form method="post">
+                {% csrf_token %}
+                <div class="cf-form-group">
+                    <label for="nombre" class="cf-label">Nombre de la Organización</label>
+                    <input type="text" name="nombre" id="nombre" class="cf-input" required>
+                </div>
+                <div class="cf-flex cf-flex-col cf-gap-2">
+                    <button type="submit" class="cf-btn cf-btn--primary">Crear</button>
+                    <a href="{% url 'dashboard' %}" class="cf-btn cf-btn--outline-secondary">Cancelar</a>
+                </div>
+            </form>
         </div>
     </div>
 </div>

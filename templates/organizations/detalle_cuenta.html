@@ -1,155 +1,148 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}{{ account.name }} - Detalle{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/cuentas.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center">
-        <div>
-            <h2 class="mb-0"><i class="bi bi-wallet2 me-2"></i>{{ account.name }}</h2>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="{% url 'home_organizacion' %}">Inicio</a></li>
-                    <li class="breadcrumb-item"><a href="{% url 'lista_cuentas' %}">Mis Cuentas</a></li>
-                    <li class="breadcrumb-item active">{{ account.name }}</li>
-                </ol>
-            </nav>
-        </div>
-        <a href="{% url 'lista_transacciones' %}" class="btn btn-outline-primary">
-            <i class="bi bi-arrow-left me-1"></i>Ver Todas las Transacciones
-        </a>
+<div class="cf-page-header">
+    <div>
+        <h2 class="cf-page-title"><i class="fa-solid fa-wallet"></i> {{ account.name }}</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'home_organizacion' %}">Inicio</a></span>
+            <span class="cf-breadcrumb__sep"><a href="{% url 'lista_cuentas' %}">Mis Cuentas</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">{{ account.name }}</span>
+        </nav>
     </div>
+    <a href="{% url 'lista_transacciones' %}" class="cf-btn cf-btn--outline">
+        <i class="fa-solid fa-arrow-left cf-me-1"></i> Ver Todas las Transacciones
+    </a>
 </div>
 
-<!-- Totales de la Cuenta -->
-<div class="row g-4 mb-4">
-    <!-- Balance -->
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100 bg-primary text-white">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="text-uppercase mb-0 opacity-75 small fw-bold">Saldo Actual</h6>
-                    <i class="bi bi-bank fs-4 opacity-75"></i>
-                </div>
-                <h3 class="fw-bold mb-1">{{ totals.balance_usd|floatformat:2 }} <span class="small">$</span></h3>
-                <div class="opacity-75">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+<div class="cf-grid cf-grid--3 cf-mb-4">
+    <div class="cf-card cf-card--primary">
+        <div class="cf-card__body cf-p-5">
+            <div class="cf-flex cf-justify-between cf-items-center cf-mb-2">
+                <h6 class="cf-fs-sm cf-fw-bold" style="opacity: 0.85; text-transform: uppercase;">Saldo Actual</h6>
+                <i class="fa-solid fa-building-columns" style="opacity: 0.75;"></i>
+            </div>
+            <div class="currency-usd-content">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.balance_usd|floatformat:2 }} $</div>
             </div>
         </div>
     </div>
-    <!-- Ingresos -->
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100 bg-success text-white">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="text-uppercase mb-0 opacity-75 small fw-bold">Ingresos Totales</h6>
-                    <i class="bi bi-arrow-up-circle fs-4 opacity-75"></i>
-                </div>
-                <h3 class="fw-bold mb-1">{{ totals.income_usd|floatformat:2 }} <span class="small">$</span></h3>
-                <div class="opacity-75">{{ totals.income_bs|floatformat:2 }} Bs.</div>
+    <div class="cf-card" style="background: var(--color-success); color: #fff; border: none;">
+        <div class="cf-card__body cf-p-5">
+            <div class="cf-flex cf-justify-between cf-items-center cf-mb-2">
+                <h6 class="cf-fs-sm cf-fw-bold" style="opacity: 0.85; text-transform: uppercase;">Ingresos Totales</h6>
+                <i class="fa-solid fa-circle-arrow-up" style="opacity: 0.75;"></i>
+            </div>
+            <div class="currency-usd-content">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.income_bs|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.income_usd|floatformat:2 }} $</div>
             </div>
         </div>
     </div>
-    <!-- Egresos -->
-    <div class="col-md-4">
-        <div class="card border-0 shadow-sm h-100 bg-danger text-white">
-            <div class="card-body p-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="text-uppercase mb-0 opacity-75 small fw-bold">Egresos Totales</h6>
-                    <i class="bi bi-arrow-down-circle fs-4 opacity-75"></i>
-                </div>
-                <h3 class="fw-bold mb-1">{{ totals.expense_usd|floatformat:2 }} <span class="small">$</span></h3>
-                <div class="opacity-75">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
+    <div class="cf-card" style="background: var(--color-danger); color: #fff; border: none;">
+        <div class="cf-card__body cf-p-5">
+            <div class="cf-flex cf-justify-between cf-items-center cf-mb-2">
+                <h6 class="cf-fs-sm cf-fw-bold" style="opacity: 0.85; text-transform: uppercase;">Egresos Totales</h6>
+                <i class="fa-solid fa-circle-arrow-down" style="opacity: 0.75;"></i>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Tabla de Transacciones de la Cuenta -->
-<div class="card shadow-sm border-0">
-    <div class="card-header bg-white py-3">
-        <h5 class="card-title mb-0">Historial de Transacciones</h5>
-    </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="bg-light">
-                    <tr>
-                        <th class="ps-4">Fecha</th>
-                        <th>Descripción</th>
-                        <th>Monto (USD)</th>
-                        <th>Monto (BS)</th>
-                        <th>Tasa</th>
-                        <th>Categoría</th>
-                        <th>Estado</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for trans in page_obj %}
-                    <tr>
-                        <td class="ps-4">{{ trans.date|date:"d/m/Y" }}</td>
-                        <td>
-                            <div class="text-truncate" style="max-width: 250px;" title="{{ trans.description }}">
-                                {{ trans.description }}
-                            </div>
-                        </td>
-                        <td class="fw-bold text-{% if trans.amount_usd < 0 %}danger{% else %}success{% endif %}">
-                            {{ trans.amount_usd|floatformat:2 }} $
-                        </td>
-                        <td class="text-muted small">
-                            {{ trans.amount_bs|floatformat:2 }} Bs.
-                        </td>
-                        <td>{{ trans.daily_rate|floatformat:4 }}</td>
-                        <td>
-                            {% if trans.category %}
-                                <span class="badge rounded-pill" style="background-color: {{ trans.category.color }};">
-                                    {{ trans.category.name }}
-                                </span>
-                            {% else %}
-                                <span class="text-muted small">Sin categoría</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if trans.status == 'completado' %}
-                                <span class="badge bg-success-subtle text-success border border-success-subtle">Completado</span>
-                            {% elif trans.status == 'pendiente' %}
-                                <span class="badge bg-warning-subtle text-warning border border-warning-subtle">Pendiente</span>
-                            {% else %}
-                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Cancelado</span>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="7" class="text-center py-5 text-muted">
-                            <i class="bi bi-inbox fs-1 d-block mb-3"></i>
-                            No hay transacciones registradas para esta cuenta.
-                        </td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+            <div class="currency-usd-content">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
+            </div>
+            <div class="currency-bs-content cf-hidden">
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.expense_usd|floatformat:2 }} $</div>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Paginación -->
+<div class="cf-card">
+    <div class="cf-card__header">
+        <h5 class="cf-card__title">Historial de Transacciones</h5>
+    </div>
+    <div class="cf-table-wrap">
+        <table class="cf-table">
+            <thead>
+                <tr>
+                    <th class="cf-ps-4">Fecha</th>
+                    <th>Descripción</th>
+                    <th>Monto (USD)</th>
+                    <th>Monto (BS)</th>
+                    <th>Tasa</th>
+                    <th>Categoría</th>
+                    <th>Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trans in page_obj %}
+                <tr>
+                    <td class="cf-ps-4">{{ trans.date|date:"d/m/Y" }}</td>
+                    <td><div class="cf-text-truncate" style="max-width: 250px;" title="{{ trans.description }}">{{ trans.description }}</div></td>
+                    <td class="cf-fw-bold {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
+                    <td class="cf-text-muted cf-fs-sm">{{ trans.amount_bs|floatformat:2 }} Bs.</td>
+                    <td>{{ trans.daily_rate|floatformat:4 }}</td>
+                    <td>
+                        {% if trans.category %}
+                        <span class="cf-badge cf-badge--pill" style="background-color: {{ trans.category.color }}; color: #fff; border: none;">{{ trans.category.name }}</span>
+                        {% else %}
+                        <span class="cf-text-muted cf-fs-sm">Sin categoría</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if trans.status == 'completado' %}
+                        <span class="cf-badge cf-badge--success">Completado</span>
+                        {% elif trans.status == 'pendiente' %}
+                        <span class="cf-badge cf-badge--admin">Pendiente</span>
+                        {% else %}
+                        <span class="cf-badge cf-badge--danger">Cancelado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="cf-text-center cf-py-5 cf-text-muted">
+                        <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
+                        No hay transacciones registradas para esta cuenta.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
 {% if page_obj.has_other_pages %}
-<nav class="mt-4">
-    <ul class="pagination justify-content-center">
+<nav class="cf-mt-4">
+    <ul class="cf-pagination">
         {% if page_obj.has_previous %}
-            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+        <li><a href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
         {% endif %}
-
         {% for i in page_obj.paginator.page_range %}
-            {% if page_obj.number == i %}
-                <li class="page-item active"><span class="page-link">{{ i }}</span></li>
-            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-                <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
-            {% endif %}
+        {% if page_obj.number == i %}
+        <li class="is-active"><span>{{ i }}</span></li>
+        {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+        <li><a href="?page={{ i }}">{{ i }}</a></li>
+        {% endif %}
         {% endfor %}
-
         {% if page_obj.has_next %}
-            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
+        <li><a href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
         {% endif %}
     </ul>
 </nav>

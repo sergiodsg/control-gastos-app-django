@@ -1,142 +1,81 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Configuración - {{ request.session.org_name }}{% endblock %}
 
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/configuracion.css' %}">
+{% endblock %}
+
 {% block content %}
-<div class="row mb-4">
-    <div class="col-12">
-        <h2 class="fw-bold"><i class="bi bi-gear me-2"></i>Configuración</h2>
-        <p class="text-muted">Personaliza tu experiencia en <strong>{{ request.session.org_name }}</strong></p>
-    </div>
+<div class="cf-mb-4">
+    <h2 class="cf-page-title"><i class="fa-solid fa-gear"></i> Configuración</h2>
+    <p class="cf-page-subtitle">Personaliza tu experiencia en <strong>{{ request.session.org_name }}</strong></p>
 </div>
 
-<div class="row">
-    <div class="col-md-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body p-4">
-                <h5 class="card-title mb-4"><i class="bi bi-currency-exchange me-2 text-primary"></i>Preferencia de Moneda</h5>
-                <p class="text-muted small mb-4">Selecciona la moneda principal.</p>
-                
-                <div class="mb-4 d-flex flex-column gap-3">
-                    <div class="form-check p-3 border rounded currency-option d-flex align-items-center mb-0" id="opt-USD" style="cursor: pointer;">
-                        <input class="form-check-input flex-shrink-0" type="radio" name="currency-pref" id="currencyUSD" value="USD" style="margin-top: 0; margin-left: 0;">
-                        <label class="form-check-label fw-bold w-100 ps-2" for="currencyUSD" style="cursor: pointer;">
-                            Dólares (USD)
-                        </label>
-                    </div>
-                    
-                    <div class="form-check p-3 border rounded currency-option d-flex align-items-center mb-0" id="opt-BS" style="cursor: pointer;">
-                        <input class="form-check-input flex-shrink-0" type="radio" name="currency-pref" id="currencyBS" value="BS" style="margin-top: 0; margin-left: 0;">
-                        <label class="form-check-label fw-bold w-100 ps-2" for="currencyBS" style="cursor: pointer;">
-                            Bolívares (BS)
-                        </label>
-                    </div>
+<div class="cf-grid cf-grid--2">
+    <div class="cf-card cf-h-100">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-4">
+                <i class="fa-solid fa-money-bill-transfer cf-text-primary cf-me-2"></i>Preferencia de Moneda
+            </h5>
+            <p class="cf-text-muted cf-fs-sm cf-mb-4">Selecciona la moneda principal.</p>
+            <div class="config-options">
+                <div class="cf-option" id="opt-USD">
+                    <input type="radio" name="currency-pref" id="currencyUSD" value="USD">
+                    <label class="cf-fw-bold cf-flex-1" for="currencyUSD">Dólares (USD)</label>
                 </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6 mb-4">
-        <div class="card border-0 shadow-sm h-100">
-            <div class="card-body p-4">
-                <h5 class="card-title mb-4"><i class="bi bi-moon-stars me-2 text-primary"></i>Apariencia</h5>
-                <p class="text-muted small mb-4">Elige entre el modo claro u oscuro para personalizar tu experiencia visual.</p>
-                
-                <div class="mb-4 d-flex flex-column gap-3">
-                    <div class="form-check p-3 border rounded theme-option d-flex align-items-center mb-0" id="opt-light" style="cursor: pointer;">
-                        <input class="form-check-input flex-shrink-0" type="radio" name="theme-pref" id="themeLight" value="light" style="margin-top: 0; margin-left: 0;">
-                        <label class="form-check-label fw-bold w-100 ps-2" for="themeLight" style="cursor: pointer;">
-                            <i class="bi bi-sun me-2"></i>Modo Claro
-                        </label>
-                    </div>
-                    
-                    <div class="form-check p-3 border rounded theme-option d-flex align-items-center mb-0" id="opt-dark" style="cursor: pointer;">
-                        <input class="form-check-input flex-shrink-0" type="radio" name="theme-pref" id="themeDark" value="dark" style="margin-top: 0; margin-left: 0;">
-                        <label class="form-check-label fw-bold w-100 ps-2" for="themeDark" style="cursor: pointer;">
-                            <i class="bi bi-moon me-2"></i>Modo Oscuro
-                        </label>
-                    </div>
+                <div class="cf-option" id="opt-BS">
+                    <input type="radio" name="currency-pref" id="currencyBS" value="BS">
+                    <label class="cf-fw-bold cf-flex-1" for="currencyBS">Bolívares (BS)</label>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-<div class="row">
-    <div class="col-12 text-end">
-        <button type="button" class="btn btn-primary px-5" id="save-config">
-            Guardar todos los cambios
-        </button>
-    </div>
+<div class="cf-mt-4 cf-text-end">
+    <button type="button" class="cf-btn cf-btn--primary cf-btn--lg" id="save-config">
+        Guardar cambios
+    </button>
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', function () {
         const currentCurrency = localStorage.getItem('currency_pref') || 'USD';
-        const currentTheme = localStorage.getItem('theme_pref') || 'light';
-        
         const usdRadio = document.getElementById('currencyUSD');
         const bsRadio = document.getElementById('currencyBS');
-        const lightRadio = document.getElementById('themeLight');
-        const darkRadio = document.getElementById('themeDark');
-
         const usdOpt = document.getElementById('opt-USD');
         const bsOpt = document.getElementById('opt-BS');
-        const lightOpt = document.getElementById('opt-light');
-        const darkOpt = document.getElementById('opt-dark');
 
         function updateCurrencyUI(pref) {
-            if (pref === 'USD') {
-                usdRadio.checked = true;
-                usdOpt.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
-                bsOpt.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
-            } else {
-                bsRadio.checked = true;
-                bsOpt.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
-                usdOpt.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
-            }
-        }
-
-        function updateThemeUI(pref) {
-            if (pref === 'light') {
-                lightRadio.checked = true;
-                lightOpt.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
-                darkOpt.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
-            } else {
-                darkRadio.checked = true;
-                darkOpt.classList.add('border-primary', 'bg-primary', 'bg-opacity-10');
-                lightOpt.classList.remove('border-primary', 'bg-primary', 'bg-opacity-10');
-            }
+            usdOpt.classList.toggle('is-selected', pref === 'USD');
+            bsOpt.classList.toggle('is-selected', pref === 'BS');
+            if (pref === 'USD') usdRadio.checked = true;
+            else bsRadio.checked = true;
         }
 
         updateCurrencyUI(currentCurrency);
-        updateThemeUI(currentTheme);
 
-        usdOpt.addEventListener('click', () => { usdRadio.checked = true; updateCurrencyUI('USD'); });
-        bsOpt.addEventListener('click', () => { bsRadio.checked = true; updateCurrencyUI('BS'); });
-        lightOpt.addEventListener('click', () => { lightRadio.checked = true; updateThemeUI('light'); });
-        darkOpt.addEventListener('click', () => { darkRadio.checked = true; updateThemeUI('dark'); });
+        usdOpt.addEventListener('click', function () { updateCurrencyUI('USD'); });
+        bsOpt.addEventListener('click', function () { updateCurrencyUI('BS'); });
 
-        document.getElementById('save-config').addEventListener('click', () => {
-            const selectedCurrency = document.querySelector('input[name="currency-pref"]:checked').value;
-            const selectedTheme = document.querySelector('input[name="theme-pref"]:checked').value;
-            
-            localStorage.setItem('currency_pref', selectedCurrency);
-            localStorage.setItem('theme_pref', selectedTheme);
-            
-            if (typeof applyThemePreference === 'function') applyThemePreference();
+        document.getElementById('save-config').addEventListener('click', function () {
+            const selected = document.querySelector('input[name="currency-pref"]:checked').value;
+            localStorage.setItem('currency_pref', selected);
             if (typeof applyCurrencyPreference === 'function') applyCurrencyPreference();
-            
+
             const btn = document.getElementById('save-config');
-            const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>¡Configuración guardada!';
-            btn.classList.replace('btn-primary', 'btn-success');
-            
-            setTimeout(() => {
-                btn.innerHTML = originalText;
-                btn.classList.replace('btn-success', 'btn-primary');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-check cf-me-1"></i>¡Guardado!';
+            btn.classList.remove('cf-btn--primary');
+            btn.classList.add('cf-btn--success');
+            setTimeout(function () {
+                btn.innerHTML = original;
+                btn.classList.add('cf-btn--primary');
+                btn.classList.remove('cf-btn--success');
                 window.location.href = "{% url 'home_organizacion' %}";
             }, 800);
         });

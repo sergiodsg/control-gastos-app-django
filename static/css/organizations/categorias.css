@@ -1,0 +1,8 @@
+.category-card {
+    border-left-width: 4px;
+    border-left-style: solid;
+}
+
+.category-card .cf-badge--dot {
+    border-radius: 4px;
+}
