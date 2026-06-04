@@ -76,7 +76,7 @@ function initSuperadminOrgs(config) {
 
         if (isBs) {
             CFBanks.populateBsSelect(bankSelect).then(function () {
-                CFBanks.bindBsSelect(bankSelect, bankNameInput, rifInput);
+                CFBanks.bindBsSelect(bankSelect, bankNameInput);
             });
             bankSelect.addEventListener('change', function () {
                 if (bankCodeInput) bankCodeInput.value = bankSelect.value;
@@ -86,10 +86,6 @@ function initSuperadminOrgs(config) {
                 CFBanks.bindUsdSelect(bankSelect, bankNameInput);
             });
         }
-
-        rifInput.addEventListener('input', function () {
-            rifInput.dataset.userEdited = '1';
-        });
 
         row.querySelector('.sa-wizard-account-remove').addEventListener('click', function () {
             if (listEl.querySelectorAll('.sa-wizard-account-row').length > 1) {

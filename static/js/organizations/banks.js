@@ -31,7 +31,6 @@ window.CFBanks = (function () {
                 option.value = bank.codigo;
                 option.textContent = bank.codigo + ' — ' + bank.nombre;
                 option.dataset.bankName = bank.nombre;
-                option.dataset.bankRif = bank.rif || '';
                 if (selectedCode && bank.codigo === selectedCode) option.selected = true;
                 selectEl.appendChild(option);
             });
@@ -52,14 +51,11 @@ window.CFBanks = (function () {
         });
     }
 
-    function bindBsSelect(selectEl, bankNameInput, rifInput) {
+    function bindBsSelect(selectEl, bankNameInput) {
         if (!selectEl) return;
         selectEl.addEventListener('change', function () {
             var option = selectEl.options[selectEl.selectedIndex];
             if (bankNameInput) bankNameInput.value = option.dataset.bankName || '';
-            if (rifInput && option.dataset.bankRif && !rifInput.dataset.userEdited) {
-                rifInput.value = option.dataset.bankRif;
-            }
         });
     }
 

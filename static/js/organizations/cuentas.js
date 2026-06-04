@@ -32,7 +32,7 @@ function initCuentas(config) {
         updateBankSelectUrls();
         if (currentCurrency() === 'BS') {
             return CFBanks.populateBsSelect(bankSelect, selectedCode || '').then(function () {
-                CFBanks.bindBsSelect(bankSelect, bankNameField, rifField);
+                CFBanks.bindBsSelect(bankSelect, bankNameField);
             });
         }
         return CFBanks.populateUsdSelect(bankSelect, selectedName || bankNameField.value || '').then(function () {
@@ -115,12 +115,6 @@ function initCuentas(config) {
 
     if (bankSelect) {
         bankSelect.addEventListener('change', syncBankHiddenFields);
-    }
-
-    if (rifField) {
-        rifField.addEventListener('input', function () {
-            rifField.dataset.userEdited = '1';
-        });
     }
 
     if (form) {
