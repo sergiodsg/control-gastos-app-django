@@ -1,0 +1,359 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Organizaciones - Superadmin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/superadmin_panel/superadmin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div id="orgListView">
+<div class="cf-page-header">
+    <div>
+        <h2 class="cf-page-title"><i class="fa-solid fa-building"></i> Organizaciones</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'superadmin_dashboard' %}">Superadmin</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">Organizaciones</span>
+        </nav>
+    </div>
+    <button type="button" class="cf-btn cf-btn--primary" onclick="openOrgWizard()">
+        <i class="fa-solid fa-plus"></i> Nueva Organización
+    </button>
+</div>
+
+<div class="cf-card">
+    <div class="cf-table-wrap">
+        <table class="cf-table">
+            <thead>
+                <tr>
+                    <th class="cf-ps-4">ID</th>
+                    <th>Nombre</th>
+                    <th>Usuarios</th>
+                    <th>Cuentas</th>
+                    <th>Proyectos</th>
+                    <th>Transacciones</th>
+                    <th class="cf-text-end cf-pe-4">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for org in organizations %}
+                <tr>
+                    <td class="cf-ps-4 cf-text-muted">{{ org.id }}</td>
+                    <td class="cf-fw-bold">{{ org.name }}</td>
+                    <td>{{ org.users_count }}</td>
+                    <td>{{ org.accounts_count }}</td>
+                    <td>{{ org.projects_count }}</td>
+                    <td>{{ org.transactions_count }}</td>
+                    <td class="cf-text-end cf-pe-4">
+                        <div class="cf-btn-group">
+                            <button type="button" class="cf-btn cf-btn--sm cf-btn--outline" title="Editar" onclick="editOrg({{ org.id }}, '{{ org.name|escapejs }}')">
+                                <i class="fa-solid fa-pencil"></i>
+                            </button>
+                            <button type="button" class="cf-btn cf-btn--sm cf-btn--outline-secondary" title="Accesos" onclick="openAccessModal({{ org.id }}, '{{ org.name|escapejs }}', [{% for access in org.user_accesses.all %}{{ access.user_id }}{% if not forloop.last %},{% endif %}{% endfor %}])">
+                                <i class="fa-solid fa-users"></i>
+                            </button>
+                            <button type="button" class="cf-btn cf-btn--sm cf-btn--outline-danger" title="Eliminar" onclick="confirmDeleteOrg({{ org.id }}, '{{ org.name|escapejs }}')">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="cf-text-center cf-py-5 cf-text-muted">No hay organizaciones registradas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+</div>
+
+<!-- Vista completa: Wizard Nueva Organización -->
+<section id="orgWizardView" class="sa-org-wizard-view cf-hidden" aria-hidden="true">
+    <div class="sa-org-wizard-view__top">
+        <button type="button" class="sa-org-wizard-view__back" id="orgWizardBackBtn">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+            Volver a organizaciones
+        </button>
+        <div class="sa-org-wizard-view__intro">
+            <h2 class="sa-org-wizard-view__title"><i class="fa-solid fa-building"></i> Nueva Organización</h2>
+            <p class="sa-org-wizard-view__subtitle">Complete los pasos para registrar la organización, sus cuentas bancarias y administradores.</p>
+        </div>
+    </div>
+
+    <div class="cf-card sa-org-wizard-card">
+        <form id="orgWizardForm" class="sa-org-wizard-form" method="post" action="{% url 'superadmin_crear_organizacion_wizard' %}" novalidate>
+            {% csrf_token %}
+
+            <div class="cf-card__header sa-org-wizard-card__header">
+                <div class="sa-wizard-steps" id="orgWizardSteps">
+                    <div class="sa-wizard-step is-active" data-step="1">
+                        <span class="sa-wizard-step__num">1</span>
+                        <span class="sa-wizard-step__label">Organización</span>
+                    </div>
+                    <div class="sa-wizard-step__line"></div>
+                    <div class="sa-wizard-step" data-step="2">
+                        <span class="sa-wizard-step__num">2</span>
+                        <span class="sa-wizard-step__label">Cuentas</span>
+                    </div>
+                    <div class="sa-wizard-step__line"></div>
+                    <div class="sa-wizard-step" data-step="3">
+                        <span class="sa-wizard-step__num">3</span>
+                        <span class="sa-wizard-step__label">Administradores</span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="wizardFormErrors" class="sa-wizard-form-errors cf-hidden" role="alert"></div>
+
+            <div class="cf-card__body sa-org-wizard-card__body">
+                <div class="sa-wizard-viewport">
+                    <div class="sa-wizard-track" id="orgWizardTrack" data-step="1">
+                    <!-- Paso 1 -->
+                    <div class="sa-wizard-panel">
+                        <div class="sa-wizard-panel__inner sa-wizard-panel__inner--narrow">
+                        <div class="sa-wizard-panel__icon sa-wizard-panel__icon--org">
+                            <i class="fa-solid fa-building"></i>
+                        </div>
+                        <h6 class="sa-wizard-panel__title">Datos de la organización</h6>
+                        <p class="sa-wizard-panel__desc">Indique el nombre con el que se identificará la organización en el sistema.</p>
+                        <div class="cf-form-group cf-mb-0">
+                            <label class="cf-label" for="{{ wizard_form.name.id_for_label }}">Nombre</label>
+                            {{ wizard_form.name }}
+                            <p class="sa-wizard-field-error cf-hidden" id="wizardNameError"></p>
+                        </div>
+                        </div>
+                    </div>
+
+                    <!-- Paso 2 -->
+                    <div class="sa-wizard-panel">
+                        <div class="sa-wizard-panel__inner">
+                        <div class="sa-wizard-panel__icon sa-wizard-panel__icon--accounts">
+                            <i class="fa-solid fa-wallet"></i>
+                        </div>
+                        <h6 class="sa-wizard-panel__title">Cuentas bancarias</h6>
+                        <p class="sa-wizard-panel__desc">
+                            Las cuentas en Bs. y USD son independientes. Complete banco, RIF, número de cuenta, titular y saldo inicial.
+                        </p>
+
+                        <div class="sa-wizard-user-tabs sa-wizard-account-tabs" role="tablist">
+                            <button type="button" class="sa-wizard-user-tab is-active" data-account-tab="bs" role="tab">
+                                <i class="fa-solid fa-coins"></i> Cuentas Bs.
+                            </button>
+                            <button type="button" class="sa-wizard-user-tab" data-account-tab="usd" role="tab">
+                                <i class="fa-solid fa-dollar-sign"></i> Cuentas USD
+                            </button>
+                        </div>
+
+                        <div class="sa-wizard-account-panel is-active" data-account-panel="bs">
+                            <div class="sa-wizard-accounts" id="wizardAccountsBsList"></div>
+                            <button type="button" class="cf-btn cf-btn--sm cf-btn--outline cf-mt-3" id="wizardAddBsAccountBtn">
+                                <i class="fa-solid fa-plus"></i> Agregar cuenta Bs.
+                            </button>
+                        </div>
+                        <div class="sa-wizard-account-panel" data-account-panel="usd">
+                            <div class="sa-wizard-accounts" id="wizardAccountsUsdList"></div>
+                            <button type="button" class="cf-btn cf-btn--sm cf-btn--outline cf-mt-3" id="wizardAddUsdAccountBtn">
+                                <i class="fa-solid fa-plus"></i> Agregar cuenta USD
+                            </button>
+                        </div>
+
+                        <p class="sa-wizard-field-error cf-hidden" id="wizardAccountsError"></p>
+                        </div>
+                    </div>
+
+                    <!-- Paso 3 -->
+                    <div class="sa-wizard-panel">
+                        <div class="sa-wizard-panel__inner">
+                        <div class="sa-wizard-panel__icon sa-wizard-panel__icon--admin">
+                            <i class="fa-solid fa-user-shield"></i>
+                        </div>
+                        <h6 class="sa-wizard-panel__title">Administradores de la organización</h6>
+                        <p class="sa-wizard-panel__desc">
+                            Asigne uno o varios usuarios existentes y/o cree un usuario nuevo. Todos tendrán acceso a esta organización.
+                        </p>
+
+                        <div class="sa-wizard-user-tabs" role="tablist">
+                            <button type="button" class="sa-wizard-user-tab is-active" data-user-tab="assign" role="tab" aria-selected="true">
+                                <i class="fa-solid fa-users"></i> Asignar existentes
+                            </button>
+                            <button type="button" class="sa-wizard-user-tab" data-user-tab="create" role="tab" aria-selected="false">
+                                <i class="fa-solid fa-user-plus"></i> Crear nuevo
+                            </button>
+                        </div>
+
+                        <div class="sa-wizard-user-panel is-active" id="wizardUserAssignPanel" data-user-panel="assign">
+                            <p class="sa-wizard-subsection-title">Seleccione los administradores</p>
+                            <div class="sa-wizard-admin-list">
+                                {% for u in all_users %}
+                                <label class="sa-wizard-admin-option">
+                                    <input type="checkbox" name="org_users" value="{{ u.id }}" class="sa-wizard-user-check">
+                                    <span class="sa-wizard-admin-card">
+                                        <span class="sa-wizard-admin-avatar"><i class="fa-solid fa-user"></i></span>
+                                        <span class="sa-wizard-admin-info">
+                                            <strong>{{ u.username }}</strong>
+                                            {% if u.first_name or u.email %}
+                                            <small>{% if u.first_name %}{{ u.first_name }} {{ u.last_name }}{% endif %}{% if u.email %} · {{ u.email }}{% endif %}</small>
+                                            {% endif %}
+                                        </span>
+                                        <i class="fa-solid fa-circle-check sa-wizard-admin-check"></i>
+                                    </span>
+                                </label>
+                                {% empty %}
+                                <p class="cf-text-muted cf-fs-sm cf-mb-0">No hay usuarios registrados. Use la pestaña «Crear nuevo».</p>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="sa-wizard-user-panel" id="wizardUserCreatePanel" data-user-panel="create">
+                            <p class="sa-wizard-subsection-title">Datos del nuevo usuario</p>
+                            <div class="sa-wizard-new-user-grid">
+                                <div class="cf-form-group cf-mb-0">
+                                    <label class="cf-label cf-fs-sm">Usuario</label>
+                                    {{ wizard_form.new_user_username }}
+                                </div>
+                                <div class="cf-form-group cf-mb-0">
+                                    <label class="cf-label cf-fs-sm">Email</label>
+                                    {{ wizard_form.new_user_email }}
+                                </div>
+                                <div class="cf-form-group cf-mb-0">
+                                    <label class="cf-label cf-fs-sm">Nombre</label>
+                                    {{ wizard_form.new_user_first_name }}
+                                </div>
+                                <div class="cf-form-group cf-mb-0">
+                                    <label class="cf-label cf-fs-sm">Apellido</label>
+                                    {{ wizard_form.new_user_last_name }}
+                                </div>
+                                <div class="cf-form-group cf-mb-0">
+                                    <label class="cf-label cf-fs-sm">Contraseña</label>
+                                    {{ wizard_form.new_user_password1 }}
+                                </div>
+                                <div class="cf-form-group cf-mb-0">
+                                    <label class="cf-label cf-fs-sm">Confirmar</label>
+                                    {{ wizard_form.new_user_password2 }}
+                                </div>
+                            </div>
+                            <p class="cf-text-muted cf-fs-sm cf-mt-3 cf-mb-0">
+                                <i class="fa-solid fa-circle-info cf-me-1"></i>
+                                El usuario creado quedará asignado automáticamente a esta organización.
+                            </p>
+                        </div>
+
+                        <p class="sa-wizard-field-error cf-hidden" id="wizardAdminError"></p>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cf-card__footer sa-org-wizard-card__footer sa-wizard-footer">
+                <button type="button" class="cf-btn cf-btn--secondary" id="orgWizardCancelBtn">Cancelar</button>
+                <div class="sa-wizard-footer__nav">
+                    <button type="button" class="cf-btn cf-btn--outline cf-hidden" id="orgWizardPrevBtn">
+                        <i class="fa-solid fa-arrow-left"></i> Anterior
+                    </button>
+                    <button type="button" class="cf-btn cf-btn--primary" id="orgWizardNextBtn">
+                        Siguiente <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                    <button type="submit" class="cf-btn cf-btn--primary cf-hidden" id="orgWizardSubmitBtn">
+                        <i class="fa-solid fa-check"></i> Crear organización
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</section>
+
+<!-- Modal Editar Organización -->
+<div class="cf-modal" id="orgEditModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title" id="orgEditModalTitle">Editar Organización</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <form id="orgEditForm" method="post" action="">
+            {% csrf_token %}
+            <div class="cf-modal__body">
+                <div class="cf-form-group cf-mb-0">
+                    <label class="cf-label">Nombre</label>
+                    {{ org_form.name }}
+                </div>
+            </div>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Accesos -->
+<div class="cf-modal" id="accessModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title" id="accessModalTitle">Accesos</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <form id="accessForm" method="post" action="">
+            {% csrf_token %}
+            <div class="cf-modal__body">
+                <p class="cf-text-muted cf-fs-sm cf-mb-3">Seleccione los usuarios que tendrán acceso a esta organización.</p>
+                <div class="sa-access-list">
+                    {% for u in all_users %}
+                    <label class="sa-access-item">
+                        <input type="checkbox" name="users" value="{{ u.id }}" class="sa-access-checkbox">
+                        <span>{{ u.username }}{% if u.first_name %} — {{ u.first_name }} {{ u.last_name }}{% endif %}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Guardar accesos</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="cf-modal" id="deleteOrgModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--danger">
+            <h5 class="cf-modal__title">Confirmar eliminación</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <div class="cf-modal__body">
+            <p>¿Eliminar la organización <strong id="deleteOrgName"></strong>?</p>
+            <p class="cf-text-danger cf-fs-sm cf-mb-0">Se eliminarán también cuentas, categorías, proyectos, transacciones y accesos asociados.</p>
+        </div>
+        <div class="cf-modal__footer">
+            <form id="deleteOrgForm" method="post" action="">
+                {% csrf_token %}
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--danger">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/organizations/banks.js' %}"></script>
+<script src="{% static 'js/superadmin_panel/superadmin.js' %}"></script>
+<script>
+    initSuperadminOrgs({
+        crearUrl: "{% url 'superadmin_crear_organizacion_wizard' %}",
+        editarUrlTemplate: "/superadmin/organizaciones/guardar/{id}/",
+        accesosUrlTemplate: "/superadmin/organizaciones/{id}/accesos/",
+        eliminarUrlTemplate: "/superadmin/organizaciones/eliminar/{id}/",
+        bcvRate: "{{ bcv_rate|floatformat:4 }}",
+        bancosBsUrl: "{% static 'json/bancos.json' %}",
+        bancosUsdUrl: "{% static 'json/bancos_usd.json' %}",
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Usuarios - Superadmin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/superadmin_panel/superadmin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cf-page-header">
+    <div>
+        <h2 class="cf-page-title"><i class="fa-solid fa-users"></i> Usuarios</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'superadmin_dashboard' %}">Superadmin</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">Usuarios</span>
+        </nav>
+    </div>
+    <button type="button" class="cf-btn cf-btn--primary" data-cf-modal="userCreateModal" onclick="resetUserCreateForm()">
+        <i class="fa-solid fa-user-plus"></i> Nuevo Usuario
+    </button>
+</div>
+
+<div class="cf-card">
+    <div class="cf-table-wrap">
+        <table class="cf-table">
+            <thead>
+                <tr>
+                    <th class="cf-ps-4">ID</th>
+                    <th>Usuario</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Organizaciones</th>
+                    <th>Estado</th>
+                    <th>Rol</th>
+                    <th class="cf-text-end cf-pe-4">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td class="cf-ps-4 cf-text-muted">{{ u.id }}</td>
+                    <td class="cf-fw-bold">{{ u.username }}</td>
+                    <td>{{ u.first_name }} {{ u.last_name }}</td>
+                    <td>{{ u.email|default:"—" }}</td>
+                    <td>{{ u.orgs_count }}</td>
+                    <td>
+                        {% if u.is_active %}
+                        <span class="cf-badge cf-badge--success">Activo</span>
+                        {% else %}
+                        <span class="cf-badge">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if u.is_superuser %}
+                        <span class="cf-badge cf-badge--primary">Superadmin</span>
+                        {% elif u.is_staff %}
+                        <span class="cf-badge cf-badge--info">Staff</span>
+                        {% else %}
+                        <span class="cf-text-muted">Usuario</span>
+                        {% endif %}
+                    </td>
+                    <td class="cf-text-end cf-pe-4">
+                        <div class="cf-btn-group">
+                            <button type="button" class="cf-btn cf-btn--sm cf-btn--outline" title="Editar"
+                                onclick="editUser({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.first_name|escapejs }}', '{{ u.last_name|escapejs }}', '{{ u.email|escapejs }}', {{ u.is_active|yesno:'true,false' }}, {{ u.is_staff|yesno:'true,false' }}, {{ u.is_superuser|yesno:'true,false' }})">
+                                <i class="fa-solid fa-pencil"></i>
+                            </button>
+                            {% if u.id != user.id %}
+                            <button type="button" class="cf-btn cf-btn--sm cf-btn--outline-danger" title="Eliminar"
+                                onclick="confirmDeleteUser({{ u.id }}, '{{ u.username|escapejs }}')">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="cf-text-center cf-py-5 cf-text-muted">No hay usuarios registrados.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal Crear Usuario -->
+<div class="cf-modal" id="userCreateModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--lg">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title">Nuevo Usuario</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <form id="userCreateForm" method="post" action="{% url 'superadmin_crear_usuario' %}">
+            {% csrf_token %}
+            <div class="cf-modal__body">
+                <div class="cf-grid cf-grid--2">
+                    <div class="cf-form-group">
+                        <label class="cf-label">Usuario</label>
+                        {{ create_form.username }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Email</label>
+                        {{ create_form.email }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Nombre</label>
+                        {{ create_form.first_name }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Apellido</label>
+                        {{ create_form.last_name }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Contraseña</label>
+                        {{ create_form.password1 }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Confirmar contraseña</label>
+                        {{ create_form.password2 }}
+                    </div>
+                </div>
+                <div class="sa-user-flags cf-mt-3">
+                    <label class="sa-access-item">
+                        {{ create_form.is_active }} {{ create_form.is_active.label }}
+                    </label>
+                    <label class="sa-access-item">
+                        {{ create_form.is_staff }} {{ create_form.is_staff.label }}
+                    </label>
+                    <label class="sa-access-item">
+                        {{ create_form.is_superuser }} {{ create_form.is_superuser.label }}
+                    </label>
+                </div>
+            </div>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Crear usuario</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Editar Usuario -->
+<div class="cf-modal" id="userEditModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--lg">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title" id="userEditModalTitle">Editar Usuario</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <form id="userEditForm" method="post" action="">
+            {% csrf_token %}
+            <div class="cf-modal__body">
+                <div class="cf-grid cf-grid--2">
+                    <div class="cf-form-group">
+                        <label class="cf-label">Usuario</label>
+                        {{ edit_form.username }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Email</label>
+                        {{ edit_form.email }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Nombre</label>
+                        {{ edit_form.first_name }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Apellido</label>
+                        {{ edit_form.last_name }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Nueva contraseña</label>
+                        {{ edit_form.new_password }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Confirmar contraseña</label>
+                        {{ edit_form.new_password_confirm }}
+                    </div>
+                </div>
+                <div class="sa-user-flags cf-mt-3">
+                    <label class="sa-access-item">
+                        {{ edit_form.is_active }} {{ edit_form.is_active.label }}
+                    </label>
+                    <label class="sa-access-item">
+                        {{ edit_form.is_staff }} {{ edit_form.is_staff.label }}
+                    </label>
+                    <label class="sa-access-item" id="editSuperuserFlag">
+                        {{ edit_form.is_superuser }} {{ edit_form.is_superuser.label }}
+                    </label>
+                </div>
+            </div>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="cf-modal" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--danger">
+            <h5 class="cf-modal__title">Confirmar eliminación</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <div class="cf-modal__body">
+            <p>¿Eliminar al usuario <strong id="deleteUserName"></strong>?</p>
+            <p class="cf-text-danger cf-fs-sm cf-mb-0">Se eliminarán también sus accesos a organizaciones.</p>
+        </div>
+        <div class="cf-modal__footer">
+            <form id="deleteUserForm" method="post" action="">
+                {% csrf_token %}
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                <button type="submit" class="cf-btn cf-btn--danger">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/superadmin_panel/superadmin.js' %}"></script>
+<script>
+    initSuperadminUsers({
+        crearUrl: "{% url 'superadmin_crear_usuario' %}",
+        editarUrlTemplate: "/superadmin/usuarios/guardar/{id}/",
+        eliminarUrlTemplate: "/superadmin/usuarios/eliminar/{id}/",
+        currentUserId: {{ user.id }},
+    });
+</script>
+{% endblock %}

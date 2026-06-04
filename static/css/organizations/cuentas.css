@@ -5,3 +5,11 @@
 .account-card .cf-card__footer {
     text-align: right;
 }
+
+.account-meta div + div {
+    margin-top: 0.15rem;
+}
+
+#accountForm .cf-grid--2 .cf-form-group:last-child {
+    grid-column: 1 / -1;
+}

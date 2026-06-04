@@ -697,9 +697,22 @@ def lista_cuentas(request):
 
     bcv_rate = get_bcv_rate()
 
-    return render(request, 'organizations/cuentas.html', {
+    accounts_json = json.dumps([
+        {
+            'id': acc.id,
+            'currency': acc.currency,
+            'bank_code': acc.bank_code,
+            'bank_name': acc.bank_name,
+            'rif': acc.rif,
+            'account_number': acc.account_number,
+            'holder': acc.holder,
+        }
+        for acc in accounts
+    ])
 
+    return render(request, 'organizations/cuentas.html', {
         'accounts': accounts,
+        'accounts_json': accounts_json,
         'form': form,
         'bcv_rate': bcv_rate,
     })
@@ -720,24 +733,42 @@ def guardar_cuenta(request, acc_id=None):
         if form.is_valid():
             account = form.save(commit=False)
             account.organization = org
+            if instance:
+                account.name = build_account_display_name(
+                    account.bank_name,
+                    account.account_number,
+                    account.currency,
+                )
+            else:
+                account.name = form.cleaned_data['name']
             account.save()
-            
+
             if not instance:
-                usd = form.cleaned_data.get('initial_amount_usd')
-                bs = form.cleaned_data.get('initial_amount_bs')
-                rate = form.cleaned_data.get('daily_rate') or 1
-                
-                if usd or bs:
-                    Transaction.objects.create(
-                        organization=org,
-                        account=account,
-                        date=timezone.now().date(),
-                        description=f"Saldo inicial: {account.name}",
-                        amount_usd=usd or 0,
-                        amount_bs=bs or 0,
-                        daily_rate=rate,
-                        status='completado'
-                    )
+                balance = form.cleaned_data.get('initial_balance') or 0
+                rate = form.cleaned_data.get('daily_rate') or get_bcv_rate()
+                if balance:
+                    if account.currency == Account.CURRENCY_USD:
+                        Transaction.objects.create(
+                            organization=org,
+                            account=account,
+                            date=timezone.now().date(),
+                            description=f'Saldo inicial: {account.name}',
+                            amount_usd=balance,
+                            amount_bs=0,
+                            daily_rate=rate,
+                            status='completado',
+                        )
+                    else:
+                        Transaction.objects.create(
+                            organization=org,
+                            account=account,
+                            date=timezone.now().date(),
+                            description=f'Saldo inicial: {account.name}',
+                            amount_usd=0,
+                            amount_bs=balance,
+                            daily_rate=rate,
+                            status='completado',
+                        )
             messages.success(request, "Cuenta guardada correctamente.")
         else:
             messages.error(request, "Error al guardar la cuenta.")

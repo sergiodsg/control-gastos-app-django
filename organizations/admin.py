@@ -17,8 +17,8 @@ class OrganizationAccessAdmin(admin.ModelAdmin):
 
 @admin.register(Account)
 class AccountAdmin(admin.ModelAdmin):
-    list_display = ('id', 'organization', 'created_at')
-    list_filter = ('organization',)
+    list_display = ('id', 'organization', 'currency', 'bank_name', 'account_number', 'holder', 'created_at')
+    list_filter = ('organization', 'currency')
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):

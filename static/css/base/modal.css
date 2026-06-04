@@ -37,6 +37,19 @@
     max-width: 800px;
 }
 
+.cf-modal__dialog--xl {
+    max-width: 680px;
+}
+
+.cf-modal__dialog--wizard {
+    width: min(1140px, 96vw);
+    max-width: none;
+    max-height: 92vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .cf-modal__header {
     display: flex;
     align-items: center;

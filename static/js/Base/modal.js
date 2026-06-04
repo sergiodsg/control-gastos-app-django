@@ -63,13 +63,21 @@ const CFModal = (function () {
             }
 
             if (e.target.classList.contains('cf-modal__backdrop')) {
-                close(e.target.closest('.cf-modal'));
+                const modal = e.target.closest('.cf-modal');
+                if (modal && modal.getAttribute('data-cf-modal-static') === 'true') {
+                    return;
+                }
+                if (modal) close(modal);
             }
         });
 
         document.addEventListener('keydown', function (e) {
             if (e.key === 'Escape' && openModals.length) {
-                close(openModals[openModals.length - 1]);
+                const modal = openModals[openModals.length - 1];
+                if (modal.getAttribute('data-cf-modal-static') === 'true') {
+                    return;
+                }
+                close(modal);
             }
         });
     }

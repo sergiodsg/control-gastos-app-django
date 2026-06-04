@@ -1,6 +1,9 @@
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import models
 from .models import Transaction, Category, Account, Project, Valuation, Organization
+from .banks import build_account_display_name, validate_bank_for_currency
+from .validators import validate_account_number, validate_holder, validate_rif
 
 class TransactionForm(forms.ModelForm):
     class Meta:
@@ -92,38 +95,87 @@ class CategoryForm(forms.ModelForm):
         }
 
 class AccountForm(forms.ModelForm):
-    initial_amount_usd = forms.DecimalField(
-        max_digits=20, decimal_places=2, required=False, label="Monto inicial (USD)",
-        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'})
+    currency = forms.ChoiceField(
+        choices=Account.CURRENCY_CHOICES,
+        label='Moneda de la cuenta',
+        widget=forms.Select(attrs={'class': 'cf-select', 'id': 'id_account_currency'}),
     )
-    initial_amount_bs = forms.DecimalField(
-        max_digits=20, decimal_places=2, required=False, label="Monto inicial (BS)",
-        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'})
+    bank_code = forms.CharField(
+        required=False,
+        widget=forms.HiddenInput(attrs={'id': 'id_bank_code'}),
+    )
+    bank_name = forms.CharField(
+        label='Banco',
+        widget=forms.HiddenInput(attrs={'id': 'id_bank_name'}),
+    )
+    rif = forms.CharField(
+        label='RIF',
+        widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'J-12345678-9'}),
+    )
+    account_number = forms.CharField(
+        label='Número de cuenta',
+        widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': '0102xxxxxxxxxxxxxxxx'}),
+    )
+    holder = forms.CharField(
+        label='Titular',
+        widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nombre del titular'}),
+    )
+    initial_balance = forms.DecimalField(
+        max_digits=20,
+        decimal_places=2,
+        required=False,
+        label='Saldo inicial',
+        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number', 'placeholder': '0.00'}),
     )
     daily_rate = forms.DecimalField(
-        max_digits=20, decimal_places=4, required=False, label="Tasa del día (para monto inicial)",
-        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number'})
+        max_digits=20,
+        decimal_places=4,
+        required=False,
+        label='Tasa BCV del día',
+        widget=forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number'}),
     )
-
-    def clean(self):
-        cleaned_data = super().clean()
-        usd = cleaned_data.get('initial_amount_usd')
-        bs = cleaned_data.get('initial_amount_bs')
-        rate = cleaned_data.get('daily_rate') or 1
-        
-        if (usd and usd != 0) and (not bs or bs == 0):
-            cleaned_data['initial_amount_bs'] = round(usd * rate, 2)
-        elif (bs and bs != 0) and (not usd or usd == 0):
-            cleaned_data['initial_amount_usd'] = round(bs / rate, 2) if rate != 0 else 0
-            
-        return cleaned_data
 
     class Meta:
         model = Account
-        fields = ['name']
-        widgets = {
-            'name': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nombre de la cuenta (ej. Caja Menuda, Banco Banesco)'}),
-        }
+        fields = ['currency', 'bank_code', 'bank_name', 'rif', 'account_number', 'holder']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance.pk:
+            self.fields['currency'].disabled = True
+
+    def clean_rif(self):
+        return validate_rif(self.cleaned_data['rif'])
+
+    def clean_account_number(self):
+        return validate_account_number(self.cleaned_data['account_number'])
+
+    def clean_holder(self):
+        return validate_holder(self.cleaned_data['holder'])
+
+    def clean(self):
+        cleaned_data = super().clean()
+        currency = cleaned_data.get('currency')
+        bank_code = cleaned_data.get('bank_code')
+        bank_name = cleaned_data.get('bank_name')
+
+        try:
+            code, name = validate_bank_for_currency(currency, bank_code, bank_name)
+            cleaned_data['bank_code'] = code
+            cleaned_data['bank_name'] = name
+        except ValidationError as exc:
+            self.add_error('bank_name', exc.messages[0])
+
+        balance = cleaned_data.get('initial_balance') or 0
+        if balance < 0:
+            self.add_error('initial_balance', 'El saldo inicial no puede ser negativo.')
+
+        cleaned_data['name'] = build_account_display_name(
+            cleaned_data.get('bank_name', ''),
+            cleaned_data.get('account_number', ''),
+            currency,
+        )
+        return cleaned_data
 
 class ProjectForm(forms.ModelForm):
     class Meta:

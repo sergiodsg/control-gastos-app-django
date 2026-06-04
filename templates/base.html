@@ -17,7 +17,7 @@
     {% with current_url=request.resolver_match.url_name|default:"" %}
     <aside class="app-sidebar" id="appSidebar" aria-label="Menú principal">
         <div class="app-sidebar-brand">
-            <a href="{% url 'home_organizacion' %}" class="app-sidebar-brand-link" title="CashFlow">
+            <a href="{% if is_superadmin_panel %}{% url 'superadmin_dashboard' %}{% elif request.session.org_id %}{% url 'home_organizacion' %}{% else %}{% url 'dashboard' %}{% endif %}" class="app-sidebar-brand-link" title="CashFlow">
                 <div class="app-sidebar-logo-text app-sidebar-logo--full">
                     <i class="fa-solid fa-wallet"></i>
                     <span>CashFlow</span>
@@ -29,7 +29,24 @@
         </div>
 
         <nav class="app-sidebar-nav">
-            {% if request.session.org_id %}
+            {% if is_superadmin_panel %}
+            <a href="{% url 'superadmin_dashboard' %}" class="app-sidebar-link{% if current_url == 'superadmin_dashboard' %} is-active{% endif %}">
+                <i class="fa-solid fa-gauge app-sidebar-icon" aria-hidden="true"></i>
+                <span class="app-sidebar-label">Dashboard</span>
+            </a>
+            <a href="{% url 'superadmin_usuarios' %}" class="app-sidebar-link{% if current_url == 'superadmin_usuarios' or current_url == 'superadmin_crear_usuario' or current_url == 'superadmin_editar_usuario' %} is-active{% endif %}">
+                <i class="fa-solid fa-users app-sidebar-icon" aria-hidden="true"></i>
+                <span class="app-sidebar-label">Usuarios</span>
+            </a>
+            <a href="{% url 'superadmin_organizaciones' %}" class="app-sidebar-link{% if 'superadmin_' in current_url and 'organizacion' in current_url %} is-active{% endif %}">
+                <i class="fa-solid fa-building app-sidebar-icon" aria-hidden="true"></i>
+                <span class="app-sidebar-label">Organizaciones</span>
+            </a>
+            <a href="{% url 'superadmin_tasas_bcv' %}" class="app-sidebar-link{% if 'tasas_bcv' in current_url or 'tasa_bcv' in current_url %} is-active{% endif %}">
+                <i class="fa-solid fa-calendar-days app-sidebar-icon" aria-hidden="true"></i>
+                <span class="app-sidebar-label">Tasas BCV</span>
+            </a>
+            {% elif request.session.org_id %}
             <a href="{% url 'home_organizacion' %}" class="app-sidebar-link{% if current_url == 'home_organizacion' %} is-active{% endif %}">
                 <i class="fa-solid fa-house app-sidebar-icon" aria-hidden="true"></i>
                 <span class="app-sidebar-label">Inicio</span>
@@ -73,7 +90,7 @@
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     {% endif %}
-                    <a class="cf-navbar__brand" href="{% url 'dashboard' %}">CashFlow</a>
+                    <a class="cf-navbar__brand" href="{% if user.is_superuser %}{% url 'superadmin_dashboard' %}{% else %}{% url 'dashboard' %}{% endif %}">CashFlow</a>
                 </div>
 
                 <div class="cf-navbar__actions">
@@ -85,7 +102,10 @@
                             <i class="fa-solid fa-chevron-down cf-fs-sm"></i>
                         </a>
                         <div class="cf-dropdown__menu">
-                            {% if request.session.org_name %}
+                            {% if is_superadmin_panel %}
+                            <span class="cf-dropdown__label">Superadministrador del sistema</span>
+                            <div class="cf-dropdown__divider"></div>
+                            {% elif request.session.org_name %}
                             <span class="cf-dropdown__label">{{ request.session.org_name }}</span>
                             <div class="cf-dropdown__divider"></div>
                             <a class="cf-dropdown__item" href="{% url 'salir_organizacion' %}">

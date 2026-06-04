@@ -1,0 +1,176 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tasas BCV - Superadmin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/superadmin_panel/superadmin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cf-page-header cf-mb-4">
+    <div>
+        <h2 class="cf-page-title"><i class="fa-solid fa-calendar-days"></i> Tasas BCV</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'superadmin_dashboard' %}">Superadmin</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">Tasas BCV</span>
+        </nav>
+    </div>
+</div>
+
+<div class="sa-bcv-layout">
+    <!-- Calendario -->
+    <div class="cf-card sa-bcv-calendar-card">
+        <div class="cf-card__body cf-p-4">
+            <div class="sa-bcv-cal-header">
+                <button type="button" class="sa-bcv-cal-nav" id="bcvCalPrev" aria-label="Mes anterior">
+                    <i class="fa-solid fa-chevron-left"></i>
+                </button>
+                <div class="sa-bcv-cal-title-wrap">
+                    <h5 class="sa-bcv-cal-title" id="bcvCalTitle"></h5>
+                    <button type="button" class="sa-bcv-cal-today" id="bcvCalToday">Hoy</button>
+                </div>
+                <button type="button" class="sa-bcv-cal-nav" id="bcvCalNext" aria-label="Mes siguiente">
+                    <i class="fa-solid fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="sa-bcv-cal-weekdays">
+                <span>L</span><span>M</span><span>X</span><span>J</span><span>V</span><span>S</span><span>D</span>
+            </div>
+            <div class="sa-bcv-cal-grid" id="bcvCalGrid" aria-label="Calendario de tasas BCV"></div>
+            <div class="sa-bcv-cal-legend">
+                <span class="sa-bcv-cal-legend-dot"></span>
+                <span class="cf-fs-sm cf-text-muted">Día con tasa registrada</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel de tasas del día -->
+    <div class="sa-bcv-rates-wrap">
+        <div class="sa-bcv-selected-date" id="bcvSelectedDateLabel">
+            <i class="fa-regular fa-calendar"></i>
+            <span id="bcvDateText"></span>
+        </div>
+
+        <div class="sa-bcv-rate-grid">
+            <article class="sa-bcv-rate-tile sa-bcv-rate-tile--usd" id="bcvUsdTile">
+                <div class="sa-bcv-rate-tile__head">
+                    <span class="sa-bcv-rate-badge sa-bcv-rate-badge--usd">USD</span>
+                    <i class="fa-solid fa-dollar-sign"></i>
+                </div>
+                <div class="sa-bcv-rate-tile__body" id="bcvUsdBody">
+                    {% if usd_rate %}
+                    <div class="sa-bcv-rate-value">{{ usd_rate.rate|floatformat:4 }}</div>
+                    <div class="sa-bcv-rate-unit">Bs.</div>
+                    <p class="sa-bcv-rate-meta">Actualizado {{ usd_rate.fetched_at|date:"d/m/Y H:i" }}</p>
+                    {% else %}
+                    <div class="sa-bcv-rate-empty">
+                        <i class="fa-solid fa-circle-minus"></i>
+                        <span>Sin tasa</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="sa-bcv-rate-tile__foot" id="bcvUsdFoot" {% if not usd_rate %}hidden{% endif %}>
+                    {% if usd_rate %}
+                    <form method="post" action="{% url 'superadmin_eliminar_tasa_bcv' usd_rate.id %}" class="sa-bcv-delete-form" data-currency="USD">
+                        {% csrf_token %}
+                        <button type="submit" class="sa-bcv-icon-btn sa-bcv-icon-btn--danger" title="Eliminar USD" onclick="return confirm('¿Eliminar tasa USD de esta fecha?')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </article>
+
+            <article class="sa-bcv-rate-tile sa-bcv-rate-tile--eur" id="bcvEurTile">
+                <div class="sa-bcv-rate-tile__head">
+                    <span class="sa-bcv-rate-badge sa-bcv-rate-badge--eur">EUR</span>
+                    <i class="fa-solid fa-euro-sign"></i>
+                </div>
+                <div class="sa-bcv-rate-tile__body" id="bcvEurBody">
+                    {% if eur_rate %}
+                    <div class="sa-bcv-rate-value">{{ eur_rate.rate|floatformat:4 }}</div>
+                    <div class="sa-bcv-rate-unit">Bs.</div>
+                    <p class="sa-bcv-rate-meta">Actualizado {{ eur_rate.fetched_at|date:"d/m/Y H:i" }}</p>
+                    {% else %}
+                    <div class="sa-bcv-rate-empty">
+                        <i class="fa-solid fa-circle-minus"></i>
+                        <span>Sin tasa</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="sa-bcv-rate-tile__foot" id="bcvEurFoot" {% if not eur_rate %}hidden{% endif %}>
+                    {% if eur_rate %}
+                    <form method="post" action="{% url 'superadmin_eliminar_tasa_bcv' eur_rate.id %}" class="sa-bcv-delete-form" data-currency="EUR">
+                        {% csrf_token %}
+                        <button type="submit" class="sa-bcv-icon-btn sa-bcv-icon-btn--danger" title="Eliminar EUR" onclick="return confirm('¿Eliminar tasa EUR de esta fecha?')">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </article>
+        </div>
+
+        <div class="cf-card sa-bcv-form-card">
+            <div class="cf-card__body cf-p-4">
+                <h6 class="sa-bcv-form-title"><i class="fa-solid fa-pen-to-square"></i> Registrar o actualizar</h6>
+                <form method="post" action="{% url 'superadmin_guardar_tasa_bcv' %}" id="bcvRateForm" class="sa-bcv-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="rate_date" id="bcvFormDate" value="{{ selected_date_str }}">
+                    <div class="sa-bcv-form-row">
+                        <div class="sa-bcv-form-field">
+                            <label class="cf-label cf-fs-sm" for="bcvFormCurrency">Moneda</label>
+                            <select name="currency" id="bcvFormCurrency" class="cf-select" required>
+                                <option value="USD">USD — Dólar</option>
+                                <option value="EUR">EUR — Euro</option>
+                            </select>
+                        </div>
+                        <div class="sa-bcv-form-field sa-bcv-form-field--grow">
+                            <label class="cf-label cf-fs-sm" for="bcvFormRate">Tasa (Bs.)</label>
+                            <input type="number" name="rate" id="bcvFormRate" class="cf-input cf-input--sm" step="0.0001" min="0.0001" placeholder="0.0000" required>
+                        </div>
+                        <button type="submit" class="cf-btn cf-btn--primary cf-btn--sm sa-bcv-form-submit">
+                            <i class="fa-solid fa-floppy-disk"></i> Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="cf-card sa-bcv-history-card cf-mt-4">
+    <div class="cf-card__header cf-py-3">
+        <h6 class="cf-card__title cf-mb-0"><i class="fa-solid fa-clock-rotate-left"></i> Historial reciente</h6>
+    </div>
+    <div class="sa-bcv-history-list">
+        {% for rate in recent_rates %}
+        <button type="button" class="sa-bcv-history-item" data-bcv-date="{{ rate.rate_date|date:'Y-m-d' }}">
+            <span class="sa-bcv-history-date">{{ rate.rate_date|date:"d/m/Y" }}</span>
+            <span class="sa-bcv-rate-badge sa-bcv-rate-badge--{% if rate.currency == 'USD' %}usd{% else %}eur{% endif %}">{{ rate.currency }}</span>
+            <span class="sa-bcv-history-rate">{{ rate.rate|floatformat:4 }} Bs.</span>
+            <i class="fa-solid fa-chevron-right sa-bcv-history-arrow"></i>
+        </button>
+        {% empty %}
+        <p class="cf-text-center cf-py-4 cf-text-muted cf-fs-sm cf-mb-0">No hay tasas BCV registradas.</p>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/superadmin_panel/superadmin.js' %}"></script>
+<script>
+    initSuperadminBcvRates({
+        apiUrl: "{% url 'superadmin_tasas_bcv_api' %}",
+        eliminarUrlTemplate: "{% url 'superadmin_eliminar_tasa_bcv' 0 %}".replace('/0/', '/{id}/'),
+        csrfToken: "{{ csrf_token }}",
+        selectedDate: "{{ selected_date_str }}",
+        calendarYear: {{ calendar_year }},
+        calendarMonth: {{ calendar_month }},
+        datesWithRates: {{ dates_with_rates_json|safe }},
+        today: "{{ today_str }}",
+    });
+</script>
+{% endblock %}
