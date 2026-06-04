@@ -128,6 +128,37 @@ function initDetalleProyecto(config) {
             CFModal.open('transactionModal');
         };
 
+        window.duplicateTransaction = function (orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
+            resetTransactionForm();
+            transactionForm.action = config.crearTransUrl;
+            document.getElementById('transactionModalTitle').innerText = 'Duplicar Transacción (Nueva)';
+            
+            transactionForm.querySelector('[name="date"]').value = date;
+            orgSelect.value = orgId;
+            updateOrgFields(orgId, accId, catId);
+            transactionForm.querySelector('[name="description"]').value = desc;
+            transactionForm.querySelector('[name="reference_number"]').value = ref;
+            transactionForm.querySelector('[name="notes"]').value = notes;
+            transactionForm.querySelector('[name="status"]').value = status;
+            transactionForm.querySelector('[name="valuation"]').value = valId;
+            
+            tAmountBs.value = bs.replace(',', '.');
+            tAmountUsd.value = usd.replace(',', '.');
+            tRate.value = rate.replace(',', '.');
+            tRate.disabled = false;
+            tManualRateSwitch.checked = true;
+            
+            const valNum = parseFloat(usd.replace(',', '.'));
+            document.getElementById('type_egreso').checked = valNum < 0;
+            document.getElementById('type_ingreso').checked = valNum >= 0;
+            
+            tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
+            tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.replace(',', '.')) || 0);
+            
+            updateTCurrencyUI();
+            CFModal.open('transactionModal');
+        };
+
         tCurrencyToggleBtn.addEventListener('click', function (e) {
             e.preventDefault();
             const currentVal = parseFloat(tAmountDisplay.value) || 0;

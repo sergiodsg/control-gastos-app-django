@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static l10n %}
 
 {% block title %}{{ account.name }} - Detalle{% endblock %}
 
@@ -98,8 +98,9 @@
                         <th>Tasa</th>
                         <th>Categoría</th>
                         <th>Estado</th>
-                    </tr>
-                </thead>
+                        </tr>
+                        </thead>
+
                 <tbody>
                     {% for trans in page_obj %}
                     <tr>
@@ -124,8 +125,9 @@
                             <span class="cf-badge cf-badge--danger">Cancelado</span>
                             {% endif %}
                         </td>
-                    </tr>
-                    {% empty %}
+                        </tr>
+                        {% empty %}
+
                     <tr>
                         <td colspan="7" class="cf-text-center cf-py-5 cf-text-muted">
                             <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
@@ -158,4 +160,16 @@
     </nav>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/organizations/transacciones.js' %}"></script>
+<script>
+    initTransacciones({
+        crearUrl: "{% url 'crear_transaccion' %}",
+        bcvRate: parseFloat("{{ bcv_rate|unlocalize }}".replace(',', '.')) || 1,
+        bcvRatesUrl: "{% url 'bcv_rates_api' %}",
+        projectsData: {}
+    });
+</script>
 {% endblock %}

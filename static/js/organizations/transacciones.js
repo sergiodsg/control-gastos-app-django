@@ -57,6 +57,44 @@ function initTransacciones(config) {
             CFModal.open('transactionModal');
         };
 
+        window.duplicateTransaction = function (date, account, ref, desc, notes, cat, project, valuation, status, bs, usd, rate) {
+            resetForm();
+            const form = document.getElementById('transactionForm');
+            // Mantener la acción original de creación
+            form.action = config.crearUrl;
+            document.getElementById('modalTitle').innerText = 'Duplicar Transacción (Nueva)';
+
+            form.querySelector('[name="date"]').value = date;
+            form.querySelector('[name="account"]').value = account;
+            document.getElementById('id_reference_number_custom').value = ref;
+            form.querySelector('[name="reference_number"]').value = ref;
+            form.querySelector('[name="description"]').value = desc;
+            form.querySelector('[name="notes"]').value = notes;
+            form.querySelector('[name="category"]').value = cat;
+            form.querySelector('[name="project"]').value = project;
+            form.querySelector('[name="status"]').value = status;
+            form.querySelector('[name="amount_bs"]').value = bs;
+            form.querySelector('[name="amount_usd"]').value = usd;
+            form.querySelector('[name="daily_rate"]').value = rate;
+
+            if (parseFloat(usd) < 0 || parseFloat(bs) < 0) {
+                document.getElementById('type_egreso').checked = true;
+            } else {
+                document.getElementById('type_ingreso').checked = true;
+            }
+
+            valuationSelect.value = valuation;
+            document.getElementById('manualRateSwitch').checked = true;
+            document.querySelector('[name="daily_rate"]').disabled = false;
+
+            currentInputCurrency = (parseFloat(usd) !== 0) ? 'USD' : 'BS';
+            document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usd : bs);
+            
+            updateCurrencyUI();
+            updateValuationVisibility();
+            CFModal.open('transactionModal');
+        };
+
         window.viewDetail = function (id) {
             const content = document.getElementById('detailContent');
             content.innerHTML = '<div class="cf-text-center cf-py-4"><div class="cf-spinner"></div></div>';
