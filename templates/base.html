@@ -86,7 +86,7 @@
             <div class="cf-navbar__inner">
                 <div class="cf-navbar__title">
                     {% if user.is_authenticated and not hide_sidebar %}
-                    <button type="button" class="app-mobile-menu-btn" id="sidebarMobileBtn" aria-label="Abrir menú">
+                    <button type="button" class="app-mobile-menu-btn" id="sidebarMobileBtn" aria-label="Abrir menú" aria-expanded="false" aria-controls="appSidebar">
                         <i class="fa-solid fa-bars"></i>
                     </button>
                     {% endif %}
@@ -148,6 +148,7 @@
     <script src="{% static 'js/Base/dropdown.js' %}"></script>
     <script src="{% static 'js/Base/alert.js' %}"></script>
     <script src="{% static 'js/Base/modal.js' %}"></script>
+    <script src="{% static 'js/Base/base.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     {% block extra_js %}{% endblock %}
 

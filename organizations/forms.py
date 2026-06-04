@@ -2,6 +2,7 @@ from django import forms
 from django.core.exceptions import ValidationError
 from django.db import models
 from .models import Transaction, Category, Account, Project, Valuation, Organization
+from .amounts import apply_dual_currency_amounts
 from .banks import build_account_display_name, validate_bank_for_currency
 from .validators import validate_account_number, validate_holder, validate_rif
 
@@ -34,13 +35,9 @@ class TransactionForm(forms.ModelForm):
         amount_bs = cleaned_data.get('amount_bs')
         amount_usd = cleaned_data.get('amount_usd')
         daily_rate = cleaned_data.get('daily_rate') or 1
-        
-        # Si uno es cero y el otro no, calculamos el faltante basándonos en la tasa
-        if (amount_usd and amount_usd != 0) and (not amount_bs or amount_bs == 0):
-            cleaned_data['amount_bs'] = round(amount_usd * daily_rate, 2)
-        elif (amount_bs and amount_bs != 0) and (not amount_usd or amount_usd == 0):
-            cleaned_data['amount_usd'] = round(amount_bs / daily_rate, 2) if daily_rate != 0 else 0
-            
+        amount_bs, amount_usd = apply_dual_currency_amounts(amount_bs, amount_usd, daily_rate)
+        cleaned_data['amount_bs'] = amount_bs
+        cleaned_data['amount_usd'] = amount_usd
         return cleaned_data
 
     def __init__(self, *args, **kwargs):

@@ -1,4 +1,5 @@
 from datetime import date
+from decimal import Decimal
 
 import pytest
 from django.contrib.auth.models import User
@@ -6,6 +7,7 @@ from django.contrib.messages import get_messages
 from django.test import Client, TestCase
 from django.urls import reverse
 
+from .amounts import opening_balance_transaction_amounts
 from .models import Organization, OrganizationAccess, Project, Transaction, Account, Category, ProjectOrganizationAccess, ProjectUserAccess
 
 class TransactionAccessTest(TestCase):
@@ -102,6 +104,51 @@ class TransactionAccessTest(TestCase):
         response = self.client.post(url, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Transaction.objects.filter(id=self.transaction.id).exists())
+
+
+def test_saldo_inicial_cuenta_bs_calcula_usd():
+    amount_bs, amount_usd = opening_balance_transaction_amounts(
+        Decimal('36500'), Account.CURRENCY_BS, Decimal('36.5')
+    )
+    assert amount_bs == Decimal('36500')
+    assert amount_usd == Decimal('1000.00')
+
+
+def test_saldo_inicial_cuenta_usd_calcula_bs():
+    amount_bs, amount_usd = opening_balance_transaction_amounts(
+        Decimal('100'), Account.CURRENCY_USD, Decimal('36.5')
+    )
+    assert amount_usd == Decimal('100')
+    assert amount_bs == Decimal('3650.00')
+
+
+@pytest.mark.django_db
+def test_crear_cuenta_bs_registra_equivalente_usd(client):
+    user = User.objects.create_user(username='cuenta_bs', password='password')
+    org = Organization.objects.create(name='Org BS')
+    OrganizationAccess.objects.create(user=user, organization=org)
+
+    client.force_login(user)
+    session = client.session
+    session['org_id'] = org.id
+    session.save()
+
+    response = client.post(reverse('crear_cuenta'), {
+        'currency': Account.CURRENCY_BS,
+        'bank_code': '0102',
+        'bank_name': 'Banco de Venezuela, S.A. Banco Universal',
+        'rif': 'J-12345678-9',
+        'account_number': '01021234567890123456',
+        'holder': 'Titular de Prueba',
+        'initial_balance': '36500.00',
+        'daily_rate': '36.5000',
+    }, follow=True)
+
+    assert response.status_code == 200
+    tx = Transaction.objects.get(organization=org)
+    assert float(tx.amount_bs) == 36500.0
+    assert float(tx.amount_usd) == 1000.0
+    assert float(tx.daily_rate) == 36.5
 
 
 @pytest.mark.django_db

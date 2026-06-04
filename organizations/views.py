@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation
+from .amounts import create_initial_balance_transaction
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from django.contrib import messages
 from django.db.models import Sum, OuterRef, Subquery, Value
@@ -839,47 +840,23 @@ def guardar_cuenta(request, acc_id=None):
             if not instance:
                 balance = form.cleaned_data.get('initial_balance') or 0
                 rate = form.cleaned_data.get('daily_rate') or get_bcv_rate()
-                if balance:
-                    if account.currency == Account.CURRENCY_USD:
-                        Transaction.objects.create(
-                            organization=org,
-                            account=account,
-                            date=timezone.now().date(),
-                            description=f'Saldo inicial: {account.name}',
-                            amount_usd=balance,
-                            amount_bs=0,
-                            daily_rate=rate,
-                            status='completado',
-                        )
-                        debug_event(
-                            "cuenta.saldo_inicial_transaccion_creada",
-                            user_id=request.user.id,
-                            org_id=org.id,
-                            account_id=account.id,
-                            currency=account.currency,
-                            amount_usd=balance,
-                            daily_rate=rate,
-                        )
-                    else:
-                        Transaction.objects.create(
-                            organization=org,
-                            account=account,
-                            date=timezone.now().date(),
-                            description=f'Saldo inicial: {account.name}',
-                            amount_usd=0,
-                            amount_bs=balance,
-                            daily_rate=rate,
-                            status='completado',
-                        )
-                        debug_event(
-                            "cuenta.saldo_inicial_transaccion_creada",
-                            user_id=request.user.id,
-                            org_id=org.id,
-                            account_id=account.id,
-                            currency=account.currency,
-                            amount_bs=balance,
-                            daily_rate=rate,
-                        )
+                initial_tx = create_initial_balance_transaction(
+                    organization=org,
+                    account=account,
+                    balance=balance,
+                    daily_rate=rate,
+                )
+                if initial_tx:
+                    debug_event(
+                        "cuenta.saldo_inicial_transaccion_creada",
+                        user_id=request.user.id,
+                        org_id=org.id,
+                        account_id=account.id,
+                        currency=account.currency,
+                        amount_bs=initial_tx.amount_bs,
+                        amount_usd=initial_tx.amount_usd,
+                        daily_rate=rate,
+                    )
             debug_event(
                 "cuenta.guardada",
                 user_id=request.user.id,

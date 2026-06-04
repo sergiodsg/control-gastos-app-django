@@ -13,6 +13,7 @@ import json
 
 from BCV.models import ExchangeRateHistory
 from BCV.services.bcv_scrapper import get_rate_for_date
+from organizations.amounts import create_initial_balance_transaction
 from organizations.banks import build_account_display_name, validate_bank_for_currency
 from organizations.models import Account, Organization, OrganizationAccess, Transaction
 from organizations.validators import validate_account_number, validate_holder, validate_rif
@@ -320,30 +321,12 @@ def crear_organizacion_wizard(request):
                 holder=account_data['holder'],
                 name=account_data['name'],
             )
-            balance = account_data['balance']
-            if balance:
-                if account.currency == Account.CURRENCY_USD:
-                    Transaction.objects.create(
-                        organization=org,
-                        account=account,
-                        date=timezone.localdate(),
-                        description=f'Saldo inicial: {account.name}',
-                        amount_usd=balance,
-                        amount_bs=0,
-                        daily_rate=rate,
-                        status='completado',
-                    )
-                else:
-                    Transaction.objects.create(
-                        organization=org,
-                        account=account,
-                        date=timezone.localdate(),
-                        description=f'Saldo inicial: {account.name}',
-                        amount_usd=0,
-                        amount_bs=balance,
-                        daily_rate=rate,
-                        status='completado',
-                    )
+            create_initial_balance_transaction(
+                organization=org,
+                account=account,
+                balance=account_data['balance'],
+                daily_rate=rate,
+            )
 
     admins_count = len(user_ids)
     detail_parts = [f'{len(accounts)} cuenta(s)', f'{admins_count} administrador(es)']
