@@ -1,29 +1,106 @@
 function initCuentas(config) {
-    let currentInputCurrency = 'USD';
+    var accountsData = [];
+    var accountsDataEl = document.getElementById('accountsData');
+    if (accountsDataEl) {
+        try {
+            accountsData = JSON.parse(accountsDataEl.textContent || '[]');
+        } catch (e) {
+            accountsData = [];
+        }
+    }
+
+    var form = document.getElementById('accountForm');
+    var currencyField = document.getElementById('id_account_currency');
+    var bankSelect = document.getElementById('id_bank_select');
+    var bankCodeField = document.getElementById('id_bank_code');
+    var bankNameField = document.getElementById('id_bank_name');
+    var rifField = form.querySelector('[name="rif"]');
+    var rateFieldWrap = document.getElementById('rateFieldWrap');
+    var dailyRateField = form.querySelector('[name="daily_rate"]');
+    var initialBalanceLabel = document.getElementById('initialBalanceLabel');
+
+    function currentCurrency() {
+        return currencyField ? currencyField.value : 'BS';
+    }
+
+    function updateBankSelectUrls() {
+        if (!bankSelect) return;
+        bankSelect.dataset.banksUrl = currentCurrency() === 'BS' ? config.bancosBsUrl : config.bancosUsdUrl;
+    }
+
+    function refreshBankSelect(selectedCode, selectedName) {
+        updateBankSelectUrls();
+        if (currentCurrency() === 'BS') {
+            return CFBanks.populateBsSelect(bankSelect, selectedCode || '').then(function () {
+                CFBanks.bindBsSelect(bankSelect, bankNameField);
+            });
+        }
+        return CFBanks.populateUsdSelect(bankSelect, selectedName || bankNameField.value || '').then(function () {
+            CFBanks.bindUsdSelect(bankSelect, bankNameField);
+        });
+    }
+
+    function syncBankHiddenFields() {
+        if (!bankSelect) return;
+        if (currentCurrency() === 'BS') {
+            var option = bankSelect.options[bankSelect.selectedIndex];
+            if (bankCodeField) bankCodeField.value = bankSelect.value;
+            if (bankNameField) bankNameField.value = option ? (option.dataset.bankName || '') : '';
+        } else {
+            if (bankCodeField) bankCodeField.value = '';
+            if (bankNameField) bankNameField.value = bankSelect.value;
+        }
+    }
+
+    function updateCurrencyUI() {
+        var currency = currentCurrency();
+        if (initialBalanceLabel) {
+            initialBalanceLabel.textContent = currency === 'USD' ? 'Saldo inicial (USD)' : 'Saldo inicial (Bs.)';
+        }
+        if (rateFieldWrap) {
+            rateFieldWrap.classList.toggle('cf-hidden', currency === 'USD');
+        }
+        if (dailyRateField) {
+            dailyRateField.value = config.bcvRate;
+            dailyRateField.readOnly = true;
+        }
+        refreshBankSelect(bankCodeField ? bankCodeField.value : '', bankNameField ? bankNameField.value : '');
+    }
 
     window.resetForm = function () {
-        const form = document.getElementById('accountForm');
         form.reset();
         form.action = config.crearUrl;
         document.getElementById('modalTitle').innerText = 'Nueva Cuenta';
-        document.getElementById('initialAmountFields').classList.remove('cf-hidden', 'd-none');
-
-        document.getElementById('manualRateSwitch').checked = false;
-        const rateField = document.querySelector('input[name="daily_rate"]');
-        rateField.value = config.bcvRate;
-        rateField.readOnly = true;
-
-        currentInputCurrency = 'USD';
-        document.getElementById('id_amount_display').value = '';
+        document.getElementById('initialAmountFields').classList.remove('cf-hidden');
+        if (currencyField) currencyField.disabled = false;
+        if (dailyRateField) dailyRateField.value = config.bcvRate;
         updateCurrencyUI();
     };
 
-    window.editAccount = function (id, name) {
-        const form = document.getElementById('accountForm');
+    window.editAccount = function (id) {
+        var account = accountsData.find(function (item) { return item.id === id; });
+        if (!account) return;
+
         form.action = '/cuentas/guardar/' + id + '/';
         document.getElementById('modalTitle').innerText = 'Editar Cuenta';
-        document.getElementById('initialAmountFields').classList.add('cf-hidden', 'd-none');
-        form.querySelector('[name="name"]').value = name;
+        document.getElementById('initialAmountFields').classList.add('cf-hidden');
+
+        if (currencyField) {
+            currencyField.value = account.currency;
+            currencyField.disabled = true;
+        }
+        if (bankCodeField) bankCodeField.value = account.bank_code || '';
+        if (bankNameField) bankNameField.value = account.bank_name || '';
+        form.querySelector('[name="rif"]').value = account.rif || '';
+        form.querySelector('[name="account_number"]').value = account.account_number || '';
+        form.querySelector('[name="holder"]').value = account.holder || '';
+
+        refreshBankSelect(account.bank_code, account.bank_name).then(function () {
+            if (account.currency === 'BS' && bankSelect) bankSelect.value = account.bank_code || '';
+            if (account.currency === 'USD' && bankSelect) bankSelect.value = account.bank_name || '';
+            syncBankHiddenFields();
+        });
+
         CFModal.open('accountModal');
     };
 
@@ -32,66 +109,22 @@ function initCuentas(config) {
         CFModal.open('deleteModal');
     };
 
-    const currencyToggleBtn = document.getElementById('currencyToggleBtn');
-    const nextCurrencyLabel = document.getElementById('nextCurrencyLabel');
-    const currencyAddon = document.getElementById('currencyAddon');
-    const amountDisplay = document.getElementById('id_amount_display');
-    const amountUsdField = document.querySelector('input[name="initial_amount_usd"]');
-    const amountBsField = document.querySelector('input[name="initial_amount_bs"]');
-    const dailyRateField = document.querySelector('input[name="daily_rate"]');
-    const manualRateSwitch = document.getElementById('manualRateSwitch');
-
-    function updateCurrencyUI() {
-        if (!currencyAddon || !nextCurrencyLabel) return;
-        if (currentInputCurrency === 'USD') {
-            currencyAddon.innerText = '$';
-            nextCurrencyLabel.innerText = 'BS';
-        } else {
-            currencyAddon.innerText = 'Bs';
-            nextCurrencyLabel.innerText = 'USD';
-        }
-        syncHiddenFields();
+    if (currencyField) {
+        currencyField.addEventListener('change', updateCurrencyUI);
     }
 
-    function syncHiddenFields() {
-        if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
-        const val = parseFloat(amountDisplay.value) || 0;
-        const rate = parseFloat(dailyRateField.value) || 1;
-        if (currentInputCurrency === 'USD') {
-            amountUsdField.value = val.toFixed(2);
-            amountBsField.value = (val * rate).toFixed(2);
-        } else {
-            amountBsField.value = val.toFixed(2);
-            amountUsdField.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
-        }
+    if (bankSelect) {
+        bankSelect.addEventListener('change', syncBankHiddenFields);
     }
 
-    if (currencyToggleBtn) {
-        currencyToggleBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const currentVal = parseFloat(amountDisplay.value) || 0;
-            const rate = parseFloat(dailyRateField.value) || 1;
-            if (currentInputCurrency === 'USD') {
-                amountDisplay.value = (currentVal * rate).toFixed(2);
-                currentInputCurrency = 'BS';
-            } else {
-                amountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
-                currentInputCurrency = 'USD';
-            }
-            updateCurrencyUI();
-        });
-    }
-
-    if (amountDisplay) amountDisplay.addEventListener('input', syncHiddenFields);
-    if (dailyRateField) dailyRateField.addEventListener('input', syncHiddenFields);
-
-    if (manualRateSwitch) {
-        manualRateSwitch.addEventListener('change', function (e) {
-            dailyRateField.readOnly = !e.target.checked;
-            if (!e.target.checked) {
-                dailyRateField.value = config.bcvRate;
-                syncHiddenFields();
+    if (form) {
+        form.addEventListener('submit', function () {
+            syncBankHiddenFields();
+            if (currencyField && currencyField.disabled) {
+                currencyField.disabled = false;
             }
         });
     }
+
+    updateCurrencyUI();
 }

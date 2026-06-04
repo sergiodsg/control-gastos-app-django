@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Superadmin - CashFlow{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/superadmin_panel/superadmin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="sa-dashboard">
+    <header class="sa-dashboard-hero">
+        <div class="sa-dashboard-hero__content">
+            <div class="sa-dashboard-hero__badge">
+                <i class="fa-solid fa-shield-halved"></i>
+                Superadministrador
+            </div>
+            <h2 class="sa-dashboard-hero__title">Panel de control</h2>
+            <p class="sa-dashboard-hero__subtitle">
+                Bienvenido, {{ user.first_name|default:user.username }}. Gestiona usuarios, organizaciones y tasas BCV del sistema.
+            </p>
+        </div>
+        <div class="sa-dashboard-hero__decor" aria-hidden="true">
+            <i class="fa-solid fa-chart-pie"></i>
+        </div>
+    </header>
+
+    <section class="sa-dashboard-stats" aria-label="Resumen del sistema">
+        <article class="sa-stat-tile sa-stat-tile--orgs">
+            <div class="sa-stat-tile__icon">
+                <i class="fa-solid fa-building"></i>
+            </div>
+            <div class="sa-stat-tile__data">
+                <span class="sa-stat-tile__value">{{ stats.organizations }}</span>
+                <span class="sa-stat-tile__label">Organizaciones</span>
+            </div>
+        </article>
+        <article class="sa-stat-tile sa-stat-tile--users">
+            <div class="sa-stat-tile__icon">
+                <i class="fa-solid fa-users"></i>
+            </div>
+            <div class="sa-stat-tile__data">
+                <span class="sa-stat-tile__value">{{ stats.users }}</span>
+                <span class="sa-stat-tile__label">Usuarios activos</span>
+            </div>
+        </article>
+        <article class="sa-stat-tile sa-stat-tile--access">
+            <div class="sa-stat-tile__icon">
+                <i class="fa-solid fa-key"></i>
+            </div>
+            <div class="sa-stat-tile__data">
+                <span class="sa-stat-tile__value">{{ stats.accesses }}</span>
+                <span class="sa-stat-tile__label">Accesos asignados</span>
+            </div>
+        </article>
+    </section>
+
+    <section class="sa-dashboard-modules">
+        <h3 class="sa-dashboard-section-title">
+            <i class="fa-solid fa-layer-group"></i> Accesos rápidos
+        </h3>
+        <div class="sa-module-grid">
+            <a href="{% url 'superadmin_usuarios' %}" class="sa-module-card sa-module-card--users">
+                <div class="sa-module-card__icon">
+                    <i class="fa-solid fa-user-gear"></i>
+                </div>
+                <div class="sa-module-card__body">
+                    <h4 class="sa-module-card__title">Usuarios</h4>
+                    <p class="sa-module-card__desc">Cuentas, roles, contraseñas y estado de acceso.</p>
+                </div>
+                <span class="sa-module-card__arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            </a>
+            <a href="{% url 'superadmin_organizaciones' %}" class="sa-module-card sa-module-card--orgs">
+                <div class="sa-module-card__icon">
+                    <i class="fa-solid fa-building-columns"></i>
+                </div>
+                <div class="sa-module-card__body">
+                    <h4 class="sa-module-card__title">Organizaciones</h4>
+                    <p class="sa-module-card__desc">Alta, edición y permisos de usuarios por organización.</p>
+                </div>
+                <span class="sa-module-card__arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            </a>
+            <a href="{% url 'superadmin_tasas_bcv' %}" class="sa-module-card sa-module-card--bcv">
+                <div class="sa-module-card__icon">
+                    <i class="fa-solid fa-calendar-days"></i>
+                </div>
+                <div class="sa-module-card__body">
+                    <h4 class="sa-module-card__title">Tasas BCV</h4>
+                    <p class="sa-module-card__desc">Calendario y registro manual de tasas USD/EUR.</p>
+                </div>
+                <span class="sa-module-card__arrow"><i class="fa-solid fa-arrow-right"></i></span>
+            </a>
+        </div>
+    </section>
+</div>
+{% endblock %}

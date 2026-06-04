@@ -135,10 +135,13 @@ function initTransacciones(config) {
     }
 
     function syncHiddenFields() {
+        const form = document.getElementById('transactionForm');
+        if (!form) return;
+
         const amountDisplay = document.getElementById('id_amount_display');
-        const amountUsdField = document.querySelector('input[name="amount_usd"]');
-        const amountBsField = document.querySelector('input[name="amount_bs"]');
-        const dailyRateField = document.querySelector('input[name="daily_rate"]');
+        const amountUsdField = form.querySelector('input[name="amount_usd"]');
+        const amountBsField = form.querySelector('input[name="amount_bs"]');
+        const dailyRateField = form.querySelector('input[name="daily_rate"]');
         if (!amountDisplay || !amountUsdField || !amountBsField || !dailyRateField) return;
         let val = Math.abs(parseFloat(amountDisplay.value)) || 0;
         const rate = parseFloat(dailyRateField.value) || 1;
@@ -165,8 +168,11 @@ function initTransacciones(config) {
     }
 
     function updateValuationVisibility() {
-        const amountUsdField = document.querySelector('input[name="amount_usd"]');
-        const projectSelect = document.querySelector('select[name="project"]');
+        const form = document.getElementById('transactionForm');
+        if (!form) return;
+
+        const amountUsdField = form.querySelector('input[name="amount_usd"]');
+        const projectSelect = form.querySelector('select[name="project"]');
         const valuationContainer = document.getElementById('valuationContainer');
         const projectsData = config.projectsData || {};
         if (!amountUsdField || !projectSelect || !valuationContainer) return;
@@ -178,13 +184,16 @@ function initTransacciones(config) {
             filterValuations(projectId);
         } else {
             valuationContainer.style.display = 'none';
-            const vSelect = document.querySelector('select[name="valuation"]');
+            const vSelect = form.querySelector('select[name="valuation"]');
             if (vSelect) vSelect.value = '';
         }
     }
 
     function filterValuations(projectId) {
-        const valuationSelect = document.querySelector('select[name="valuation"]');
+        const form = document.getElementById('transactionForm');
+        if (!form) return;
+
+        const valuationSelect = form.querySelector('select[name="valuation"]');
         const projectsData = config.projectsData || {};
         if (!valuationSelect) return;
         const valuations = projectsData[projectId] || [];
@@ -201,17 +210,19 @@ function initTransacciones(config) {
 
     // Inicializar listeners solo cuando el DOM esté listo
     function setupListeners() {
-        const amountDisplay = document.getElementById('id_amount_display');
-        const dailyRateField = document.querySelector('input[name="daily_rate"]');
-        const manualRateSwitch = document.getElementById('manualRateSwitch');
-        const dateField = document.querySelector('input[name="date"]');
-        const projectSelect = document.querySelector('select[name="project"]');
         const form = document.getElementById('transactionForm');
+        if (!form) return;
+
+        const amountDisplay = document.getElementById('id_amount_display');
+        const dailyRateField = form.querySelector('input[name="daily_rate"]');
+        const manualRateSwitch = document.getElementById('manualRateSwitch');
+        const dateField = form.querySelector('input[name="date"]');
+        const projectSelect = form.querySelector('select[name="project"]');
         const currencyToggleBtn = document.getElementById('currencyToggleBtn');
 
         if (projectSelect) projectSelect.addEventListener('change', updateValuationVisibility);
         
-        document.querySelectorAll('input[name="transaction_type"]').forEach(function (radio) {
+        form.querySelectorAll('input[name="transaction_type"]').forEach(function (radio) {
             radio.addEventListener('change', syncHiddenFields);
         });
 
@@ -252,7 +263,13 @@ function initTransacciones(config) {
         }
 
         if (form) {
-            form.addEventListener('submit', function () {
+            form.addEventListener('submit', function (e) {
+                const amount = parseFloat(amountDisplay.value) || 0;
+                if (amount === 0) {
+                    e.preventDefault();
+                    alert('El monto de la transacción no puede ser cero.');
+                    return;
+                }
                 if (dailyRateField) dailyRateField.disabled = false;
             });
         }
@@ -260,7 +277,7 @@ function initTransacciones(config) {
         const refInput = document.getElementById('id_reference_number_custom');
         if (refInput) {
             refInput.addEventListener('input', function (e) {
-                document.querySelector('[name="reference_number"]').value = e.target.value;
+                form.querySelector('[name="reference_number"]').value = e.target.value;
             });
         }
     }

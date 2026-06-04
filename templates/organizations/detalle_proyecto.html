@@ -214,8 +214,8 @@
                     <td class="cf-text-end cf-pe-4">
                         <div class="cf-btn-group">
                             <button class="cf-btn cf-btn--sm cf-btn--outline-secondary" onclick="viewTransaction({{ trans.id }})" title="Ver"><i class="fa-solid fa-eye"></i></button>
-                            <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|escapejs }}', '{{ trans.notes|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
-                            <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editTransaction({{ trans.id }}, '{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|escapejs }}', '{{ trans.notes|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+                            <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|default:''|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|default:''|escapejs }}', '{{ trans.notes|default:''|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
+                            <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editTransaction({{ trans.id }}, '{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|default:''|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|default:''|escapejs }}', '{{ trans.notes|default:''|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
                             <button class="cf-btn cf-btn--sm cf-btn--outline-danger" onclick="confirmDeleteTransaction({{ trans.id }})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
@@ -270,7 +270,7 @@
                     <div class="cf-form-group"><label class="cf-label">Cuenta</label>{{ trans_form.account }}</div>
                     <div class="cf-form-group">
                         <label class="cf-label cf-flex cf-justify-between">Monto<button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="t_currencyToggleBtn">Cambiar a <span id="t_nextCurrencyLabel">BS</span></button></label>
-                        <div class="cf-input-group"><span class="cf-input-group__addon" id="t_currencyAddon">$</span><input type="number" step="0.01" class="cf-input" id="id_t_amount_display" placeholder="0.00"></div>
+                        <div class="cf-input-group"><span class="cf-input-group__addon" id="t_currencyAddon">$</span><input type="number" step="0.01" class="cf-input" id="id_t_amount_display" placeholder="0.00" required></div>
                         <div class="cf-hidden">{{ trans_form.amount_usd }}{{ trans_form.amount_bs }}</div>
                     </div>
                     <div class="cf-form-group">
@@ -353,7 +353,7 @@
 <script src="{% static 'js/organizations/detalle_proyecto.js' %}"></script>
 <script>
     initDetalleProyecto({
-        bcvRate: parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1,
+        bcvRate: parseFloat("{{ bcv_rate|unlocalize }}") || 1,
         orgsData: JSON.parse('{{ orgs_data|safe }}'),
         orgId: "{{ request.session.org_id }}",
         projectId: {{ project.id }},

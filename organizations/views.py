@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation
+from .amounts import create_initial_balance_transaction
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from django.contrib import messages
 from django.db.models import Sum, OuterRef, Subquery, Value
@@ -54,6 +55,7 @@ import json
 from django.db import models
 from django.core.paginator import Paginator
 from decimal import Decimal
+from CashFlow.debug import debug_event, first_form_error
 from BCV.services.bcv_scrapper import as_dashboard_rates, get_rate_for_date
 
 class DecimalEncoder(json.JSONEncoder):
@@ -122,12 +124,18 @@ def get_filtered_totals_both(org_id, filter_type):
 def get_bcv_rate(target_date=None):
     try:
         rate_date = target_date or timezone.localdate()
+        # Si es para hoy, usar la misma lógica que el dashboard para consistencia total
+        if rate_date == timezone.localdate():
+            rates = as_dashboard_rates()
+            if rates.get('usd_bcv') and rates['usd_bcv'].get('promedio') is not None:
+                return float(rates['usd_bcv']['promedio'])
+        
         rate = get_rate_for_date(rate_date, currency="USD")
         if rate is not None:
             return float(rate)
     except Exception:
         pass
-    return 1
+    return 1.0
 
 @login_required
 def home_organizacion(request):
@@ -599,6 +607,13 @@ def guardar_transaccion(request, trans_id=None):
     redirect_to = request.POST.get('next', 'lista_transacciones')
     
     if request.method == 'POST':
+        debug_event(
+            "transaccion.guardar.intento",
+            user_id=request.user.id,
+            org_id=org.id,
+            trans_id=trans_id,
+            is_update=bool(instance),
+        )
         # Si viene de un proyecto, necesitamos pasar el proyecto al formulario
         proj_id = request.POST.get('project')
         project_context = None
@@ -608,19 +623,42 @@ def guardar_transaccion(request, trans_id=None):
             projects_owned = Project.objects.filter(organization=org)
             projects_shared = Project.objects.filter(shared_organizations__organization=org)
             if not (projects_owned | projects_shared).filter(id=proj_id).exists():
+                debug_event(
+                    "transaccion.guardar.acceso_denegado",
+                    user_id=request.user.id,
+                    org_id=org.id,
+                    project_id=proj_id,
+                )
                 messages.error(request, "No tiene acceso a este proyecto.")
                 return redirect(redirect_to)
 
         form = TransactionForm(request.POST, instance=instance, organization=org, project=project_context)
         if form.is_valid():
             transaction = form.save()
+            debug_event(
+                "transaccion.guardada",
+                user_id=request.user.id,
+                org_id=org.id,
+                transaction_id=transaction.id,
+                account_id=transaction.account_id,
+                amount_bs=transaction.amount_bs,
+                amount_usd=transaction.amount_usd,
+                is_update=bool(instance),
+            )
             messages.success(request, "Transacción guardada correctamente.")
             
             # Si se especificó una redirección (ej. volver al proyecto)
             if 'next' in request.POST:
                 return redirect(request.POST['next'])
         else:
-            messages.error(request, "Error al guardar la transacción. Verifique los datos.")
+            debug_event(
+                "transaccion.guardar.error",
+                user_id=request.user.id,
+                org_id=org.id,
+                trans_id=trans_id,
+                errors=form.errors.get_json_data(),
+            )
+            messages.error(request, f"Error al guardar la transacción: {first_form_error(form)}")
     
     return redirect('lista_transacciones')
 
@@ -750,9 +788,22 @@ def lista_cuentas(request):
 
     bcv_rate = get_bcv_rate()
 
-    return render(request, 'organizations/cuentas.html', {
+    accounts_json = json.dumps([
+        {
+            'id': acc.id,
+            'currency': acc.currency,
+            'bank_code': acc.bank_code,
+            'bank_name': acc.bank_name,
+            'rif': acc.rif,
+            'account_number': acc.account_number,
+            'holder': acc.holder,
+        }
+        for acc in accounts
+    ])
 
+    return render(request, 'organizations/cuentas.html', {
         'accounts': accounts,
+        'accounts_json': accounts_json,
         'form': form,
         'bcv_rate': bcv_rate,
     })
@@ -769,31 +820,71 @@ def guardar_cuenta(request, acc_id=None):
         instance = get_object_or_404(Account, id=acc_id, organization=org)
     
     if request.method == 'POST':
+        debug_event(
+            "cuenta.guardar.intento",
+            user_id=request.user.id,
+            username=request.user.username,
+            org_id=org.id,
+            acc_id=acc_id,
+            is_update=bool(instance),
+            is_superuser=request.user.is_superuser,
+        )
         form = AccountForm(request.POST, instance=instance)
         if form.is_valid():
             account = form.save(commit=False)
             account.organization = org
+            if instance:
+                account.name = build_account_display_name(
+                    account.bank_name,
+                    account.account_number,
+                    account.currency,
+                )
+            else:
+                account.name = form.cleaned_data['name']
             account.save()
-            
+
             if not instance:
-                usd = form.cleaned_data.get('initial_amount_usd')
-                bs = form.cleaned_data.get('initial_amount_bs')
-                rate = form.cleaned_data.get('daily_rate') or 1
-                
-                if usd or bs:
-                    Transaction.objects.create(
-                        organization=org,
-                        account=account,
-                        date=timezone.now().date(),
-                        description=f"Saldo inicial: {account.name}",
-                        amount_usd=usd or 0,
-                        amount_bs=bs or 0,
+                balance = form.cleaned_data.get('initial_balance') or 0
+                rate = form.cleaned_data.get('daily_rate') or get_bcv_rate()
+                initial_tx = create_initial_balance_transaction(
+                    organization=org,
+                    account=account,
+                    balance=balance,
+                    daily_rate=rate,
+                )
+                if initial_tx:
+                    debug_event(
+                        "cuenta.saldo_inicial_transaccion_creada",
+                        user_id=request.user.id,
+                        org_id=org.id,
+                        account_id=account.id,
+                        currency=account.currency,
+                        amount_bs=initial_tx.amount_bs,
+                        amount_usd=initial_tx.amount_usd,
                         daily_rate=rate,
-                        status='completado'
                     )
+            debug_event(
+                "cuenta.guardada",
+                user_id=request.user.id,
+                org_id=org.id,
+                account_id=account.id,
+                currency=account.currency,
+                bank_code=account.bank_code,
+                bank_name=account.bank_name,
+                is_update=bool(instance),
+            )
             messages.success(request, "Cuenta guardada correctamente.")
         else:
-            messages.error(request, "Error al guardar la cuenta.")
+            debug_event(
+                "cuenta.guardar.error",
+                user_id=request.user.id,
+                username=request.user.username,
+                org_id=org.id,
+                acc_id=acc_id,
+                is_superuser=request.user.is_superuser,
+                errors=form.errors.get_json_data(),
+            )
+            messages.error(request, f"Error al guardar la cuenta: {first_form_error(form)}")
             
     return redirect('lista_cuentas')
 
