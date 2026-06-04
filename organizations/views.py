@@ -161,7 +161,12 @@ def home_organizacion(request):
             'eur_paralelo': None,
         }
     
-    recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
+    sort = request.GET.get('sort', 'desc')
+    if sort == 'asc':
+        recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('date', 'id')[:10]
+    else:
+        recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
+    
     chart_data = get_chart_data(Transaction.objects.filter(organization_id=org_id))
     
     context = {
@@ -176,6 +181,7 @@ def home_organizacion(request):
         'rates': rates,
         'recent_transactions': recent_transactions,
         'chart_data': chart_data,
+        'sort': sort,
         'now_ve': timezone.now(),
         'filter_options': [
             ('day', 'Último día'),
@@ -269,12 +275,14 @@ def lista_transacciones(request):
         elif filter_type == 'year':
             start_date = today - timedelta(days=365)
         transactions_list = transactions_list.filter(date__gte=start_date)
-    elif filter_type == 'custom' and date_from and date_to:
-        transactions_list = transactions_list.filter(date__range=[date_from, date_to])
-        
-    transactions_list = transactions_list.order_by('-date', '-id')
-    
+    sort = request.GET.get('sort', 'desc')
+    if sort == 'asc':
+        transactions_list = transactions_list.order_by('date', 'id')
+    else:
+        transactions_list = transactions_list.order_by('-date', '-id')
+
     # Calcular totales filtrados
+
     totals = transactions_list.aggregate(
         balance_usd=Sum('amount_usd'),
         balance_bs=Sum('amount_bs'),
@@ -309,6 +317,7 @@ def lista_transacciones(request):
         'filter_type': filter_type,
         'date_from': date_from,
         'date_to': date_to,
+        'sort': sort,
         'totals': {
             'balance_usd': totals['balance_usd'] or 0,
             'balance_bs': totals['balance_bs'] or 0,
@@ -812,7 +821,12 @@ def detalle_cuenta(request, acc_id):
     org = get_object_or_404(Organization, id=org_id)
     account = get_object_or_404(Account, id=acc_id, organization=org)
     
-    transactions_list = Transaction.objects.filter(account=account).order_by('-date', '-id')
+    sort = request.GET.get('sort', 'desc')
+    transactions_list = Transaction.objects.filter(account=account)
+    if sort == 'asc':
+        transactions_list = transactions_list.order_by('date', 'id')
+    else:
+        transactions_list = transactions_list.order_by('-date', '-id')
     
     totals = transactions_list.aggregate(
         balance_usd=Sum('amount_usd'),
@@ -830,6 +844,7 @@ def detalle_cuenta(request, acc_id):
     return render(request, 'organizations/detalle_cuenta.html', {
         'account': account,
         'page_obj': page_obj,
+        'sort': sort,
         'totals': {
             'balance_usd': totals['balance_usd'] or 0,
             'balance_bs': totals['balance_bs'] or 0,
@@ -998,7 +1013,11 @@ def detalle_proyecto(request, proj_id):
     elif filter_type == 'custom' and date_from and date_to:
         transactions_list = transactions_list.filter(date__range=[date_from, date_to])
 
-    transactions_list = transactions_list.order_by('-date', '-id')
+    sort = request.GET.get('sort', 'desc')
+    if sort == 'asc':
+        transactions_list = transactions_list.order_by('date', 'id')
+    else:
+        transactions_list = transactions_list.order_by('-date', '-id')
 
     # Anotar valuaciones con el monto cubierto por transacciones de crédito de TODAS las organizaciones
     valuations = list(Valuation.objects.filter(project=project).annotate(
@@ -1076,6 +1095,7 @@ def detalle_proyecto(request, proj_id):
         'selected_org_id': selected_org_id,
         'filter_options': filter_options,
         'chart_data': chart_data,
+        'sort': sort,
         'totals': {
             'balance_usd': totals_project['balance_usd'] or 0,
             'balance_bs': totals_project['balance_bs'] or 0,

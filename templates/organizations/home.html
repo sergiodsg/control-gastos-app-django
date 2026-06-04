@@ -163,46 +163,57 @@
                 <i class="fa-solid fa-clock-rotate-left cf-text-primary cf-me-2"></i>Transacciones Recientes
             </h5>
             <div class="cf-table-wrap home-rates-scroll cf-flex-1" id="transactions-scroll-container">
-                <table class="cf-table home-tx-table">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Descripción</th>
-                            <th>Monto</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tx in recent_transactions %}
-                        <tr>
-                            <td class="cf-fs-sm">{{ tx.date|date:"d/m/Y" }}</td>
-                            <td class="cf-fs-sm cf-text-truncate" style="max-width: 200px;">{{ tx.description }}</td>
-                            <td class="cf-fs-sm">
-                                <div class="currency-usd-content cf-fw-bold">
-                                    ${{ tx.amount_usd|floatformat:2 }}
-                                    <span class="cf-text-muted cf-fw-medium">({{ tx.amount_bs|floatformat:2 }} Bs.)</span>
-                                </div>
-                                <div class="currency-bs-content cf-fw-bold cf-hidden">
-                                    Bs. {{ tx.amount_bs|floatformat:2 }}
-                                    <span class="cf-text-muted cf-fw-medium">(${{ tx.amount_usd|floatformat:2 }})</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="cf-badge cf-badge--pill {% if tx.status == 'completado' %}cf-badge--success{% elif tx.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
-                                    {{ tx.get_status_display }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="cf-text-center cf-py-5 cf-text-muted">
-                                <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
-                                No hay transacciones registradas.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div id="transactions-container">
+                    <table class="cf-table home-tx-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&income_filter={{ income_filter }}&expense_filter={{ expense_filter }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                                        Fecha
+                                        {% if sort == 'asc' %}
+                                        <i class="fa-solid fa-sort-up"></i>
+                                        {% else %}
+                                        <i class="fa-solid fa-sort-down"></i>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in recent_transactions %}
+                            <tr>
+                                <td class="cf-fs-sm">{{ tx.date|date:"d/m/Y" }}</td>
+                                <td class="cf-fs-sm cf-text-truncate" style="max-width: 200px;">{{ tx.description }}</td>
+                                <td class="cf-fs-sm">
+                                    <div class="currency-usd-content cf-fw-bold">
+                                        ${{ tx.amount_usd|floatformat:2 }}
+                                        <span class="cf-text-muted cf-fw-medium">({{ tx.amount_bs|floatformat:2 }} Bs.)</span>
+                                    </div>
+                                    <div class="currency-bs-content cf-fw-bold cf-hidden">
+                                        Bs. {{ tx.amount_bs|floatformat:2 }}
+                                        <span class="cf-text-muted cf-fw-medium">(${{ tx.amount_usd|floatformat:2 }})</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="cf-badge cf-badge--pill {% if tx.status == 'completado' %}cf-badge--success{% elif tx.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
+                                        {{ tx.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="cf-text-center cf-py-5 cf-text-muted">
+                                    <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
+                                    No hay transacciones registradas.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>

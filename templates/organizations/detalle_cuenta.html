@@ -73,78 +73,89 @@
     </div>
 </div>
 
-<div class="cf-card">
-    <div class="cf-card__header">
-        <h5 class="cf-card__title">Historial de Transacciones</h5>
+<div id="transactions-container">
+    <div class="cf-card">
+        <div class="cf-card__header">
+            <h5 class="cf-card__title">Historial de Transacciones</h5>
+        </div>
+        <div class="cf-table-wrap">
+            <table class="cf-table">
+                <thead>
+                    <tr>
+                        <th class="cf-ps-4">
+                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                                Fecha
+                                {% if sort == 'asc' %}
+                                <i class="fa-solid fa-sort-up"></i>
+                                {% else %}
+                                <i class="fa-solid fa-sort-down"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        <th>Descripción</th>
+                        <th>Monto (USD)</th>
+                        <th>Monto (BS)</th>
+                        <th>Tasa</th>
+                        <th>Categoría</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trans in page_obj %}
+                    <tr>
+                        <td class="cf-ps-4">{{ trans.date|date:"d/m/Y" }}</td>
+                        <td><div class="cf-text-truncate" style="max-width: 250px;" title="{{ trans.description }}">{{ trans.description }}</div></td>
+                        <td class="cf-fw-bold {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
+                        <td class="cf-text-muted cf-fs-sm">{{ trans.amount_bs|floatformat:2 }} Bs.</td>
+                        <td>{{ trans.daily_rate|floatformat:4 }}</td>
+                        <td>
+                            {% if trans.category %}
+                            <span class="cf-badge cf-badge--pill" style="background-color: {{ trans.category.color }}; color: #fff; border: none;">{{ trans.category.name }}</span>
+                            {% else %}
+                            <span class="cf-text-muted cf-fs-sm">Sin categoría</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if trans.status == 'completado' %}
+                            <span class="cf-badge cf-badge--success">Completado</span>
+                            {% elif trans.status == 'pendiente' %}
+                            <span class="cf-badge cf-badge--admin">Pendiente</span>
+                            {% else %}
+                            <span class="cf-badge cf-badge--danger">Cancelado</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="cf-text-center cf-py-5 cf-text-muted">
+                            <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
+                            No hay transacciones registradas para esta cuenta.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="cf-table-wrap">
-        <table class="cf-table">
-            <thead>
-                <tr>
-                    <th class="cf-ps-4">Fecha</th>
-                    <th>Descripción</th>
-                    <th>Monto (USD)</th>
-                    <th>Monto (BS)</th>
-                    <th>Tasa</th>
-                    <th>Categoría</th>
-                    <th>Estado</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for trans in page_obj %}
-                <tr>
-                    <td class="cf-ps-4">{{ trans.date|date:"d/m/Y" }}</td>
-                    <td><div class="cf-text-truncate" style="max-width: 250px;" title="{{ trans.description }}">{{ trans.description }}</div></td>
-                    <td class="cf-fw-bold {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
-                    <td class="cf-text-muted cf-fs-sm">{{ trans.amount_bs|floatformat:2 }} Bs.</td>
-                    <td>{{ trans.daily_rate|floatformat:4 }}</td>
-                    <td>
-                        {% if trans.category %}
-                        <span class="cf-badge cf-badge--pill" style="background-color: {{ trans.category.color }}; color: #fff; border: none;">{{ trans.category.name }}</span>
-                        {% else %}
-                        <span class="cf-text-muted cf-fs-sm">Sin categoría</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if trans.status == 'completado' %}
-                        <span class="cf-badge cf-badge--success">Completado</span>
-                        {% elif trans.status == 'pendiente' %}
-                        <span class="cf-badge cf-badge--admin">Pendiente</span>
-                        {% else %}
-                        <span class="cf-badge cf-badge--danger">Cancelado</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% empty %}
-                <tr>
-                    <td colspan="7" class="cf-text-center cf-py-5 cf-text-muted">
-                        <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
-                        No hay transacciones registradas para esta cuenta.
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-</div>
 
-{% if page_obj.has_other_pages %}
-<nav class="cf-mt-4">
-    <ul class="cf-pagination">
-        {% if page_obj.has_previous %}
-        <li><a href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
-        {% endif %}
-        {% for i in page_obj.paginator.page_range %}
-        {% if page_obj.number == i %}
-        <li class="is-active"><span>{{ i }}</span></li>
-        {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-        <li><a href="?page={{ i }}">{{ i }}</a></li>
-        {% endif %}
-        {% endfor %}
-        {% if page_obj.has_next %}
-        <li><a href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
-        {% endif %}
-    </ul>
-</nav>
-{% endif %}
+    {% if page_obj.has_other_pages %}
+    <nav class="cf-mt-4">
+        <ul class="cf-pagination">
+            {% if page_obj.has_previous %}
+            <li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}" class="ajax-link">Anterior</a></li>
+            {% endif %}
+            {% for i in page_obj.paginator.page_range %}
+            {% if page_obj.number == i %}
+            <li class="is-active"><span>{{ i }}</span></li>
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
+            <li><a href="?page={{ i }}&sort={{ sort }}" class="ajax-link">{{ i }}</a></li>
+            {% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}
+            <li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}" class="ajax-link">Siguiente</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
 {% endblock %}
