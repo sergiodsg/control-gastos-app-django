@@ -1,308 +1,380 @@
 function initDetalleProyecto(config) {
-    document.addEventListener('DOMContentLoaded', function () {
-        const bcvRate = config.bcvRate;
-        const orgsData = config.orgsData;
-        let currentInputCurrency = 'USD';
+    const bcvRate = config.bcvRate;
+    const orgsData = config.orgsData;
+    let tCurrentInputCurrency = 'USD';
 
-        const transactionForm = document.getElementById('transactionForm');
-        const orgSelect = transactionForm.querySelector('[name="organization"]');
-        const accountSelect = transactionForm.querySelector('[name="account"]');
-        const categorySelect = transactionForm.querySelector('[name="category"]');
-        const tAmountUsd = transactionForm.querySelector('[name="amount_usd"]');
-        const tAmountBs = transactionForm.querySelector('[name="amount_bs"]');
-        const tRate = transactionForm.querySelector('[name="daily_rate"]');
-        const tDate = transactionForm.querySelector('[name="date"]');
-        const tAmountDisplay = document.getElementById('id_t_amount_display');
-        const tCurrencyToggleBtn = document.getElementById('t_currencyToggleBtn');
-        const tNextCurrencyLabel = document.getElementById('t_nextCurrencyLabel');
-        const tCurrencyAddon = document.getElementById('t_currencyAddon');
-        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
-        let tCurrentInputCurrency = 'USD';
-
-        function updateOrgFields(orgId, selectedAccountId, selectedCategoryId) {
-            const data = orgsData[orgId];
-            if (!data) return;
-            accountSelect.innerHTML = '<option value="">---------</option>';
-            data.accounts.forEach(function (acc) {
-                const opt = new Option(acc.name, acc.id);
-                if (selectedAccountId && acc.id == selectedAccountId) opt.selected = true;
-                accountSelect.add(opt);
-            });
-            categorySelect.innerHTML = '<option value="">---------</option>';
-            data.categories.forEach(function (cat) {
-                const opt = new Option(cat.name, cat.id);
-                if (selectedCategoryId && cat.id == selectedCategoryId) opt.selected = true;
-                categorySelect.add(opt);
-            });
-        }
-
-        orgSelect.addEventListener('change', function () { updateOrgFields(this.value); });
-
-        window.toggleCustomDates = function (value) {
-            document.getElementById('custom_date_inputs').style.display = (value === 'custom') ? 'block' : 'none';
-        };
-
-        function updateTCurrencyUI() {
-            if (tCurrentInputCurrency === 'USD') {
-                tCurrencyAddon.innerText = '$';
-                tNextCurrencyLabel.innerText = 'BS';
-            } else {
-                tCurrencyAddon.innerText = 'Bs';
-                tNextCurrencyLabel.innerText = 'USD';
-            }
-            syncTFields();
-        }
-
-        function syncTFields() {
-            let val = Math.abs(parseFloat(tAmountDisplay.value)) || 0;
-            const rate = parseFloat(tRate.value) || 1;
-            const isEgreso = document.getElementById('type_egreso').checked;
-            if (isEgreso && val > 0) val = -val;
-            if (tCurrentInputCurrency === 'USD') {
-                tAmountUsd.value = val.toFixed(2);
-                tAmountBs.value = (val * rate).toFixed(2);
-            } else {
-                tAmountBs.value = val.toFixed(2);
-                tAmountUsd.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
-            }
-            updateTTypeColors();
-        }
-
-        function loadTRateForDate(dateValue) {
-            if (!dateValue || tManualRateSwitch.checked) return;
-            fetch(config.bcvRatesUrl + '?date=' + dateValue + '&currency=USD')
-                .then(function (r) { return r.ok ? r.json() : null; })
-                .then(function (payload) {
-                    if (!payload || !payload.ok || typeof payload.rate !== 'number') return;
-                    tRate.value = payload.rate.toFixed(4);
-                    syncTFields();
-                })
-                .catch(function () {});
-        }
-
-        function updateTTypeColors() {
-            const isEgreso = document.getElementById('type_egreso').checked;
-            tAmountDisplay.classList.toggle('cf-text-danger', isEgreso);
-            tAmountDisplay.classList.toggle('cf-text-success', !isEgreso);
-        }
-
-        window.resetTransactionForm = function () {
-            transactionForm.reset();
-            transactionForm.action = config.crearTransUrl;
-            document.getElementById('transactionModalTitle').innerText = 'Nueva Transacción';
+    // Funciones globales de transacción
+    window.resetTransactionForm = function () {
+        const form = document.getElementById('transactionForm');
+        if (!form) return;
+        form.reset();
+        form.action = config.crearTransUrl;
+        document.getElementById('transactionModalTitle').innerText = 'Nueva Transacción';
+        
+        const orgSelect = form.querySelector('[name="organization"]');
+        if (orgSelect) {
             orgSelect.value = config.orgId;
             updateOrgFields(orgSelect.value);
-            transactionForm.querySelector('[name="date"]').value = new Date().toISOString().split('T')[0];
+        }
+        
+        const dateField = form.querySelector('[name="date"]');
+        if (dateField) dateField.value = new Date().toISOString().split('T')[0];
+        
+        const tRate = form.querySelector('[name="daily_rate"]');
+        if (tRate) {
             tRate.value = bcvRate;
             tRate.disabled = true;
-            tManualRateSwitch.checked = false;
-            loadTRateForDate(transactionForm.querySelector('[name="date"]').value);
-            document.getElementById('type_egreso').checked = true;
-            tCurrentInputCurrency = 'USD';
-            tAmountDisplay.value = '';
-            updateTCurrencyUI();
-        };
+        }
+        
+        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
+        if (tManualRateSwitch) tManualRateSwitch.checked = false;
+        
+        if (dateField) loadTRateForDate(dateField.value);
+        
+        const egresoRadio = document.getElementById('type_egreso');
+        if (egresoRadio) egresoRadio.checked = true;
+        
+        tCurrentInputCurrency = 'USD';
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        if (tAmountDisplay) tAmountDisplay.value = '';
+        updateTCurrencyUI();
+    };
 
-        window.editTransaction = function (id, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
-            transactionForm.action = '/transacciones/guardar/' + id + '/';
-            document.getElementById('transactionModalTitle').innerText = 'Editar Transacción';
-            transactionForm.querySelector('[name="date"]').value = date;
+    window.editTransaction = function (id, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
+        const form = document.getElementById('transactionForm');
+        if (!form) return;
+        form.action = '/transacciones/guardar/' + id + '/';
+        document.getElementById('transactionModalTitle').innerText = 'Editar Transacción';
+        
+        const dateField = form.querySelector('[name="date"]');
+        if (dateField) dateField.value = date;
+        
+        const orgSelect = form.querySelector('[name="organization"]');
+        if (orgSelect) {
             orgSelect.value = orgId;
             updateOrgFields(orgId, accId, catId);
-            transactionForm.querySelector('[name="description"]').value = desc;
-            transactionForm.querySelector('[name="reference_number"]').value = ref;
-            transactionForm.querySelector('[name="notes"]').value = notes;
-            transactionForm.querySelector('[name="status"]').value = status;
-            transactionForm.querySelector('[name="valuation"]').value = valId;
-            tAmountBs.value = bs.replace(',', '.');
-            tAmountUsd.value = usd.replace(',', '.');
-            tRate.value = rate.replace(',', '.');
+        }
+        
+        form.querySelector('[name="description"]').value = desc;
+        form.querySelector('[name="reference_number"]').value = ref;
+        form.querySelector('[name="notes"]').value = notes;
+        form.querySelector('[name="status"]').value = status;
+        
+        const vSelect = form.querySelector('[name="valuation"]');
+        if (vSelect) vSelect.value = valId;
+        
+        const tAmountBs = form.querySelector('[name="amount_bs"]');
+        const tAmountUsd = form.querySelector('[name="amount_usd"]');
+        const tRate = form.querySelector('[name="daily_rate"]');
+        
+        if (tAmountBs) tAmountBs.value = bs.toString().replace(',', '.');
+        if (tAmountUsd) tAmountUsd.value = usd.toString().replace(',', '.');
+        if (tRate) {
+            tRate.value = rate.toString().replace(',', '.');
             tRate.disabled = false;
-            tManualRateSwitch.checked = true;
-            const valNum = parseFloat(usd.replace(',', '.'));
-            document.getElementById('type_egreso').checked = valNum < 0;
-            document.getElementById('type_ingreso').checked = valNum >= 0;
-            tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
-            tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.replace(',', '.')) || 0);
-            updateTCurrencyUI();
-            CFModal.open('transactionModal');
-        };
+        }
+        
+        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
+        if (tManualRateSwitch) tManualRateSwitch.checked = true;
+        
+        const valNum = parseFloat(usd.toString().replace(',', '.'));
+        const egresoRadio = document.getElementById('type_egreso');
+        const ingresoRadio = document.getElementById('type_ingreso');
+        if (egresoRadio) egresoRadio.checked = valNum < 0;
+        if (ingresoRadio) ingresoRadio.checked = valNum >= 0;
+        
+        tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        if (tAmountDisplay) tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.toString().replace(',', '.')) || 0);
+        
+        updateTCurrencyUI();
+        CFModal.open('transactionModal');
+    };
 
-        window.duplicateTransaction = function (orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
-            resetTransactionForm();
-            transactionForm.action = config.crearTransUrl;
-            document.getElementById('transactionModalTitle').innerText = 'Duplicar Transacción (Nueva)';
-            
-            transactionForm.querySelector('[name="date"]').value = date;
+    window.duplicateTransaction = function (orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
+        window.resetTransactionForm();
+        const form = document.getElementById('transactionForm');
+        if (!form) return;
+        form.action = config.crearTransUrl;
+        document.getElementById('transactionModalTitle').innerText = 'Duplicar Transacción (Nueva)';
+        
+        const dateField = form.querySelector('[name="date"]');
+        if (dateField) dateField.value = date;
+        
+        const orgSelect = form.querySelector('[name="organization"]');
+        if (orgSelect) {
             orgSelect.value = orgId;
             updateOrgFields(orgId, accId, catId);
-            transactionForm.querySelector('[name="description"]').value = desc;
-            transactionForm.querySelector('[name="reference_number"]').value = ref;
-            transactionForm.querySelector('[name="notes"]').value = notes;
-            transactionForm.querySelector('[name="status"]').value = status;
-            transactionForm.querySelector('[name="valuation"]').value = valId;
-            
-            tAmountBs.value = bs.replace(',', '.');
-            tAmountUsd.value = usd.replace(',', '.');
-            tRate.value = rate.replace(',', '.');
+        }
+        
+        form.querySelector('[name="description"]').value = desc;
+        form.querySelector('[name="reference_number"]').value = ref;
+        form.querySelector('[name="notes"]').value = notes;
+        form.querySelector('[name="status"]').value = status;
+        
+        const vSelect = form.querySelector('[name="valuation"]');
+        if (vSelect) vSelect.value = valId;
+        
+        const tAmountBs = form.querySelector('[name="amount_bs"]');
+        const tAmountUsd = form.querySelector('[name="amount_usd"]');
+        const tRate = form.querySelector('[name="daily_rate"]');
+        
+        if (tAmountBs) tAmountBs.value = bs.toString().replace(',', '.');
+        if (tAmountUsd) tAmountUsd.value = usd.toString().replace(',', '.');
+        if (tRate) {
+            tRate.value = rate.toString().replace(',', '.');
             tRate.disabled = false;
-            tManualRateSwitch.checked = true;
-            
-            const valNum = parseFloat(usd.replace(',', '.'));
-            document.getElementById('type_egreso').checked = valNum < 0;
-            document.getElementById('type_ingreso').checked = valNum >= 0;
-            
-            tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
-            tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.replace(',', '.')) || 0);
-            
-            updateTCurrencyUI();
-            CFModal.open('transactionModal');
-        };
+        }
+        
+        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
+        if (tManualRateSwitch) tManualRateSwitch.checked = true;
+        
+        const valNum = parseFloat(usd.toString().replace(',', '.'));
+        const egresoRadio = document.getElementById('type_egreso');
+        const ingresoRadio = document.getElementById('type_ingreso');
+        if (egresoRadio) egresoRadio.checked = valNum < 0;
+        if (ingresoRadio) ingresoRadio.checked = valNum >= 0;
+        
+        tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        if (tAmountDisplay) tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.toString().replace(',', '.')) || 0);
+        
+        updateTCurrencyUI();
+        CFModal.open('transactionModal');
+    };
 
-        tCurrencyToggleBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const currentVal = parseFloat(tAmountDisplay.value) || 0;
-            const rate = parseFloat(tRate.value) || 1;
-            if (tCurrentInputCurrency === 'USD') {
-                tAmountDisplay.value = (currentVal * rate).toFixed(2);
-                tCurrentInputCurrency = 'BS';
-            } else {
-                tAmountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
-                tCurrentInputCurrency = 'USD';
-            }
-            updateTCurrencyUI();
+    // Auxiliares internos
+    function updateOrgFields(orgId, selectedAccountId, selectedCategoryId) {
+        const data = orgsData[orgId];
+        const accountSelect = document.querySelector('select[name="account"]');
+        const categorySelect = document.querySelector('select[name="category"]');
+        if (!data || !accountSelect || !categorySelect) return;
+        
+        accountSelect.innerHTML = '<option value="">---------</option>';
+        data.accounts.forEach(function (acc) {
+            const opt = new Option(acc.name, acc.id);
+            if (selectedAccountId && acc.id == selectedAccountId) opt.selected = true;
+            accountSelect.add(opt);
         });
+        categorySelect.innerHTML = '<option value="">---------</option>';
+        data.categories.forEach(function (cat) {
+            const opt = new Option(cat.name, cat.id);
+            if (selectedCategoryId && cat.id == selectedCategoryId) opt.selected = true;
+            categorySelect.add(opt);
+        });
+    }
 
-        tAmountDisplay.addEventListener('input', syncTFields);
-        tRate.addEventListener('input', syncTFields);
+    function updateTCurrencyUI() {
+        const tCurrencyAddon = document.getElementById('t_currencyAddon');
+        const tNextCurrencyLabel = document.getElementById('t_nextCurrencyLabel');
+        if (!tCurrencyAddon || !tNextCurrencyLabel) return;
+        if (tCurrentInputCurrency === 'USD') {
+            tCurrencyAddon.innerText = '$';
+            tNextCurrencyLabel.innerText = 'BS';
+        } else {
+            tCurrencyAddon.innerText = 'Bs';
+            tNextCurrencyLabel.innerText = 'USD';
+        }
+        syncTFields();
+    }
+
+    function syncTFields() {
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        const tAmountUsd = document.querySelector('input[name="amount_usd"]');
+        const tAmountBs = document.querySelector('input[name="amount_bs"]');
+        const tRate = document.querySelector('input[name="daily_rate"]');
+        if (!tAmountDisplay || !tAmountUsd || !tAmountBs || !tRate) return;
+        
+        let val = Math.abs(parseFloat(tAmountDisplay.value)) || 0;
+        const rate = parseFloat(tRate.value) || 1;
+        const egresoRadio = document.getElementById('type_egreso');
+        const isEgreso = egresoRadio ? egresoRadio.checked : true;
+        
+        if (isEgreso && val > 0) val = -val;
+        if (tCurrentInputCurrency === 'USD') {
+            tAmountUsd.value = val.toFixed(2);
+            tAmountBs.value = (val * rate).toFixed(2);
+        } else {
+            tAmountBs.value = val.toFixed(2);
+            tAmountUsd.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
+        }
+        updateTTypeColors();
+    }
+
+    function loadTRateForDate(dateValue) {
+        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
+        const tRate = document.querySelector('input[name="daily_rate"]');
+        if (!dateValue || !tManualRateSwitch || tManualRateSwitch.checked) return;
+        fetch(config.bcvRatesUrl + '?date=' + dateValue + '&currency=USD')
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (payload) {
+                if (!payload || !payload.ok || typeof payload.rate !== 'number') return;
+                if (tRate) {
+                    tRate.value = payload.rate.toFixed(4);
+                    syncTFields();
+                }
+            })
+            .catch(function () {});
+    }
+
+    function updateTTypeColors() {
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        const egresoRadio = document.getElementById('type_egreso');
+        if (!tAmountDisplay || !egresoRadio) return;
+        const isEgreso = egresoRadio.checked;
+        tAmountDisplay.classList.toggle('cf-text-danger', isEgreso);
+        tAmountDisplay.classList.toggle('cf-text-success', !isEgreso);
+    }
+
+    function setupTListeners() {
+        const orgSelect = document.querySelector('select[name="organization"]');
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        const tRate = document.querySelector('input[name="daily_rate"]');
+        const tDate = document.querySelector('input[name="date"]');
+        const tCurrencyToggleBtn = document.getElementById('t_currencyToggleBtn');
+        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
+        const transactionForm = document.getElementById('transactionForm');
+
+        if (orgSelect) orgSelect.addEventListener('change', function () { updateOrgFields(this.value); });
+        
+        if (tCurrencyToggleBtn) {
+            tCurrencyToggleBtn.addEventListener('click', function (e) {
+                e.preventDefault();
+                const currentVal = parseFloat(tAmountDisplay.value) || 0;
+                const rate = parseFloat(tRate.value) || 1;
+                if (tCurrentInputCurrency === 'USD') {
+                    tAmountDisplay.value = (currentVal * rate).toFixed(2);
+                    tCurrentInputCurrency = 'BS';
+                } else {
+                    tAmountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
+                    tCurrentInputCurrency = 'USD';
+                }
+                updateTCurrencyUI();
+            });
+        }
+
+        if (tAmountDisplay) tAmountDisplay.addEventListener('input', syncTFields);
+        if (tRate) tRate.addEventListener('input', syncTFields);
+        
         document.querySelectorAll('input[name="transaction_type"]').forEach(function (r) {
             r.addEventListener('change', syncTFields);
         });
-        tManualRateSwitch.addEventListener('change', function (e) {
-            tRate.disabled = !e.target.checked;
-            if (!e.target.checked) loadTRateForDate(tDate.value);
-        });
-        tDate.addEventListener('change', function () { loadTRateForDate(this.value); });
-        transactionForm.addEventListener('submit', function () { tRate.disabled = false; });
 
-        window.confirmDeleteTransaction = function (id) {
-            document.getElementById('deleteForm').action = '/transacciones/eliminar/' + id + '/?next=' + encodeURIComponent(config.currentPath);
-            CFModal.open('deleteModal');
-        };
+        if (tManualRateSwitch) {
+            tManualRateSwitch.addEventListener('change', function (e) {
+                if (tRate) tRate.disabled = !e.target.checked;
+                if (!e.target.checked && tDate) loadTRateForDate(tDate.value);
+            });
+        }
 
-        window.viewTransaction = function (id) {
-            CFModal.open('detailModal');
-            fetch('/transacciones/detalle/' + id + '/')
-                .then(function (r) { return r.text(); })
-                .then(function (html) { document.getElementById('detailContent').innerHTML = html; });
-        };
+        if (tDate) {
+            tDate.addEventListener('change', function () { loadTRateForDate(this.value); });
+        }
 
+        if (transactionForm) {
+            transactionForm.addEventListener('submit', function () {
+                if (tRate) tRate.disabled = false;
+            });
+        }
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupTListeners);
+    } else {
+        setupTListeners();
+    }
+
+    window.confirmDeleteTransaction = function (id) {
+        const delForm = document.getElementById('deleteForm');
+        if (delForm) delForm.action = '/transacciones/eliminar/' + id + '/?next=' + encodeURIComponent(config.currentPath);
+        CFModal.open('deleteModal');
+    };
+
+    window.viewTransaction = function (id) {
+        const content = document.getElementById('detailContent');
+        if (!content) return;
+        CFModal.open('detailModal');
+        fetch('/transacciones/detalle/' + id + '/')
+            .then(function (r) { return r.text(); })
+            .then(function (html) { content.innerHTML = html; });
+    };
+
+    // --- Lógica de Valuaciones ---
+    window.toggleValuations = function () {
+        const btn = document.getElementById('toggleValuationsBtn');
+        const addBtn = document.getElementById('addValuationBtn');
+        const container = document.getElementById('valuationsContainer');
+        const summaryCol = document.getElementById('projectSummaryCol');
+        if (!container || !btn || !addBtn || !summaryCol) return;
+        
+        if (container.classList.contains('cf-hidden')) {
+            container.classList.remove('cf-hidden');
+            addBtn.style.display = 'inline-flex';
+            summaryCol.classList.add('project-summary-col--split');
+            btn.innerHTML = '<i class="fa-solid fa-eye-slash cf-me-1"></i>Ocultar Valuaciones';
+        } else {
+            container.classList.add('cf-hidden');
+            addBtn.style.display = 'none';
+            summaryCol.classList.remove('project-summary-col--split');
+            btn.innerHTML = '<i class="fa-solid fa-gear cf-me-1"></i>Gestionar Valuaciones';
+        }
+    };
+
+    window.resetValuationForm = function () {
         const valForm = document.getElementById('valuationForm');
-        const vCurrencyToggleBtn = document.getElementById('currencyToggleBtn');
-        const vNextCurrencyLabel = document.getElementById('nextCurrencyLabel');
-        const vCurrencyAddon = document.getElementById('currencyAddon');
+        if (!valForm) return;
+        valForm.reset();
+        valForm.action = config.crearValUrl;
+        document.getElementById('valModalTitle').innerText = 'Nueva Valuación';
+        
+        const vManualRateSwitch = document.getElementById('manualRateSwitch');
+        const vDailyRateField = valForm.querySelector('input[name="daily_rate"]');
+        if (vManualRateSwitch) vManualRateSwitch.checked = false;
+        if (vDailyRateField) {
+            vDailyRateField.value = bcvRate;
+            vDailyRateField.disabled = true;
+        }
+        
         const vAmountDisplay = document.getElementById('id_amount_display');
+        if (vAmountDisplay) vAmountDisplay.value = '';
+        // updateVCurrencyUI() ... se puede añadir si es necesario
+    };
+
+    window.editValuation = function (id, name, usd, bs, rate) {
+        const valForm = document.getElementById('valuationForm');
+        if (!valForm) return;
+        valForm.action = '/valuaciones/guardar/' + config.projectId + '/' + id + '/';
+        document.getElementById('valModalTitle').innerText = 'Editar Valuación';
+        valForm.querySelector('[name="name"]').value = name;
+        
         const vAmountUsdField = valForm.querySelector('input[name="amount_usd"]');
         const vAmountBsField = valForm.querySelector('input[name="amount_bs"]');
         const vDailyRateField = valForm.querySelector('input[name="daily_rate"]');
-        const vManualRateSwitch = document.getElementById('manualRateSwitch');
-
-        window.toggleValuations = function () {
-            const btn = document.getElementById('toggleValuationsBtn');
-            const addBtn = document.getElementById('addValuationBtn');
-            const container = document.getElementById('valuationsContainer');
-            const summaryCol = document.getElementById('projectSummaryCol');
-            if (container.classList.contains('cf-hidden')) {
-                container.classList.remove('cf-hidden');
-                addBtn.style.display = 'inline-flex';
-                summaryCol.classList.add('project-summary-col--split');
-                btn.innerHTML = '<i class="fa-solid fa-eye-slash cf-me-1"></i>Ocultar Valuaciones';
-            } else {
-                container.classList.add('cf-hidden');
-                addBtn.style.display = 'none';
-                summaryCol.classList.remove('project-summary-col--split');
-                btn.innerHTML = '<i class="fa-solid fa-gear cf-me-1"></i>Gestionar Valuaciones';
-            }
-        };
-
-        window.resetValuationForm = function () {
-            valForm.reset();
-            valForm.action = config.crearValUrl;
-            document.getElementById('valModalTitle').innerText = 'Nueva Valuación';
-            vManualRateSwitch.checked = false;
-            vDailyRateField.value = bcvRate;
-            vDailyRateField.disabled = true;
-            currentInputCurrency = 'USD';
-            vAmountDisplay.value = '';
-            updateVCurrencyUI();
-        };
-
-        window.editValuation = function (id, name, usd, bs, rate) {
-            valForm.action = '/valuaciones/guardar/' + config.projectId + '/' + id + '/';
-            document.getElementById('valModalTitle').innerText = 'Editar Valuación';
-            valForm.querySelector('[name="name"]').value = name;
-            vAmountUsdField.value = usd.replace(',', '.');
-            vAmountBsField.value = bs.replace(',', '.');
-            vDailyRateField.value = rate.replace(',', '.');
-            currentInputCurrency = 'USD';
-            vAmountDisplay.value = usd.replace(',', '.');
-            vManualRateSwitch.checked = true;
+        
+        if (vAmountUsdField) vAmountUsdField.value = usd.toString().replace(',', '.');
+        if (vAmountBsField) vAmountBsField.value = bs.toString().replace(',', '.');
+        if (vDailyRateField) {
+            vDailyRateField.value = rate.toString().replace(',', '.');
             vDailyRateField.disabled = false;
-            updateVCurrencyUI();
-            CFModal.open('valuationModal');
-        };
-
-        window.confirmDeleteValuation = function (id) {
-            document.getElementById('deleteValForm').action = '/valuaciones/eliminar/' + id + '/';
-            CFModal.open('deleteValModal');
-        };
-
-        function updateVCurrencyUI() {
-            if (currentInputCurrency === 'USD') {
-                vCurrencyAddon.innerText = '$';
-                vNextCurrencyLabel.innerText = 'BS';
-            } else {
-                vCurrencyAddon.innerText = 'Bs';
-                vNextCurrencyLabel.innerText = 'USD';
-            }
-            syncVHiddenFields();
         }
+        
+        const vManualRateSwitch = document.getElementById('manualRateSwitch');
+        if (vManualRateSwitch) vManualRateSwitch.checked = true;
+        
+        const vAmountDisplay = document.getElementById('id_amount_display');
+        if (vAmountDisplay) vAmountDisplay.value = usd.toString().replace(',', '.');
+        
+        CFModal.open('valuationModal');
+    };
 
-        function syncVHiddenFields() {
-            const val = parseFloat(vAmountDisplay.value) || 0;
-            const rate = parseFloat(vDailyRateField.value) || 1;
-            if (currentInputCurrency === 'USD') {
-                vAmountUsdField.value = val.toFixed(2);
-                vAmountBsField.value = (val * rate).toFixed(2);
-            } else {
-                vAmountBsField.value = val.toFixed(2);
-                vAmountUsdField.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
-            }
-        }
-
-        vCurrencyToggleBtn.addEventListener('click', function (e) {
-            e.preventDefault();
-            const currentVal = parseFloat(vAmountDisplay.value) || 0;
-            const rate = parseFloat(vDailyRateField.value) || 1;
-            if (currentInputCurrency === 'USD') {
-                vAmountDisplay.value = (currentVal * rate).toFixed(2);
-                currentInputCurrency = 'BS';
-            } else {
-                vAmountDisplay.value = (rate !== 0) ? (currentVal / rate).toFixed(2) : 0;
-                currentInputCurrency = 'USD';
-            }
-            updateVCurrencyUI();
-        });
-
-        vAmountDisplay.addEventListener('input', syncVHiddenFields);
-        vDailyRateField.addEventListener('input', syncVHiddenFields);
-        vManualRateSwitch.addEventListener('change', function (e) {
-            vDailyRateField.disabled = !e.target.checked;
-            if (!e.target.checked) {
-                vDailyRateField.value = bcvRate;
-                syncVHiddenFields();
-            }
-        });
-        valForm.addEventListener('submit', function () { vDailyRateField.disabled = false; });
-    });
+    window.confirmDeleteValuation = function (id) {
+        const delValForm = document.getElementById('deleteValForm');
+        if (delValForm) delValForm.action = '/valuaciones/eliminar/' + id + '/';
+        CFModal.open('deleteValModal');
+    };
+    
+    window.toggleCustomDates = function (value) {
+        const div = document.getElementById('custom_date_inputs');
+        if (div) div.style.display = (value === 'custom') ? 'block' : 'none';
+    };
 }
