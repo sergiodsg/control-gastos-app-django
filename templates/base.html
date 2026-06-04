@@ -20,7 +20,7 @@
             <a href="{% if is_superadmin_panel %}{% url 'superadmin_dashboard' %}{% elif request.session.org_id %}{% url 'home_organizacion' %}{% else %}{% url 'dashboard' %}{% endif %}" class="app-sidebar-brand-link" title="CashFlow">
                 <div class="app-sidebar-logo-text app-sidebar-logo--full">
                     <i class="fa-solid fa-wallet"></i>
-                    <span>CashFlow</span>
+                    <span>Cash Flow</span>
                 </div>
                 <div class="app-sidebar-logo-icon app-sidebar-logo--compact">
                     <i class="fa-solid fa-wallet"></i>
