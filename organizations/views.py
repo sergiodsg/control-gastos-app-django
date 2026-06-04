@@ -5,7 +5,53 @@ from .models import Organization, OrganizationAccess, Transaction, Category, Acc
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from django.contrib import messages
 from django.db.models import Sum, OuterRef, Subquery, Value
-from django.db.models.functions import Coalesce
+from django.db.models.functions import Coalesce, TruncMonth
+
+def get_chart_data(transactions_qs):
+    # 1. Desglose de Gastos por Categoría
+    category_spending = transactions_qs.filter(amount_usd__lt=0).values('category__name', 'category__color').annotate(
+        total=Sum('amount_usd')
+    ).order_by('total')
+    
+    cat_labels = [item['category__name'] or 'Sin categoría' for item in category_spending]
+    cat_series = [float(abs(item['total'])) for item in category_spending]
+    cat_colors = [item['category__color'] or '#000000' for item in category_spending]
+
+    # 2. Balance Mensual (Ingresos vs Gastos)
+    monthly_data = transactions_qs.annotate(
+        month=TruncMonth('date')
+    ).values('month').annotate(
+        income=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        expense=Sum('amount_usd', filter=models.Q(amount_usd__lt=0))
+    ).order_by('month')
+
+    monthly_labels = [item['month'].strftime('%m/%Y') for item in monthly_data]
+    monthly_income = [float(item['income'] or 0) for item in monthly_data]
+    monthly_expense = [float(abs(item['expense'] or 0)) for item in monthly_data]
+
+    # 3. Evolución del Saldo
+    evolution_data = transactions_qs.order_by('date').values('date').annotate(
+        daily_sum=Sum('amount_usd')
+    )
+    
+    evo_labels = []
+    evo_series = []
+    current_balance = 0
+    for item in evolution_data:
+        current_balance += float(item['daily_sum'])
+        evo_labels.append(item['date'].strftime('%Y-%m-%d'))
+        evo_series.append(round(current_balance, 2))
+
+    return {
+        'cat_labels': json.dumps(cat_labels),
+        'cat_series': json.dumps(cat_series),
+        'cat_colors': json.dumps(cat_colors),
+        'monthly_labels': json.dumps(monthly_labels),
+        'monthly_income': json.dumps(monthly_income),
+        'monthly_expense': json.dumps(monthly_expense),
+        'evo_labels': json.dumps(evo_labels),
+        'evo_series': json.dumps(evo_series),
+    }
 from django.utils import timezone
 from datetime import timedelta
 import json
@@ -120,6 +166,7 @@ def home_organizacion(request):
         }
     
     recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
+    chart_data = get_chart_data(Transaction.objects.filter(organization_id=org_id))
     
     context = {
         'balance_usd': totals['balance_usd'] or 0,
@@ -132,6 +179,7 @@ def home_organizacion(request):
         'expense_filter': expense_filter,
         'rates': rates,
         'recent_transactions': recent_transactions,
+        'chart_data': chart_data,
         'now_ve': timezone.now(),
         'filter_options': [
             ('day', 'Último día'),
@@ -996,6 +1044,8 @@ def detalle_proyecto(request, proj_id):
     # Organizaciones para el filtro y datos dinámicos
     orgs_with_access = (Organization.objects.filter(projects=project) | Organization.objects.filter(shared_projects__project=project)).distinct()
     
+    chart_data = get_chart_data(transactions_list)
+
     orgs_data = {}
     for o in orgs_with_access:
         orgs_data[o.id] = {
@@ -1029,6 +1079,7 @@ def detalle_proyecto(request, proj_id):
         'date_to': date_to,
         'selected_org_id': selected_org_id,
         'filter_options': filter_options,
+        'chart_data': chart_data,
         'totals': {
             'balance_usd': totals_project['balance_usd'] or 0,
             'balance_bs': totals_project['balance_bs'] or 0,
