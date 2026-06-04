@@ -11,6 +11,10 @@ from pathlib import Path
 DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development').lower()
 IS_DEVELOPMENT = DJANGO_ENV == 'development'
 
+# En desarrollo, SQLite por defecto (sin MySQL). Para MySQL local: DJANGO_USE_SQLITE=0
+if IS_DEVELOPMENT:
+    os.environ.setdefault('DJANGO_USE_SQLITE', '1')
+
 from .db import DATABASES
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -23,10 +27,19 @@ SECRET_KEY = os.environ.get(
     'django-insecure-dev-only-change-in-production',
 )
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', '1' if IS_DEVELOPMENT else '0').lower() in ('1', 'true', 'yes')
 
-ALLOWED_HOSTS = ['cashflow.cpaldaca.com', 'www.cashflow.cpaldaca.com']
-
+if IS_DEVELOPMENT:
+    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]', 'testserver']
+else:
+    ALLOWED_HOSTS = [
+        h.strip()
+        for h in os.environ.get(
+            'ALLOWED_HOSTS',
+            'localhost,127.0.0.1,.onrender.com,cashflow.cpaldaca.com,dev.cpaldaca.com',
+        ).split(',')
+        if h.strip()
+    ]
 
 # -----------------------------------------------------------------------------
 # Aplicaciones

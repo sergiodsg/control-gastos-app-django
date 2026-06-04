@@ -1,6 +1,25 @@
 import os
+from pathlib import Path
 
-DATABASES = {
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+
+def _use_sqlite() -> bool:
+    return os.environ.get('DJANGO_USE_SQLITE', '').lower() in ('1', 'true', 'yes')
+
+
+if _use_sqlite():
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / os.environ.get('SQLITE_DB_NAME', 'test_db.sqlite3'),
+            'TEST': {
+                'NAME': ':memory:',
+            },
+        }
+    }
+else:
+    DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.mysql',
             'NAME': os.environ.get('DB_NAME', 'cashflow_db'),
@@ -12,4 +31,4 @@ DATABASES = {
                 'charset': 'utf8mb4',
             },
         }
-}
+    }
