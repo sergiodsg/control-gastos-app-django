@@ -58,6 +58,9 @@ cover/
 # Django stuff:
 *.log
 local_settings.py
+# Config por entorno: no fusionar entre ramas (ver .gitattributes merge=ours)
+CashFlow/settings.py
+CashFlow/db.py
 db.sqlite3
 db.sqlite3-journal
 # Generado por collectstatic; no versionar (evita servir JS/CSS viejos en dev/Docker con volumen)
