@@ -13,6 +13,9 @@ if _use_sqlite():
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
             'NAME': BASE_DIR / os.environ.get('SQLITE_DB_NAME', 'test_db.sqlite3'),
+            'TEST': {
+                'NAME': ':memory:',
+            },
         }
     }
 else:

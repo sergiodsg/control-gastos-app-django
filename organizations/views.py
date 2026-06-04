@@ -54,6 +54,7 @@ import json
 from django.db import models
 from django.core.paginator import Paginator
 from decimal import Decimal
+from CashFlow.debug import debug_event, first_form_error
 from BCV.services.bcv_scrapper import as_dashboard_rates, get_rate_for_date
 
 class DecimalEncoder(json.JSONEncoder):
@@ -599,6 +600,13 @@ def guardar_transaccion(request, trans_id=None):
     redirect_to = request.POST.get('next', 'lista_transacciones')
     
     if request.method == 'POST':
+        debug_event(
+            "transaccion.guardar.intento",
+            user_id=request.user.id,
+            org_id=org.id,
+            trans_id=trans_id,
+            is_update=bool(instance),
+        )
         # Si viene de un proyecto, necesitamos pasar el proyecto al formulario
         proj_id = request.POST.get('project')
         project_context = None
@@ -608,19 +616,42 @@ def guardar_transaccion(request, trans_id=None):
             projects_owned = Project.objects.filter(organization=org)
             projects_shared = Project.objects.filter(shared_organizations__organization=org)
             if not (projects_owned | projects_shared).filter(id=proj_id).exists():
+                debug_event(
+                    "transaccion.guardar.acceso_denegado",
+                    user_id=request.user.id,
+                    org_id=org.id,
+                    project_id=proj_id,
+                )
                 messages.error(request, "No tiene acceso a este proyecto.")
                 return redirect(redirect_to)
 
         form = TransactionForm(request.POST, instance=instance, organization=org, project=project_context)
         if form.is_valid():
             transaction = form.save()
+            debug_event(
+                "transaccion.guardada",
+                user_id=request.user.id,
+                org_id=org.id,
+                transaction_id=transaction.id,
+                account_id=transaction.account_id,
+                amount_bs=transaction.amount_bs,
+                amount_usd=transaction.amount_usd,
+                is_update=bool(instance),
+            )
             messages.success(request, "Transacción guardada correctamente.")
             
             # Si se especificó una redirección (ej. volver al proyecto)
             if 'next' in request.POST:
                 return redirect(request.POST['next'])
         else:
-            messages.error(request, "Error al guardar la transacción. Verifique los datos.")
+            debug_event(
+                "transaccion.guardar.error",
+                user_id=request.user.id,
+                org_id=org.id,
+                trans_id=trans_id,
+                errors=form.errors.get_json_data(),
+            )
+            messages.error(request, f"Error al guardar la transacción: {first_form_error(form)}")
     
     return redirect('lista_transacciones')
 
@@ -782,6 +813,15 @@ def guardar_cuenta(request, acc_id=None):
         instance = get_object_or_404(Account, id=acc_id, organization=org)
     
     if request.method == 'POST':
+        debug_event(
+            "cuenta.guardar.intento",
+            user_id=request.user.id,
+            username=request.user.username,
+            org_id=org.id,
+            acc_id=acc_id,
+            is_update=bool(instance),
+            is_superuser=request.user.is_superuser,
+        )
         form = AccountForm(request.POST, instance=instance)
         if form.is_valid():
             account = form.save(commit=False)
@@ -811,6 +851,15 @@ def guardar_cuenta(request, acc_id=None):
                             daily_rate=rate,
                             status='completado',
                         )
+                        debug_event(
+                            "cuenta.saldo_inicial_transaccion_creada",
+                            user_id=request.user.id,
+                            org_id=org.id,
+                            account_id=account.id,
+                            currency=account.currency,
+                            amount_usd=balance,
+                            daily_rate=rate,
+                        )
                     else:
                         Transaction.objects.create(
                             organization=org,
@@ -822,9 +871,37 @@ def guardar_cuenta(request, acc_id=None):
                             daily_rate=rate,
                             status='completado',
                         )
+                        debug_event(
+                            "cuenta.saldo_inicial_transaccion_creada",
+                            user_id=request.user.id,
+                            org_id=org.id,
+                            account_id=account.id,
+                            currency=account.currency,
+                            amount_bs=balance,
+                            daily_rate=rate,
+                        )
+            debug_event(
+                "cuenta.guardada",
+                user_id=request.user.id,
+                org_id=org.id,
+                account_id=account.id,
+                currency=account.currency,
+                bank_code=account.bank_code,
+                bank_name=account.bank_name,
+                is_update=bool(instance),
+            )
             messages.success(request, "Cuenta guardada correctamente.")
         else:
-            messages.error(request, "Error al guardar la cuenta.")
+            debug_event(
+                "cuenta.guardar.error",
+                user_id=request.user.id,
+                username=request.user.username,
+                org_id=org.id,
+                acc_id=acc_id,
+                is_superuser=request.user.is_superuser,
+                errors=form.errors.get_json_data(),
+            )
+            messages.error(request, f"Error al guardar la cuenta: {first_form_error(form)}")
             
     return redirect('lista_cuentas')
 

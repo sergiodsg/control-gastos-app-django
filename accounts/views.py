@@ -4,6 +4,8 @@ from django.contrib.auth.views import LoginView as AuthLoginView
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
 
+from CashFlow.debug import debug_event
+
 from .forms import LoginForm, RegistroForm
 
 
@@ -31,11 +33,28 @@ class LoginView(AuthLoginView):
 def registro(request):
     if request.method == 'POST':
         form = RegistroForm(request.POST)
+        debug_event(
+            "usuario.registro.intento",
+            username=request.POST.get("username"),
+            email=request.POST.get("email"),
+        )
         if form.is_valid():
             user = form.save()
+            debug_event(
+                "usuario.creado",
+                user_id=user.id,
+                username=user.username,
+                email=user.email,
+                is_superuser=user.is_superuser,
+            )
             login(request, user)
             messages.success(request, "Registro exitoso. ¡Bienvenido!")
             return redirect('dashboard')
+        debug_event(
+            "usuario.registro.error",
+            username=request.POST.get("username"),
+            errors=form.errors.get_json_data(),
+        )
     else:
         form = RegistroForm()
     

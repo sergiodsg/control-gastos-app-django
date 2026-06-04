@@ -1,8 +1,12 @@
-from django.test import TestCase, Client
-from django.contrib.auth.models import User
-from django.urls import reverse
-from .models import Organization, OrganizationAccess, Project, Transaction, Account, Category, ProjectOrganizationAccess, ProjectUserAccess
 from datetime import date
+
+import pytest
+from django.contrib.auth.models import User
+from django.contrib.messages import get_messages
+from django.test import Client, TestCase
+from django.urls import reverse
+
+from .models import Organization, OrganizationAccess, Project, Transaction, Account, Category, ProjectOrganizationAccess, ProjectUserAccess
 
 class TransactionAccessTest(TestCase):
     def setUp(self):
@@ -19,7 +23,16 @@ class TransactionAccessTest(TestCase):
         # Give User A access to project P
         ProjectUserAccess.objects.create(user=self.user_a, project=self.project_p)
         
-        self.account_b = Account.objects.create(organization=self.org_b, name='Account B')
+        self.account_b = Account.objects.create(
+            organization=self.org_b,
+            currency=Account.CURRENCY_BS,
+            bank_code='0102',
+            bank_name='Banco de Venezuela, S.A. Banco Universal',
+            rif='J123456789',
+            account_number='01021234567890123456',
+            holder='Titular de Prueba',
+            name='Account B',
+        )
         self.category_b = Category.objects.create(organization=self.org_b, name='Category B')
         
         self.transaction = Transaction.objects.create(
@@ -89,3 +102,40 @@ class TransactionAccessTest(TestCase):
         response = self.client.post(url, follow=True)
         self.assertEqual(response.status_code, 200)
         self.assertFalse(Transaction.objects.filter(id=self.transaction.id).exists())
+
+
+@pytest.mark.django_db
+def test_usuario_normal_no_crea_cuenta_con_banco_invalido(client, capsys, settings):
+    settings.DEBUG = True
+
+    user = User.objects.create_user(username='usuario_normal', password='password')
+    org = Organization.objects.create(name='Org Normal')
+    OrganizationAccess.objects.create(user=user, organization=org)
+
+    client.force_login(user)
+    session = client.session
+    session['org_id'] = org.id
+    session['org_name'] = org.name
+    session.save()
+
+    response = client.post(reverse('crear_cuenta'), {
+        'currency': Account.CURRENCY_BS,
+        'bank_code': '9999',
+        'bank_name': 'Banco Inexistente',
+        'rif': 'J-12345678-9',
+        'account_number': '01021234567890123456',
+        'holder': 'Titular de Prueba',
+        'initial_balance': '100.00',
+        'daily_rate': '36.5000',
+    }, follow=True)
+
+    messages = [str(message) for message in get_messages(response.wsgi_request)]
+    captured = capsys.readouterr()
+    debug_output = captured.out + captured.err
+
+    assert response.status_code == 200
+    assert user.is_superuser is False
+    assert Account.objects.filter(organization=org).count() == 0
+    assert Transaction.objects.filter(organization=org).count() == 0
+    assert any('Seleccione un banco válido en bolívares.' in message for message in messages)
+    assert 'cuenta.guardar.error' in debug_output

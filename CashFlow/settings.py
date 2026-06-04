@@ -153,18 +153,108 @@ if IS_DEVELOPMENT:
 
     INTERNAL_IPS = ['127.0.0.1', '::1']
 
-    # Log de consultas SQL en consola (opcional: DJANGO_SQL_LOG=1)
-    if os.environ.get('DJANGO_SQL_LOG', '').lower() in ('1', 'true', 'yes'):
-        LOGGING = {
-            'version': 1,
-            'disable_existing_loggers': False,
-            'handlers': {
-                'console': {'class': 'logging.StreamHandler'},
-            },
-            'loggers': {
-                'django.db.backends': {
-                    'handlers': ['console'],
-                    'level': 'DEBUG',
-                },
-            },
-        }
+LOG_LEVEL = os.environ.get('DJANGO_LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO')
+LOG_DIR = Path(os.environ.get('DJANGO_LOG_DIR', BASE_DIR / 'logs'))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'simple': {
+            'format': '[{levelname}] {name}: {message}',
+            'style': '{',
+        },
+        'verbose': {
+            'format': '[{asctime}] {levelname} {name} {module}:{lineno} - {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'app_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_DIR / 'app.log',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 5,
+            'encoding': 'utf-8',
+            'formatter': 'verbose',
+            'level': LOG_LEVEL,
+        },
+        'server_errors_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_DIR / 'server_errors.log',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 10,
+            'encoding': 'utf-8',
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
+        'transactions_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_DIR / 'transactions.log',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 10,
+            'encoding': 'utf-8',
+            'formatter': 'verbose',
+            'level': LOG_LEVEL,
+        },
+        'application_errors_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_DIR / 'application_errors.log',
+            'maxBytes': 1024 * 1024 * 5,
+            'backupCount': 10,
+            'encoding': 'utf-8',
+            'formatter': 'verbose',
+            'level': 'WARNING',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'app_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'django.request': {
+            'handlers': ['console', 'server_errors_file'],
+            'level': 'ERROR',
+            'propagate': False,
+        },
+        'django.server': {
+            'handlers': ['console', 'server_errors_file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'cashflow.debug': {
+            'handlers': ['console', 'app_file', 'application_errors_file'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'cashflow.transactions': {
+            'handlers': ['console', 'transactions_file', 'application_errors_file'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'cashflow.errors': {
+            'handlers': ['console', 'application_errors_file', 'server_errors_file'],
+            'level': 'WARNING',
+            'propagate': False,
+        },
+        'cashflow.accounts': {
+            'handlers': ['console', 'app_file', 'application_errors_file'],
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+    },
+}
+
+# Log de consultas SQL en consola (opcional: DJANGO_SQL_LOG=1)
+if IS_DEVELOPMENT and os.environ.get('DJANGO_SQL_LOG', '').lower() in ('1', 'true', 'yes'):
+    LOGGING['loggers']['django.db.backends'] = {
+        'handlers': ['console'],
+        'level': 'DEBUG',
+        'propagate': False,
+    }
