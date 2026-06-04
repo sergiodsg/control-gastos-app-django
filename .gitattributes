@@ -1,0 +1,5 @@
+# Al fusionar main <-> dev, conservar settings.py y db.py de la rama destino (ours).
+# Ej.: en dev: git merge main  → no sobrescribe la config de desarrollo de dev.
+# Ej.: en main: git merge dev  → no sobrescribe la config de producción de main.
+CashFlow/settings.py merge=ours
+CashFlow/db.py merge=ours
