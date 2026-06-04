@@ -12,3 +12,19 @@ docker compose up
 docker compose -f docker-compose.localdb.yml up
 
 pytest
+
+--- Producción (Namecheap / LiteSpeed + Passenger) ---
+Variables de entorno en cPanel o .env del servidor:
+  DJANGO_ENV=production
+  DEBUG=0
+  SECRET_KEY=<clave-larga-aleatoria>
+  DB_NAME, DB_USER, DB_PASSWORD, DB_HOST, DB_PORT
+  ALLOWED_HOSTS=cashflow.cpaldaca.com,dev.cpaldaca.com
+  CSRF_TRUSTED_ORIGINS=https://cashflow.cpaldaca.com,https://dev.cpaldaca.com
+
+Error "Reached max children process limit / LSAPI_CHILDREN":
+  1) Copiar .user.ini.example a .user.ini en la raíz del sitio y subir lsapi_children (ej. 12)
+  2) Reiniciar LiteSpeed / touch tmp/restart.txt
+  3) Si persiste, contactar Namecheap para aumentar el límite del plan
+
+Tras deploy: python manage.py collectstatic --noinput && touch tmp/restart.txt

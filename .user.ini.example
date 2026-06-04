@@ -1,0 +1,6 @@
+; Copiar como .user.ini en la raíz pública del sitio (cPanel / LiteSpeed).
+; Si ves "Reached max children process limit", sube lsapi_children (máx. según tu plan).
+
+lsapi_children = 12
+lsapi_max_processes = 12
+lsapi_backend_max_idle = 300

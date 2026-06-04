@@ -11,10 +11,6 @@ from pathlib import Path
 DJANGO_ENV = os.environ.get('DJANGO_ENV', 'development').lower()
 IS_DEVELOPMENT = DJANGO_ENV == 'development'
 
-# En desarrollo, SQLite por defecto (sin MySQL). Para MySQL local: DJANGO_USE_SQLITE=0
-if IS_DEVELOPMENT:
-    os.environ.setdefault('DJANGO_USE_SQLITE', '1')
-
 from .db import DATABASES
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -27,19 +23,8 @@ SECRET_KEY = os.environ.get(
     'django-insecure-dev-only-change-in-production',
 )
 
-DEBUG = os.environ.get('DEBUG', '1' if IS_DEVELOPMENT else '0').lower() in ('1', 'true', 'yes')
-
-if IS_DEVELOPMENT:
-    ALLOWED_HOSTS = ['localhost', '127.0.0.1', '[::1]', 'testserver']
-else:
-    ALLOWED_HOSTS = [
-        h.strip()
-        for h in os.environ.get(
-            'ALLOWED_HOSTS',
-            'localhost,127.0.0.1,.onrender.com,cashflow.cpaldaca.com,dev.cpaldaca.com',
-        ).split(',')
-        if h.strip()
-    ]
+DEBUG = False
+ALLOWED_HOSTS = [ 'cashflow.cpaldaca.com', 'dev.cpaldaca.com', 'localhost', '127.0.0.1', 'www.cashflow.cpaldaca.com' ]
 
 # -----------------------------------------------------------------------------
 # Aplicaciones
@@ -56,6 +41,8 @@ INSTALLED_APPS = [
     'BCV',
     'superadmin_panel',
 ]
+
+DATABASES = DATABASES
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -142,18 +129,15 @@ LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
 # -----------------------------------------------------------------------------
-# Desarrollo
+# Desarrollo / Producción
 # -----------------------------------------------------------------------------
-if IS_DEVELOPMENT:
-    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-    # Cookies menos estrictas en local (HTTP)
-    SESSION_COOKIE_SECURE = False
-    CSRF_COOKIE_SECURE = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')   
 
-    INTERNAL_IPS = ['127.0.0.1', '::1']
-
-LOG_LEVEL = os.environ.get('DJANGO_LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO')
+LOG_LEVEL = os.environ.get(
+    'DJANGO_LOG_LEVEL',
+    'DEBUG' if IS_DEVELOPMENT else 'WARNING',
+)
 LOG_DIR = Path(os.environ.get('DJANGO_LOG_DIR', BASE_DIR / 'logs'))
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -230,12 +214,12 @@ LOGGING = {
         },
         'cashflow.debug': {
             'handlers': ['console', 'app_file', 'application_errors_file'],
-            'level': LOG_LEVEL,
+            'level': 'DEBUG' if IS_DEVELOPMENT else 'INFO',
             'propagate': False,
         },
         'cashflow.transactions': {
             'handlers': ['console', 'transactions_file', 'application_errors_file'],
-            'level': LOG_LEVEL,
+            'level': 'DEBUG' if IS_DEVELOPMENT else 'INFO',
             'propagate': False,
         },
         'cashflow.errors': {
@@ -245,11 +229,24 @@ LOGGING = {
         },
         'cashflow.accounts': {
             'handlers': ['console', 'app_file', 'application_errors_file'],
-            'level': LOG_LEVEL,
+            'level': 'DEBUG' if IS_DEVELOPMENT else 'INFO',
             'propagate': False,
         },
     },
 }
+
+# En producción: sin consola (stderr bloquea workers LiteSpeed/LSAPI)
+if IS_PRODUCTION:
+    _APP_LOG_HANDLERS = ['app_file', 'application_errors_file']
+    _TX_LOG_HANDLERS = ['transactions_file', 'application_errors_file']
+    _ERR_LOG_HANDLERS = ['application_errors_file', 'server_errors_file']
+    LOGGING['loggers']['django']['handlers'] = ['app_file']
+    LOGGING['loggers']['django.request']['handlers'] = ['server_errors_file']
+    LOGGING['loggers']['django.server']['handlers'] = ['server_errors_file']
+    LOGGING['loggers']['cashflow.debug']['handlers'] = _APP_LOG_HANDLERS
+    LOGGING['loggers']['cashflow.transactions']['handlers'] = _TX_LOG_HANDLERS
+    LOGGING['loggers']['cashflow.errors']['handlers'] = _ERR_LOG_HANDLERS
+    LOGGING['loggers']['cashflow.accounts']['handlers'] = _APP_LOG_HANDLERS
 
 # Log de consultas SQL en consola (opcional: DJANGO_SQL_LOG=1)
 if IS_DEVELOPMENT and os.environ.get('DJANGO_SQL_LOG', '').lower() in ('1', 'true', 'yes'):
