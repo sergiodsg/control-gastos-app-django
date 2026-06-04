@@ -23,8 +23,10 @@ SECRET_KEY = os.environ.get(
     'django-insecure-dev-only-change-in-production',
 )
 
-DEBUG = False
-ALLOWED_HOSTS = [ 'cashflow.cpaldaca.com', 'dev.cpaldaca.com', 'localhost', '127.0.0.1', 'www.cashflow.cpaldaca.com' ]
+DEBUG = True
+
+ALLOWED_HOSTS = ['cashflow.cpaldaca.com', 'www.cashflow.cpaldaca.com']
+
 
 # -----------------------------------------------------------------------------
 # Aplicaciones
@@ -41,8 +43,6 @@ INSTALLED_APPS = [
     'BCV',
     'superadmin_panel',
 ]
-
-DATABASES = DATABASES
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -129,15 +129,18 @@ LOGOUT_REDIRECT_URL = 'login'
 LOGIN_URL = 'login'
 
 # -----------------------------------------------------------------------------
-# Desarrollo / Producción
+# Desarrollo
 # -----------------------------------------------------------------------------
+if IS_DEVELOPMENT:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')   
+    # Cookies menos estrictas en local (HTTP)
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
 
-LOG_LEVEL = os.environ.get(
-    'DJANGO_LOG_LEVEL',
-    'DEBUG' if IS_DEVELOPMENT else 'WARNING',
-)
+    INTERNAL_IPS = ['127.0.0.1', '::1']
+
+LOG_LEVEL = os.environ.get('DJANGO_LOG_LEVEL', 'DEBUG' if DEBUG else 'INFO')
 LOG_DIR = Path(os.environ.get('DJANGO_LOG_DIR', BASE_DIR / 'logs'))
 LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -195,6 +198,15 @@ LOGGING = {
             'formatter': 'verbose',
             'level': 'WARNING',
         },
+        'cron_bcv_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': LOG_DIR / 'cron_bcv.log',
+            'maxBytes': 1024 * 1024 * 2,
+            'backupCount': 5,
+            'encoding': 'utf-8',
+            'formatter': 'verbose',
+            'level': 'INFO',
+        },
     },
     'loggers': {
         'django': {
@@ -214,12 +226,12 @@ LOGGING = {
         },
         'cashflow.debug': {
             'handlers': ['console', 'app_file', 'application_errors_file'],
-            'level': 'DEBUG' if IS_DEVELOPMENT else 'INFO',
+            'level': LOG_LEVEL,
             'propagate': False,
         },
         'cashflow.transactions': {
             'handlers': ['console', 'transactions_file', 'application_errors_file'],
-            'level': 'DEBUG' if IS_DEVELOPMENT else 'INFO',
+            'level': LOG_LEVEL,
             'propagate': False,
         },
         'cashflow.errors': {
@@ -229,24 +241,16 @@ LOGGING = {
         },
         'cashflow.accounts': {
             'handlers': ['console', 'app_file', 'application_errors_file'],
-            'level': 'DEBUG' if IS_DEVELOPMENT else 'INFO',
+            'level': LOG_LEVEL,
+            'propagate': False,
+        },
+        'cashflow.cron.bcv': {
+            'handlers': ['cron_bcv_file'],
+            'level': 'INFO',
             'propagate': False,
         },
     },
 }
-
-# En producción: sin consola (stderr bloquea workers LiteSpeed/LSAPI)
-if IS_PRODUCTION:
-    _APP_LOG_HANDLERS = ['app_file', 'application_errors_file']
-    _TX_LOG_HANDLERS = ['transactions_file', 'application_errors_file']
-    _ERR_LOG_HANDLERS = ['application_errors_file', 'server_errors_file']
-    LOGGING['loggers']['django']['handlers'] = ['app_file']
-    LOGGING['loggers']['django.request']['handlers'] = ['server_errors_file']
-    LOGGING['loggers']['django.server']['handlers'] = ['server_errors_file']
-    LOGGING['loggers']['cashflow.debug']['handlers'] = _APP_LOG_HANDLERS
-    LOGGING['loggers']['cashflow.transactions']['handlers'] = _TX_LOG_HANDLERS
-    LOGGING['loggers']['cashflow.errors']['handlers'] = _ERR_LOG_HANDLERS
-    LOGGING['loggers']['cashflow.accounts']['handlers'] = _APP_LOG_HANDLERS
 
 # Log de consultas SQL en consola (opcional: DJANGO_SQL_LOG=1)
 if IS_DEVELOPMENT and os.environ.get('DJANGO_SQL_LOG', '').lower() in ('1', 'true', 'yes'):

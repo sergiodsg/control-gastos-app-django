@@ -1,7 +1,11 @@
+import logging
+
 from django.core.management.base import BaseCommand, CommandError
 from django.utils import timezone
 
 from BCV.services.bcv_scrapper import get_bcv_rates_cached
+
+logger = logging.getLogger('cashflow.cron.bcv')
 
 
 class Command(BaseCommand):
@@ -34,29 +38,37 @@ class Command(BaseCommand):
         return hours
 
     def handle(self, *args, **options):
+        started_at = timezone.localtime()
+        logger.info("Inicio sincronización BCV (cron)")
+
         try:
             window_hours = self._parse_window_hours(options["window_hours"])
         except Exception as exc:
+            logger.exception("Parámetros inválidos en comando bcv")
             raise CommandError(str(exc)) from exc
 
         current_hour = timezone.localtime().hour
         if options["strict_window"] and current_hour not in window_hours:
             allowed = ",".join(f"{hour:02d}:00" for hour in sorted(window_hours))
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Saltado: hora actual {current_hour:02d}:00 fuera de ventana ({allowed})."
-                )
+            message = (
+                f"Saltado: hora actual {current_hour:02d}:00 fuera de ventana ({allowed})."
             )
+            logger.info(message)
+            self.stdout.write(self.style.WARNING(message))
             return
 
         try:
             result = get_bcv_rates_cached(ttl_seconds=3600, force_refresh=True)
         except Exception as exc:
+            logger.exception("Error al sincronizar tasas BCV")
             raise CommandError(f"No se pudo sincronizar tasas BCV: {exc}") from exc
 
         rate_date = result["rate_date"]
-        self.stdout.write(
-            self.style.SUCCESS(
-                f"Tasas BCV sincronizadas para {rate_date}. USD: {result['rates'].get('USD')} | EUR: {result['rates'].get('EUR')}."
-            )
+        usd = result["rates"].get("USD")
+        eur = result["rates"].get("EUR")
+        message = (
+            f"Tasas BCV sincronizadas para {rate_date}. USD: {usd} | EUR: {eur}."
         )
+        elapsed = (timezone.localtime() - started_at).total_seconds()
+        logger.info("%s Duración: %.1fs", message, elapsed)
+        self.stdout.write(self.style.SUCCESS(message))

@@ -28,3 +28,11 @@ Error "Reached max children process limit / LSAPI_CHILDREN":
   3) Si persiste, contactar Namecheap para aumentar el límite del plan
 
 Tras deploy: python manage.py collectstatic --noinput && touch tmp/restart.txt
+
+--- Cron BCV (producción, 9:00 y 15:00) ---
+Comando (manage.py está en la raíz, NO en CashFlow/):
+  cd /home/ssapmcco/cashflow.cpaldaca.com && /home/ssapmcco/virtualenv/cashflow.cpaldaca.com/3.12/bin/python manage.py bcv --strict-window >> /home/ssapmcco/cashflow.cpaldaca.com/logs/cron_bcv.log 2>&1
+
+Crontab: 0 9,15 * * *
+
+Log: logs/cron_bcv.log  |  Guía completa: logs/CRON.md
