@@ -17,17 +17,14 @@ def get_chart_data(transactions_qs):
     cat_series = [float(abs(item['total'])) for item in category_spending]
     cat_colors = [item['category__color'] or '#000000' for item in category_spending]
 
-    # 2. Balance Mensual (Ingresos vs Gastos)
-    monthly_data = transactions_qs.annotate(
-        month=TruncMonth('date')
-    ).values('month').annotate(
+    # 2. Balance Total (Ingresos vs Gastos)
+    totals_data = transactions_qs.aggregate(
         income=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
         expense=Sum('amount_usd', filter=models.Q(amount_usd__lt=0))
-    ).order_by('month')
-
-    monthly_labels = [item['month'].strftime('%m/%Y') for item in monthly_data]
-    monthly_income = [float(item['income'] or 0) for item in monthly_data]
-    monthly_expense = [float(abs(item['expense'] or 0)) for item in monthly_data]
+    )
+    
+    total_income = float(totals_data['income'] or 0)
+    total_expense = float(abs(totals_data['expense'] or 0))
 
     # 3. Evolución del Saldo
     evolution_data = transactions_qs.order_by('date').values('date').annotate(
@@ -46,9 +43,8 @@ def get_chart_data(transactions_qs):
         'cat_labels': json.dumps(cat_labels),
         'cat_series': json.dumps(cat_series),
         'cat_colors': json.dumps(cat_colors),
-        'monthly_labels': json.dumps(monthly_labels),
-        'monthly_income': json.dumps(monthly_income),
-        'monthly_expense': json.dumps(monthly_expense),
+        'total_income': total_income,
+        'total_expense': total_expense,
         'evo_labels': json.dumps(evo_labels),
         'evo_series': json.dumps(evo_series),
     }

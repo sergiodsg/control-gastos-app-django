@@ -125,9 +125,9 @@
     <div class="cf-card">
         <div class="cf-card__body cf-p-5">
             <h5 class="cf-card__title cf-mb-4">
-                <i class="fa-solid fa-chart-bar cf-text-primary cf-me-2"></i>Balance Mensual
+                <i class="fa-solid fa-chart-bar cf-text-primary cf-me-2"></i>Ingresos vs Gastos (Totales)
             </h5>
-            <div id="monthlyChart" style="min-height: 250px;"></div>
+            <div id="totalsChart" style="min-height: 250px;"></div>
         </div>
     </div>
 </div>
@@ -369,16 +369,18 @@
             tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
         }).render();
 
-        // 2. Balance Mensual
-        new ApexCharts(document.querySelector("#monthlyChart"), {
+        // 2. Ingresos vs Gastos (Totales)
+        new ApexCharts(document.querySelector("#totalsChart"), {
             ...commonOptions,
-            series: [
-                { name: 'Ingresos', data: {{ chart_data.monthly_income|safe }}, color: '#198754' },
-                { name: 'Gastos', data: {{ chart_data.monthly_expense|safe }}, color: '#dc3545' }
-            ],
-            xaxis: { categories: {{ chart_data.monthly_labels|safe }} },
+            series: [{
+                name: 'Total',
+                data: [{{ chart_data.total_income|safe }}, {{ chart_data.total_expense|safe }}]
+            }],
+            xaxis: { categories: ['Ingresos', 'Gastos'] },
+            colors: ['#198754', '#dc3545'],
             chart: { ...commonOptions.chart, type: 'bar' },
-            plotOptions: { bar: { borderRadius: 4 } },
+            plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4 } },
+            legend: { show: false },
             tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
         }).render();
 
