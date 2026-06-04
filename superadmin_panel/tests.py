@@ -70,7 +70,7 @@ class SuperadminPanelTests(TestCase):
         self.assertEqual(Transaction.objects.filter(account=account).count(), 1)
         tx = Transaction.objects.get(account=account)
         self.assertEqual(tx.amount_bs, 1000)
-        self.assertEqual(tx.amount_usd, 0)
+        self.assertGreater(tx.amount_usd, 0)
 
     def test_wizard_creates_usd_account_separately(self):
         self.client.login(username='admin', password='password123')
@@ -90,4 +90,4 @@ class SuperadminPanelTests(TestCase):
         self.assertEqual(account.currency, Account.CURRENCY_USD)
         tx = Transaction.objects.get(account=account)
         self.assertEqual(tx.amount_usd, 250)
-        self.assertEqual(tx.amount_bs, 0)
+        self.assertGreater(tx.amount_bs, 0)

@@ -15,19 +15,19 @@ class TransactionForm(forms.ModelForm):
             'status', 'amount_bs', 'amount_usd', 'daily_rate'
         ]
         widgets = {
-            'date': forms.DateInput(attrs={'class': 'cf-input', 'type': 'date'}),
-            'organization': forms.Select(attrs={'class': 'cf-input'}),
-            'account': forms.Select(attrs={'class': 'cf-input'}),
+            'date': forms.DateInput(attrs={'class': 'cf-input', 'type': 'date', 'required': 'required'}),
+            'organization': forms.Select(attrs={'class': 'cf-input', 'required': 'required'}),
+            'account': forms.Select(attrs={'class': 'cf-input', 'required': 'required'}),
             'reference_number': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nro. Referencia'}),
-            'description': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Descripción de la transacción'}),
+            'description': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Descripción de la transacción', 'required': 'required'}),
             'notes': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Notas adicionales'}),
             'category': forms.Select(attrs={'class': 'cf-input'}),
             'project': forms.Select(attrs={'class': 'cf-input'}),
             'valuation': forms.Select(attrs={'class': 'cf-input'}),
-            'status': forms.Select(attrs={'class': 'cf-input'}),
-            'amount_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
-            'amount_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
-            'daily_rate': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number'}),
+            'status': forms.Select(attrs={'class': 'cf-input', 'required': 'required'}),
+            'amount_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number', 'required': 'required'}),
+            'amount_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number', 'required': 'required'}),
+            'daily_rate': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number', 'required': 'required'}),
         }
 
     def clean(self):
@@ -188,10 +188,10 @@ class ValuationForm(forms.ModelForm):
         model = Valuation
         fields = ['name', 'amount_usd', 'amount_bs', 'daily_rate']
         widgets = {
-            'name': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Ej. Valuación 01, Fundaciones...'}),
-            'amount_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
-            'amount_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
-            'daily_rate': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number'}),
+            'name': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Ej. Valuación 01, Fundaciones...', 'required': 'required'}),
+            'amount_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number', 'required': 'required'}),
+            'amount_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number', 'required': 'required'}),
+            'daily_rate': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number', 'required': 'required'}),
         }
 
     def clean(self):

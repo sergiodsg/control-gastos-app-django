@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static l10n %}
 
 {% block title %}Mis Cuentas - {{ request.session.org_name }}{% endblock %}
 
@@ -152,7 +152,7 @@
 <script>
     initCuentas({
         crearUrl: "{% url 'crear_cuenta' %}",
-        bcvRate: parseFloat("{{ bcv_rate }}".replace(',', '.')) || 1,
+        bcvRate: parseFloat("{{ bcv_rate|unlocalize }}") || 1,
         bancosBsUrl: "{% static 'json/bancos.json' %}",
         bancosUsdUrl: "{% static 'json/bancos_usd.json' %}",
     });

@@ -146,8 +146,10 @@ function initDetalleProyecto(config) {
     // Auxiliares internos
     function updateOrgFields(orgId, selectedAccountId, selectedCategoryId) {
         const data = orgsData[orgId];
-        const accountSelect = document.querySelector('select[name="account"]');
-        const categorySelect = document.querySelector('select[name="category"]');
+        const form = document.getElementById('transactionForm');
+        if (!form) return;
+        const accountSelect = form.querySelector('select[name="account"]');
+        const categorySelect = form.querySelector('select[name="category"]');
         if (!data || !accountSelect || !categorySelect) return;
         
         accountSelect.innerHTML = '<option value="">---------</option>';
@@ -179,10 +181,13 @@ function initDetalleProyecto(config) {
     }
 
     function syncTFields() {
+        const transactionForm = document.getElementById('transactionForm');
+        if (!transactionForm) return;
+
         const tAmountDisplay = document.getElementById('id_t_amount_display');
-        const tAmountUsd = document.querySelector('input[name="amount_usd"]');
-        const tAmountBs = document.querySelector('input[name="amount_bs"]');
-        const tRate = document.querySelector('input[name="daily_rate"]');
+        const tAmountUsd = transactionForm.querySelector('input[name="amount_usd"]');
+        const tAmountBs = transactionForm.querySelector('input[name="amount_bs"]');
+        const tRate = transactionForm.querySelector('input[name="daily_rate"]');
         if (!tAmountDisplay || !tAmountUsd || !tAmountBs || !tRate) return;
         
         let val = Math.abs(parseFloat(tAmountDisplay.value)) || 0;
@@ -202,8 +207,11 @@ function initDetalleProyecto(config) {
     }
 
     function loadTRateForDate(dateValue) {
+        const transactionForm = document.getElementById('transactionForm');
+        if (!transactionForm) return;
+
         const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
-        const tRate = document.querySelector('input[name="daily_rate"]');
+        const tRate = transactionForm.querySelector('input[name="daily_rate"]');
         if (!dateValue || !tManualRateSwitch || tManualRateSwitch.checked) return;
         fetch(config.bcvRatesUrl + '?date=' + dateValue + '&currency=USD')
             .then(function (r) { return r.ok ? r.json() : null; })
@@ -227,13 +235,15 @@ function initDetalleProyecto(config) {
     }
 
     function setupTListeners() {
-        const orgSelect = document.querySelector('select[name="organization"]');
+        const transactionForm = document.getElementById('transactionForm');
+        if (!transactionForm) return;
+
+        const orgSelect = transactionForm.querySelector('select[name="organization"]');
         const tAmountDisplay = document.getElementById('id_t_amount_display');
-        const tRate = document.querySelector('input[name="daily_rate"]');
-        const tDate = document.querySelector('input[name="date"]');
+        const tRate = transactionForm.querySelector('input[name="daily_rate"]');
+        const tDate = transactionForm.querySelector('input[name="date"]');
         const tCurrencyToggleBtn = document.getElementById('t_currencyToggleBtn');
         const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
-        const transactionForm = document.getElementById('transactionForm');
 
         if (orgSelect) orgSelect.addEventListener('change', function () { updateOrgFields(this.value); });
         
@@ -256,7 +266,7 @@ function initDetalleProyecto(config) {
         if (tAmountDisplay) tAmountDisplay.addEventListener('input', syncTFields);
         if (tRate) tRate.addEventListener('input', syncTFields);
         
-        document.querySelectorAll('input[name="transaction_type"]').forEach(function (r) {
+        transactionForm.querySelectorAll('input[name="transaction_type"]').forEach(function (r) {
             r.addEventListener('change', syncTFields);
         });
 
@@ -272,7 +282,13 @@ function initDetalleProyecto(config) {
         }
 
         if (transactionForm) {
-            transactionForm.addEventListener('submit', function () {
+            transactionForm.addEventListener('submit', function (e) {
+                const amount = parseFloat(tAmountDisplay.value) || 0;
+                if (amount === 0) {
+                    e.preventDefault();
+                    alert('El monto de la transacción no puede ser cero.');
+                    return;
+                }
                 if (tRate) tRate.disabled = false;
             });
         }

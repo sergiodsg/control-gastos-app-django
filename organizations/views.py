@@ -124,12 +124,18 @@ def get_filtered_totals_both(org_id, filter_type):
 def get_bcv_rate(target_date=None):
     try:
         rate_date = target_date or timezone.localdate()
+        # Si es para hoy, usar la misma lógica que el dashboard para consistencia total
+        if rate_date == timezone.localdate():
+            rates = as_dashboard_rates()
+            if rates.get('usd_bcv') and rates['usd_bcv'].get('promedio') is not None:
+                return float(rates['usd_bcv']['promedio'])
+        
         rate = get_rate_for_date(rate_date, currency="USD")
         if rate is not None:
             return float(rate)
     except Exception:
         pass
-    return 1
+    return 1.0
 
 @login_required
 def home_organizacion(request):

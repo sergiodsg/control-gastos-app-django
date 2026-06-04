@@ -233,10 +233,8 @@
                             Monto
                             <button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="currencyToggleBtn">Cambiar a <span id="nextCurrencyLabel">BS</span></button>
                         </label>
-                        <div class="cf-input-group">
-                            <span class="cf-input-group__addon" id="currencyAddon">$</span>
-                            <input type="number" step="0.01" class="cf-input" id="id_amount_display" placeholder="0.00">
-                        </div>
+                        <div class="cf-input-group"><span class="cf-input-group__addon" id="currencyAddon">$</span><input type="number" step="0.01" class="cf-input" id="id_amount_display" placeholder="0.00" required></div>
+
                         <div class="cf-hidden">{{ form.amount_usd }}{{ form.amount_bs }}</div>
                     </div>
                     <div class="cf-form-group">
@@ -308,7 +306,7 @@
 <script>
     initTransacciones({
         crearUrl: "{% url 'crear_transaccion' %}",
-        bcvRate: parseFloat("{{ bcv_rate|unlocalize }}".replace(',', '.')) || 1,
+        bcvRate: parseFloat("{{ bcv_rate|unlocalize }}") || 1,
         bcvRatesUrl: "{% url 'bcv_rates_api' %}",
         projectsData: JSON.parse('{{ projects_data|safe|default:"{}" }}')
     });

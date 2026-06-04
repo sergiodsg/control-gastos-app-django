@@ -167,7 +167,7 @@
 <script>
     initTransacciones({
         crearUrl: "{% url 'crear_transaccion' %}",
-        bcvRate: parseFloat("{{ bcv_rate|unlocalize }}".replace(',', '.')) || 1,
+        bcvRate: parseFloat("{{ bcv_rate|unlocalize }}") || 1,
         bcvRatesUrl: "{% url 'bcv_rates_api' %}",
         projectsData: {}
     });
