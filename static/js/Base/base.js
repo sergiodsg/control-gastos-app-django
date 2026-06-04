@@ -70,8 +70,53 @@ function applyCurrencyPreference() {
     }
 }
 
+function initAjaxSorting() {
+    const container = document.getElementById('transactions-container');
+    if (!container) return;
+
+    container.addEventListener('click', function (e) {
+        const link = e.target.closest('.ajax-link');
+        if (!link) return;
+
+        e.preventDefault();
+        const url = link.getAttribute('href');
+        if (!url || url === '#') return;
+
+        // Mostrar un indicador de carga ligero
+        container.style.opacity = '0.5';
+        container.style.pointerEvents = 'none';
+
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.getElementById('transactions-container');
+                
+                if (newContent) {
+                    container.innerHTML = newContent.innerHTML;
+                    history.pushState(null, '', url);
+                }
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+                
+                // Re-aplicar preferencia de moneda si es necesario
+                if (typeof applyCurrencyPreference === 'function') applyCurrencyPreference();
+            })
+            .catch(() => {
+                container.style.opacity = '1';
+                container.style.pointerEvents = 'auto';
+            });
+    });
+
+    window.addEventListener('popstate', function() {
+        location.reload(); // Recargar al usar botones atrás/adelante para simplicidad
+    });
+}
+
 window.addEventListener('DOMContentLoaded', function () {
     applyCurrencyPreference();
+    initAjaxSorting();
 });
 
 function applyCurrencyPreference() {

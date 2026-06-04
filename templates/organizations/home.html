@@ -72,6 +72,34 @@
     </div>
 </div>
 
+<div class="cf-grid cf-grid--2 cf-mb-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Categoría
+            </h5>
+            <div id="categoryChart" style="min-height: 300px;"></div>
+        </div>
+    </div>
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-bar cf-text-primary cf-me-2"></i>Ingresos vs Gastos (Totales)
+            </h5>
+            <div id="totalsChart" style="min-height: 300px;"></div>
+        </div>
+    </div>
+</div>
+
+<div class="cf-card cf-mb-4">
+    <div class="cf-card__body cf-p-5">
+        <h5 class="cf-card__title cf-mb-4">
+            <i class="fa-solid fa-chart-line cf-text-primary cf-me-2"></i>Evolución del Balance (USD)
+        </h5>
+        <div id="evolutionChart" style="min-height: 350px;"></div>
+    </div>
+</div>
+
 <div class="cf-grid cf-grid--kpi">
     <div class="cf-card" id="card-rates">
         <div class="cf-card__body cf-p-5">
@@ -135,46 +163,57 @@
                 <i class="fa-solid fa-clock-rotate-left cf-text-primary cf-me-2"></i>Transacciones Recientes
             </h5>
             <div class="cf-table-wrap home-rates-scroll cf-flex-1" id="transactions-scroll-container">
-                <table class="cf-table home-tx-table">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Descripción</th>
-                            <th>Monto</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for tx in recent_transactions %}
-                        <tr>
-                            <td class="cf-fs-sm">{{ tx.date|date:"d/m/Y" }}</td>
-                            <td class="cf-fs-sm cf-text-truncate" style="max-width: 200px;">{{ tx.description }}</td>
-                            <td class="cf-fs-sm">
-                                <div class="currency-usd-content cf-fw-bold">
-                                    ${{ tx.amount_usd|floatformat:2 }}
-                                    <span class="cf-text-muted cf-fw-medium">({{ tx.amount_bs|floatformat:2 }} Bs.)</span>
-                                </div>
-                                <div class="currency-bs-content cf-fw-bold cf-hidden">
-                                    Bs. {{ tx.amount_bs|floatformat:2 }}
-                                    <span class="cf-text-muted cf-fw-medium">(${{ tx.amount_usd|floatformat:2 }})</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="cf-badge cf-badge--pill {% if tx.status == 'completado' %}cf-badge--success{% elif tx.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
-                                    {{ tx.get_status_display }}
-                                </span>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="cf-text-center cf-py-5 cf-text-muted">
-                                <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
-                                No hay transacciones registradas.
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+                <div id="transactions-container">
+                    <table class="cf-table home-tx-table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&income_filter={{ income_filter }}&expense_filter={{ expense_filter }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                                        Fecha
+                                        {% if sort == 'asc' %}
+                                        <i class="fa-solid fa-sort-up"></i>
+                                        {% else %}
+                                        <i class="fa-solid fa-sort-down"></i>
+                                        {% endif %}
+                                    </a>
+                                </th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tx in recent_transactions %}
+                            <tr>
+                                <td class="cf-fs-sm">{{ tx.date|date:"d/m/Y" }}</td>
+                                <td class="cf-fs-sm cf-text-truncate" style="max-width: 200px;">{{ tx.description }}</td>
+                                <td class="cf-fs-sm">
+                                    <div class="currency-usd-content cf-fw-bold">
+                                        ${{ tx.amount_usd|floatformat:2 }}
+                                        <span class="cf-text-muted cf-fw-medium">({{ tx.amount_bs|floatformat:2 }} Bs.)</span>
+                                    </div>
+                                    <div class="currency-bs-content cf-fw-bold cf-hidden">
+                                        Bs. {{ tx.amount_bs|floatformat:2 }}
+                                        <span class="cf-text-muted cf-fw-medium">(${{ tx.amount_usd|floatformat:2 }})</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="cf-badge cf-badge--pill {% if tx.status == 'completado' %}cf-badge--success{% elif tx.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
+                                        {{ tx.get_status_display }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="cf-text-center cf-py-5 cf-text-muted">
+                                    <i class="fa-solid fa-inbox cf-fs-3xl cf-d-block cf-mb-3"></i>
+                                    No hay transacciones registradas.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -215,6 +254,53 @@
         if (bcvVal === '--') updateRatesFrontend();
         syncHeights();
         window.addEventListener('resize', syncHeights);
+
+        // --- Gráficos ApexCharts ---
+        const commonOptions = {
+            chart: { toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'inherit' },
+            noData: { text: 'No hay datos suficientes', style: { color: '#888', fontSize: '14px' } }
+        };
+
+        // 1. Gastos por Categoría
+        new ApexCharts(document.querySelector("#categoryChart"), {
+            ...commonOptions,
+            series: {{ chart_data.cat_series|safe }},
+            labels: {{ chart_data.cat_labels|safe }},
+            colors: {{ chart_data.cat_colors|safe }},
+            chart: { ...commonOptions.chart, type: 'donut' },
+            legend: { position: 'bottom' },
+            tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
+        }).render();
+
+        // 2. Ingresos vs Gastos (Totales)
+        new ApexCharts(document.querySelector("#totalsChart"), {
+            ...commonOptions,
+            series: [{
+                name: 'Total',
+                data: [{{ chart_data.total_income|safe }}, {{ chart_data.total_expense|safe }}]
+            }],
+            xaxis: { categories: ['Ingresos', 'Gastos'] },
+            colors: ['#198754', '#dc3545'],
+            chart: { ...commonOptions.chart, type: 'bar' },
+            plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4 } },
+            legend: { show: false },
+            tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
+        }).render();
+
+        // 3. Evolución del Saldo
+        new ApexCharts(document.querySelector("#evolutionChart"), {
+            ...commonOptions,
+            series: [{ name: 'Saldo', data: {{ chart_data.evo_series|safe }}, color: '#0d6efd' }],
+            xaxis: { 
+                type: 'datetime',
+                categories: {{ chart_data.evo_labels|safe }},
+                labels: { format: 'dd/MM/yy' }
+            },
+            chart: { ...commonOptions.chart, type: 'area' },
+            stroke: { curve: 'smooth', width: 2 },
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } },
+            tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `$${v.toFixed(2)}` } }
+        }).render();
     });
 </script>
 {% endblock %}

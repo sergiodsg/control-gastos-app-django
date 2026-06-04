@@ -22,10 +22,10 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             # Activar virtualenv
-            source ~/virtualenv/repositories/control-gastos-app-django/3.12/bin/activate
+            source ~/virtualenv/cashflow.cpaldaca.com/3.12/bin/activate
 
             # Ir al directorio del proyecto
-            cd ~/repositories/control-gastos-app-django
+            cd ~/cashflow.cpaldaca.com
 
             # Traer cambios del repo
             git pull origin main
