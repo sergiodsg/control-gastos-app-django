@@ -94,6 +94,9 @@ function initCuentas(config) {
         form.querySelector('[name="rif"]').value = account.rif || '';
         form.querySelector('[name="account_number"]').value = account.account_number || '';
         form.querySelector('[name="holder"]').value = account.holder || '';
+        if (form.querySelector('[name="name"]')) {
+            form.querySelector('[name="name"]').value = account.name || '';
+        }
 
         refreshBankSelect(account.bank_code, account.bank_name).then(function () {
             if (account.currency === 'BS' && bankSelect) bankSelect.value = account.bank_code || '';

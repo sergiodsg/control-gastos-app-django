@@ -113,13 +113,13 @@
     </div>
 </div>
 
-<div class="cf-grid cf-grid--2 cf-mb-4" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));">
+<div class="cf-grid cf-grid--3 cf-mb-4">
     <div class="cf-card">
         <div class="cf-card__body cf-p-5">
             <h5 class="cf-card__title cf-mb-4">
-                <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Categoría
+                <i class="fa-solid fa-chart-line cf-text-primary cf-me-2"></i>Evolución del Balance (USD)
             </h5>
-            <div id="categoryChart" style="min-height: 250px;"></div>
+            <div id="evolutionChart" style="min-height: 250px;"></div>
         </div>
     </div>
     <div class="cf-card">
@@ -130,45 +130,63 @@
             <div id="totalsChart" style="min-height: 250px;"></div>
         </div>
     </div>
-</div>
-
-<div class="cf-card cf-mb-4">
-    <div class="cf-card__body cf-p-5">
-        <h5 class="cf-card__title cf-mb-4">
-            <i class="fa-solid fa-chart-line cf-text-primary cf-me-2"></i>Evolución del Balance (USD)
-        </h5>
-        <div id="evolutionChart" style="min-height: 300px;"></div>
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Categoría
+            </h5>
+            <div id="categoryChart" style="min-height: 250px;"></div>
+        </div>
     </div>
 </div>
 
 <div class="cf-filter-bar">
-    <form method="get" class="cf-form-row" style="align-items: end;">
-        <div class="cf-form-group cf-mb-0">
-            <label class="cf-stat-label">Período:</label>
-            <select name="filter_type" class="cf-select cf-input--sm" onchange="toggleCustomDates(this.value)">
-                {% for value, label in filter_options %}
-                <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
-                {% endfor %}
-            </select>
+    <form method="get" class="cf-filter-form">
+        <!-- 1. Búsqueda -->
+        <div class="cf-form-group cf-form-group--search">
+            <label class="cf-stat-label">Buscar:</label>
+            <div class="cf-input-icon-wrapper">
+                <i class="fa-solid fa-magnifying-glass cf-icon"></i>
+                <input type="text" name="search" class="cf-input cf-input--sm dynamic-search" placeholder="Ref, desc, cat, monto..." value="{{ search }}">
+            </div>
         </div>
-        <div class="cf-form-group cf-mb-0">
+
+        <!-- 2. Organización -->
+        <div class="cf-form-group">
             <label class="cf-stat-label">Organización:</label>
-            <select name="organization" class="cf-select cf-input--sm">
-                <option value="">Todas</option>
+            <select name="organization" class="cf-select cf-input--sm dynamic-search">
+                <option value="">Todas las organizaciones</option>
                 {% for o in orgs_with_access %}
                 <option value="{{ o.id }}" {% if selected_org_id == o.id|stringformat:"i" %}selected{% endif %}>{{ o.name }}</option>
                 {% endfor %}
             </select>
         </div>
-        <div id="custom_date_inputs" class="cf-form-group cf-mb-0" style="grid-column: span 2; {% if filter_type != 'custom' %}display: none;{% endif %}">
-            <div class="cf-form-row">
-                <div class="cf-form-group cf-mb-0"><label class="cf-stat-label">Desde:</label><input type="date" name="date_from" class="cf-input cf-input--sm" value="{{ date_from }}"></div>
-                <div class="cf-form-group cf-mb-0"><label class="cf-stat-label">Hasta:</label><input type="date" name="date_to" class="cf-input cf-input--sm" value="{{ date_to }}"></div>
-            </div>
+
+        <!-- 3. Período -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Período:</label>
+            <select name="filter_type" class="cf-select cf-input--sm dynamic-search" id="filter_type_select">
+                {% for value, label in filter_options %}
+                <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
         </div>
-        <div class="cf-flex cf-gap-2">
-            <button type="submit" class="cf-btn cf-btn--dark cf-btn--sm"><i class="fa-solid fa-filter"></i> Filtrar</button>
-            <a href="{% url 'detalle_proyecto' project.id %}" class="cf-btn cf-btn--outline-secondary cf-btn--sm"><i class="fa-solid fa-circle-xmark"></i> Limpiar</a>
+
+        <!-- 4. Rango -->
+        <div class="cf-form-group cf-form-group--date">
+            <label class="cf-stat-label">Desde:</label>
+            <input type="date" name="date_from" class="cf-input cf-input--sm dynamic-search" value="{{ date_from }}">
+        </div>
+        <div class="cf-form-group cf-form-group--date">
+            <label class="cf-stat-label">Hasta:</label>
+            <input type="date" name="date_to" class="cf-input cf-input--sm dynamic-search" value="{{ date_to }}">
+        </div>
+
+        <!-- 5. Limpiar -->
+        <div class="cf-filter-actions">
+            <a href="{% url 'detalle_proyecto' project.id %}" class="cf-btn cf-btn--outline-secondary cf-btn--sm" title="Limpiar filtros">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </a>
         </div>
     </form>
 </div>
@@ -177,11 +195,11 @@
     <div class="cf-card">
         <div class="cf-card__header"><h5 class="cf-card__title">Transacciones del Proyecto</h5></div>
         <div class="cf-table-wrap">
-            <table class="cf-table">
+            <table class="cf-table cf-table--resizable">
                 <thead>
                     <tr>
-                        <th class="cf-ps-4">
-                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                        <th class="cf-ps-4 col-date">
+                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}&search={{ search }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
                                 Fecha
                                 {% if sort == 'asc' %}
                                 <i class="fa-solid fa-sort-up"></i>
@@ -190,12 +208,12 @@
                                 {% endif %}
                             </a>
                         </th>
-                    <th>Organización</th>
-                    <th>Descripción</th>
-                    <th>Monto (USD)</th>
-                    <th>Valuación</th>
-                    <th>Estado</th>
-                    <th class="cf-text-end cf-pe-4">Acciones</th>
+                    <th class="col-org">Organización</th>
+                    <th class="col-desc">Descripción</th>
+                    <th class="col-amount">Monto (USD)</th>
+                    <th class="col-amount">Valuación</th>
+                    <th class="col-status">Estado</th>
+                    <th class="cf-text-end cf-pe-4 col-actions">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -203,15 +221,15 @@
                 <tr>
                     <td class="cf-ps-4">{{ trans.date|date:"d/m/Y" }}</td>
                     <td><span class="cf-fs-sm cf-fw-bold {% if trans.organization.id == request.session.org_id %}cf-text-primary{% else %}cf-text-muted{% endif %}">{{ trans.organization.name }}</span></td>
-                    <td><div class="cf-text-truncate" style="max-width: 300px;" title="{{ trans.description }}">{{ trans.description }}</div></td>
+                    <td title="{{ trans.description }}">{{ trans.description }}</td>
                     <td class="cf-fw-bold {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
                     <td>{% if trans.valuation %}<span class="cf-badge cf-badge--info">{{ trans.valuation.name }}</span>{% else %}<span class="cf-text-muted cf-fs-sm">-</span>{% endif %}</td>
-                    <td>
+                    <td class="col-status">
                         <span class="cf-badge cf-badge--pill {% if trans.status == 'completado' %}cf-badge--success{% elif trans.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
                             {{ trans.get_status_display }}
                         </span>
                     </td>
-                    <td class="cf-text-end cf-pe-4">
+                    <td class="cf-text-end cf-pe-4 col-actions">
                         <div class="cf-btn-group">
                             <button class="cf-btn cf-btn--sm cf-btn--outline-secondary" onclick="viewTransaction({{ trans.id }})" title="Ver"><i class="fa-solid fa-eye"></i></button>
                             <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.organization.id }}', '{{ trans.account.id }}', '{{ trans.category.id|default:'' }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|default:''|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|default:''|escapejs }}', '{{ trans.notes|default:''|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
@@ -229,12 +247,12 @@
     {% if page_obj.has_other_pages %}
     <nav class="cf-p-4">
         <ul class="cf-pagination">
-            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}" class="ajax-link">Anterior</a></li>{% endif %}
+            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}&search={{ search }}" class="ajax-link">Anterior</a></li>{% endif %}
             {% for i in page_obj.paginator.page_range %}
             {% if page_obj.number == i %}<li class="is-active"><span>{{ i }}</span></li>
-            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}" class="ajax-link">{{ i }}</a></li>{% endif %}
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}&search={{ search }}" class="ajax-link">{{ i }}</a></li>{% endif %}
             {% endfor %}
-            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}" class="ajax-link">Siguiente</a></li>{% endif %}
+            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&organization={{ selected_org_id }}&search={{ search }}" class="ajax-link">Siguiente</a></li>{% endif %}
         </ul>
     </nav>
     {% endif %}

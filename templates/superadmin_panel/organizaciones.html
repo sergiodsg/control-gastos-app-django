@@ -24,28 +24,28 @@
 
 <div class="cf-card">
     <div class="cf-table-wrap">
-        <table class="cf-table">
+        <table class="cf-table cf-table--resizable">
             <thead>
                 <tr>
-                    <th class="cf-ps-4">ID</th>
-                    <th>Nombre</th>
-                    <th>Usuarios</th>
-                    <th>Cuentas</th>
-                    <th>Proyectos</th>
-                    <th>Transacciones</th>
-                    <th class="cf-text-end cf-pe-4">Acciones</th>
+                    <th class="cf-ps-4 col-date">ID</th>
+                    <th class="col-desc">Nombre</th>
+                    <th class="col-status">Usuarios</th>
+                    <th class="col-status">Cuentas</th>
+                    <th class="col-status">Proyectos</th>
+                    <th class="col-status">Transacciones</th>
+                    <th class="cf-text-end cf-pe-4 col-actions">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for org in organizations %}
                 <tr>
-                    <td class="cf-ps-4 cf-text-muted">{{ org.id }}</td>
-                    <td class="cf-fw-bold">{{ org.name }}</td>
-                    <td>{{ org.users_count }}</td>
-                    <td>{{ org.accounts_count }}</td>
-                    <td>{{ org.projects_count }}</td>
-                    <td>{{ org.transactions_count }}</td>
-                    <td class="cf-text-end cf-pe-4">
+                    <td class="cf-ps-4 col-date cf-text-muted">{{ org.id }}</td>
+                    <td class="cf-fw-bold col-desc">{{ org.name }}</td>
+                    <td class="col-status">{{ org.users_count }}</td>
+                    <td class="col-status">{{ org.accounts_count }}</td>
+                    <td class="col-status">{{ org.projects_count }}</td>
+                    <td class="col-status">{{ org.transactions_count }}</td>
+                    <td class="cf-text-end cf-pe-4 col-actions">
                         <div class="cf-btn-group">
                             <button type="button" class="cf-btn cf-btn--sm cf-btn--outline" title="Editar" onclick="editOrg({{ org.id }}, '{{ org.name|escapejs }}')">
                                 <i class="fa-solid fa-pencil"></i>

@@ -140,6 +140,7 @@ def test_crear_cuenta_bs_registra_equivalente_usd(client):
         'rif': 'J-12345678-9',
         'account_number': '01021234567890123456',
         'holder': 'Titular de Prueba',
+        'name': 'Cuenta de Prueba BS',
         'initial_balance': '36500.00',
         'daily_rate': '36.5000',
     }, follow=True)
@@ -172,6 +173,7 @@ def test_usuario_normal_no_crea_cuenta_con_banco_invalido(client, capsys, settin
         'rif': 'J-12345678-9',
         'account_number': '01021234567890123456',
         'holder': 'Titular de Prueba',
+        'name': 'Cuenta de Prueba Invalida',
         'initial_balance': '100.00',
         'daily_rate': '36.5000',
     }, follow=True)

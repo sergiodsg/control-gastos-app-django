@@ -10,7 +10,12 @@
 {% block content %}
 <div class="cf-page-header">
     <div>
-        <h2 class="cf-page-title"><i class="fa-solid fa-wallet"></i> {{ account.name }}</h2>
+        <h2 class="cf-page-title">
+            <i class="fa-solid fa-wallet"></i> {{ account.name }}
+            <span class="cf-badge cf-badge--{% if account.currency == 'USD' %}info{% else %}success{% endif %} cf-ms-2" style="font-size: 0.65rem; vertical-align: middle;">
+                {% if account.currency == 'USD' %}Cuenta en Dólares{% else %}Cuenta en Bolívares{% endif %}
+            </span>
+        </h2>
         <nav class="cf-breadcrumb" aria-label="breadcrumb">
             <span><a href="{% url 'home_organizacion' %}">Inicio</a></span>
             <span class="cf-breadcrumb__sep"><a href="{% url 'lista_cuentas' %}">Mis Cuentas</a></span>
@@ -73,17 +78,68 @@
     </div>
 </div>
 
+<div class="cf-filter-bar">
+    <form method="get" class="cf-filter-form">
+        <!-- 1. Búsqueda -->
+        <div class="cf-form-group cf-form-group--search">
+            <label class="cf-stat-label">Buscar:</label>
+            <div class="cf-input-icon-wrapper">
+                <i class="fa-solid fa-magnifying-glass cf-icon"></i>
+                <input type="text" name="search" class="cf-input cf-input--sm dynamic-search" placeholder="Ref, desc, cat, monto..." value="{{ search }}">
+            </div>
+        </div>
+
+        <!-- 2. Categoría -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Categoría:</label>
+            <select name="category" class="cf-select cf-input--sm dynamic-search">
+                <option value="">Todas las categorías</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 3. Período -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Período:</label>
+            <select name="filter_type" class="cf-select cf-input--sm dynamic-search" id="filter_type_select">
+                {% for value, label in filter_options %}
+                <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 4. Rango -->
+        <div class="cf-form-group cf-form-group--date">
+            <label class="cf-stat-label">Desde:</label>
+            <input type="date" name="date_from" class="cf-input cf-input--sm dynamic-search" value="{{ date_from }}">
+        </div>
+        <div class="cf-form-group cf-form-group--date">
+            <label class="cf-stat-label">Hasta:</label>
+            <input type="date" name="date_to" class="cf-input cf-input--sm dynamic-search" value="{{ date_to }}">
+        </div>
+
+        <!-- 5. Limpiar -->
+        <div class="cf-filter-actions">
+            <a href="{% url 'detalle_cuenta' account.id %}" class="cf-btn cf-btn--outline-secondary cf-btn--sm" title="Limpiar filtros">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
 <div id="transactions-container">
     <div class="cf-card">
         <div class="cf-card__header">
             <h5 class="cf-card__title">Historial de Transacciones</h5>
         </div>
         <div class="cf-table-wrap">
-            <table class="cf-table">
+            <table class="cf-table cf-table--resizable">
                 <thead>
                     <tr>
                         <th class="cf-ps-4">
-                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
                                 Fecha
                                 {% if sort == 'asc' %}
                                 <i class="fa-solid fa-sort-up"></i>
@@ -104,19 +160,19 @@
                 <tbody>
                     {% for trans in page_obj %}
                     <tr>
-                        <td class="cf-ps-4">{{ trans.date|date:"d/m/Y" }}</td>
-                        <td><div class="cf-text-truncate" style="max-width: 250px;" title="{{ trans.description }}">{{ trans.description }}</div></td>
-                        <td class="cf-fw-bold {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
-                        <td class="cf-text-muted cf-fs-sm">{{ trans.amount_bs|floatformat:2 }} Bs.</td>
-                        <td>{{ trans.daily_rate|floatformat:4 }}</td>
-                        <td>
+                        <td class="cf-ps-4 col-date">{{ trans.date|date:"d/m/Y" }}</td>
+                        <td class="col-desc" title="{{ trans.description }}">{{ trans.description }}</td>
+                        <td class="cf-fw-bold col-amount {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
+                        <td class="cf-text-muted cf-fs-sm col-amount">{{ trans.amount_bs|floatformat:2 }} Bs.</td>
+                        <td class="col-rate">{{ trans.daily_rate|floatformat:4 }}</td>
+                        <td class="col-category">
                             {% if trans.category %}
                             <span class="cf-badge cf-badge--pill" style="background-color: {{ trans.category.color }}; color: #fff; border: none;">{{ trans.category.name }}</span>
                             {% else %}
                             <span class="cf-text-muted cf-fs-sm">Sin categoría</span>
                             {% endif %}
                         </td>
-                        <td>
+                        <td class="col-status">
                             {% if trans.status == 'completado' %}
                             <span class="cf-badge cf-badge--success">Completado</span>
                             {% elif trans.status == 'pendiente' %}
@@ -144,17 +200,17 @@
     <nav class="cf-mt-4">
         <ul class="cf-pagination">
             {% if page_obj.has_previous %}
-            <li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}" class="ajax-link">Anterior</a></li>
+            <li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="ajax-link">Anterior</a></li>
             {% endif %}
             {% for i in page_obj.paginator.page_range %}
             {% if page_obj.number == i %}
-            <li class="is-active"><span>{{ i }}</span></li>
-            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}
-            <li><a href="?page={{ i }}&sort={{ sort }}" class="ajax-link">{{ i }}</a></li>
+            <li><span class="active">{{ i }}</span></li>
+            {% else %}
+            <li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="ajax-link">{{ i }}</a></li>
             {% endif %}
             {% endfor %}
             {% if page_obj.has_next %}
-            <li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}" class="ajax-link">Siguiente</a></li>
+            <li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="ajax-link">Siguiente</a></li>
             {% endif %}
         </ul>
     </nav>

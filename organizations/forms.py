@@ -117,6 +117,11 @@ class AccountForm(forms.ModelForm):
         label='Titular',
         widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nombre del titular'}),
     )
+    name = forms.CharField(
+        label='Nombre de la cuenta',
+        required=True,
+        widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Ej. Cuenta Principal, Nómina, etc.'}),
+    )
     initial_balance = forms.DecimalField(
         max_digits=20,
         decimal_places=2,
@@ -134,7 +139,7 @@ class AccountForm(forms.ModelForm):
 
     class Meta:
         model = Account
-        fields = ['currency', 'bank_code', 'bank_name', 'rif', 'account_number', 'holder']
+        fields = ['currency', 'bank_code', 'bank_name', 'rif', 'account_number', 'holder', 'name']
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -167,11 +172,6 @@ class AccountForm(forms.ModelForm):
         if balance < 0:
             self.add_error('initial_balance', 'El saldo inicial no puede ser negativo.')
 
-        cleaned_data['name'] = build_account_display_name(
-            cleaned_data.get('bank_name', ''),
-            cleaned_data.get('account_number', ''),
-            currency,
-        )
         return cleaned_data
 
 class ProjectForm(forms.ModelForm):

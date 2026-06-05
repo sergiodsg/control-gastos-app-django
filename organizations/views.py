@@ -254,6 +254,7 @@ def lista_transacciones(request):
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     category_id = request.GET.get('category')
+    search_query = request.GET.get('search', '')
 
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
@@ -262,12 +263,33 @@ def lista_transacciones(request):
     
     transactions_list = Transaction.objects.filter(organization=org)
     
+    if search_query:
+        transactions_list = transactions_list.filter(
+            models.Q(description__icontains=search_query) |
+            models.Q(reference_number__icontains=search_query) |
+            models.Q(notes__icontains=search_query) |
+            models.Q(category__name__icontains=search_query) |
+            models.Q(account__name__icontains=search_query) |
+            models.Q(project__name__icontains=search_query) |
+            models.Q(valuation__name__icontains=search_query) |
+            models.Q(status__icontains=search_query) |
+            models.Q(amount_bs__icontains=search_query) |
+            models.Q(amount_usd__icontains=search_query) |
+            models.Q(daily_rate__icontains=search_query)
+        )
+
     if category_id:
         transactions_list = transactions_list.filter(category_id=category_id)
     
     today = timezone.localdate()
     
-    if filter_type != 'all' and filter_type != 'custom':
+    # Si hay fechas explícitas, ignoramos el filter_type (periodo)
+    if date_from or date_to:
+        if date_from:
+            transactions_list = transactions_list.filter(date__gte=date_from)
+        if date_to:
+            transactions_list = transactions_list.filter(date__lte=date_to)
+    elif filter_type != 'all' and filter_type != 'custom':
         if filter_type == 'day':
             start_date = today
         elif filter_type == 'week':
@@ -283,6 +305,7 @@ def lista_transacciones(request):
         elif filter_type == 'year':
             start_date = today - timedelta(days=365)
         transactions_list = transactions_list.filter(date__gte=start_date)
+    
     sort = request.GET.get('sort', 'desc')
     if sort == 'asc':
         transactions_list = transactions_list.order_by('date', 'id')
@@ -325,6 +348,7 @@ def lista_transacciones(request):
         'filter_type': filter_type,
         'date_from': date_from,
         'date_to': date_to,
+        'search': search_query,
         'sort': sort,
         'totals': {
             'balance_usd': totals['balance_usd'] or 0,
@@ -833,14 +857,7 @@ def guardar_cuenta(request, acc_id=None):
         if form.is_valid():
             account = form.save(commit=False)
             account.organization = org
-            if instance:
-                account.name = build_account_display_name(
-                    account.bank_name,
-                    account.account_number,
-                    account.currency,
-                )
-            else:
-                account.name = form.cleaned_data['name']
+            # account.name is already handled by the form.save() or cleaned_data
             account.save()
 
             if not instance:
@@ -912,8 +929,61 @@ def detalle_cuenta(request, acc_id):
     org = get_object_or_404(Organization, id=org_id)
     account = get_object_or_404(Account, id=acc_id, organization=org)
     
-    sort = request.GET.get('sort', 'desc')
+    # --- Lógica de Filtrado ---
+    filter_type = request.GET.get('filter_type', 'all')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    category_id = request.GET.get('category')
+    search_query = request.GET.get('search', '')
+
+    if date_from == 'None': date_from = None
+    if date_to == 'None': date_to = None
+    if category_id == 'None' or category_id == '': category_id = None
+    
     transactions_list = Transaction.objects.filter(account=account)
+    
+    if search_query:
+        transactions_list = transactions_list.filter(
+            models.Q(description__icontains=search_query) |
+            models.Q(reference_number__icontains=search_query) |
+            models.Q(notes__icontains=search_query) |
+            models.Q(category__name__icontains=search_query) |
+            models.Q(project__name__icontains=search_query) |
+            models.Q(valuation__name__icontains=search_query) |
+            models.Q(status__icontains=search_query) |
+            models.Q(amount_bs__icontains=search_query) |
+            models.Q(amount_usd__icontains=search_query) |
+            models.Q(daily_rate__icontains=search_query)
+        )
+
+    if category_id:
+        transactions_list = transactions_list.filter(category_id=category_id)
+
+    today = timezone.localdate()
+    
+    if date_from or date_to:
+        if date_from:
+            transactions_list = transactions_list.filter(date__gte=date_from)
+        if date_to:
+            transactions_list = transactions_list.filter(date__lte=date_to)
+    elif filter_type != 'all' and filter_type != 'custom':
+        if filter_type == 'day':
+            start_date = today
+        elif filter_type == 'week':
+            start_date = today - timedelta(days=7)
+        elif filter_type == '15days':
+            start_date = today - timedelta(days=15)
+        elif filter_type == 'month':
+            start_date = today - timedelta(days=30)
+        elif filter_type == 'quarter':
+            start_date = today - timedelta(days=90)
+        elif filter_type == '6months':
+            start_date = today - timedelta(days=180)
+        elif filter_type == 'year':
+            start_date = today - timedelta(days=365)
+        transactions_list = transactions_list.filter(date__gte=start_date)
+
+    sort = request.GET.get('sort', 'desc')
     if sort == 'asc':
         transactions_list = transactions_list.order_by('date', 'id')
     else:
@@ -932,10 +1002,31 @@ def detalle_cuenta(request, acc_id):
     page_number = request.GET.get('page')
     page_obj = paginator.get_page(page_number)
     
+    categories = Category.objects.filter(organization=org)
+    
+    filter_options = [
+        ('all', 'Todo el tiempo'),
+        ('day', 'Hoy'),
+        ('week', 'Esta semana'),
+        ('15days', 'Últimos 15 días'),
+        ('month', 'Último mes'),
+        ('quarter', 'Último trimestre'),
+        ('6months', 'Últimos 6 meses'),
+        ('year', 'Último año'),
+        ('custom', 'Personalizado'),
+    ]
+
     return render(request, 'organizations/detalle_cuenta.html', {
         'account': account,
         'page_obj': page_obj,
         'sort': sort,
+        'search': search_query,
+        'filter_type': filter_type,
+        'date_from': date_from,
+        'date_to': date_to,
+        'categories': categories,
+        'selected_category': category_id,
+        'filter_options': filter_options,
         'totals': {
             'balance_usd': totals['balance_usd'] or 0,
             'balance_bs': totals['balance_bs'] or 0,
@@ -1073,6 +1164,7 @@ def detalle_proyecto(request, proj_id):
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     selected_org_id = request.GET.get('organization')
+    search_query = request.GET.get('search', '')
 
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
@@ -1081,11 +1173,32 @@ def detalle_proyecto(request, proj_id):
     # Ver TODAS las transacciones del proyecto (de cualquier organización con acceso)
     transactions_list = Transaction.objects.filter(project=project)
 
+    if search_query:
+        transactions_list = transactions_list.filter(
+            models.Q(description__icontains=search_query) |
+            models.Q(reference_number__icontains=search_query) |
+            models.Q(notes__icontains=search_query) |
+            models.Q(category__name__icontains=search_query) |
+            models.Q(account__name__icontains=search_query) |
+            models.Q(project__name__icontains=search_query) |
+            models.Q(valuation__name__icontains=search_query) |
+            models.Q(status__icontains=search_query) |
+            models.Q(amount_bs__icontains=search_query) |
+            models.Q(amount_usd__icontains=search_query) |
+            models.Q(daily_rate__icontains=search_query)
+        )
+
     if selected_org_id:
         transactions_list = transactions_list.filter(organization_id=selected_org_id)
 
     today = timezone.localdate()
-    if filter_type != 'all' and filter_type != 'custom':
+    
+    if date_from or date_to:
+        if date_from:
+            transactions_list = transactions_list.filter(date__gte=date_from)
+        if date_to:
+            transactions_list = transactions_list.filter(date__lte=date_to)
+    elif filter_type != 'all' and filter_type != 'custom':
         if filter_type == 'day':
             start_date = today
         elif filter_type == 'week':
@@ -1101,8 +1214,6 @@ def detalle_proyecto(request, proj_id):
         elif filter_type == 'year':
             start_date = today - timedelta(days=365)
         transactions_list = transactions_list.filter(date__gte=start_date)
-    elif filter_type == 'custom' and date_from and date_to:
-        transactions_list = transactions_list.filter(date__range=[date_from, date_to])
 
     sort = request.GET.get('sort', 'desc')
     if sort == 'asc':
@@ -1183,6 +1294,7 @@ def detalle_proyecto(request, proj_id):
         'filter_type': filter_type,
         'date_from': date_from,
         'date_to': date_to,
+        'search': search_query,
         'selected_org_id': selected_org_id,
         'filter_options': filter_options,
         'chart_data': chart_data,

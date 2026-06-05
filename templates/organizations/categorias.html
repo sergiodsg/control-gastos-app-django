@@ -28,7 +28,7 @@
     <div class="cf-card category-card" style="border-left-color: {{ cat.color }};">
         <div class="cf-card__body">
             <div class="cf-flex cf-justify-between cf-items-start cf-mb-2">
-                <h5 class="cf-card__title">{{ cat.name }}</h5>
+                <h5 class="cf-card__title cf-text-truncate" title="{{ cat.name }}">{{ cat.name }}</h5>
                 <span class="cf-badge cf-badge--dot" style="background-color: {{ cat.color }};">&nbsp;</span>
             </div>
             <p class="cf-text-muted cf-fs-sm">{{ cat.description|default:"Sin descripción" }}</p>
