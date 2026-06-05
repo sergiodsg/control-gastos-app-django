@@ -13,6 +13,11 @@ docker compose -f docker-compose.localdb.yml up
 
 pytest
 
+--- Merge main <-> dev ---
+CashFlow/settings.py y CashFlow/db.py están en .gitignore y .gitattributes (merge=ours).
+En dev: git merge main  → conserva la config de dev (si es fast-forward, revisar esos dos archivos).
+En main: git merge dev  → conserva la config de producción en main.
+
 --- Producción (Namecheap / LiteSpeed + Passenger) ---
 Variables de entorno en cPanel o .env del servidor:
   DJANGO_ENV=production

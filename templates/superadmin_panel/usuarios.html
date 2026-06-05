@@ -23,35 +23,35 @@
 
 <div class="cf-card">
     <div class="cf-table-wrap">
-        <table class="cf-table">
+        <table class="cf-table cf-table--resizable">
             <thead>
                 <tr>
-                    <th class="cf-ps-4">ID</th>
-                    <th>Usuario</th>
-                    <th>Nombre</th>
-                    <th>Email</th>
-                    <th>Organizaciones</th>
-                    <th>Estado</th>
-                    <th>Rol</th>
-                    <th class="cf-text-end cf-pe-4">Acciones</th>
+                    <th class="cf-ps-4 col-date">ID</th>
+                    <th class="col-desc">Usuario</th>
+                    <th class="col-desc">Nombre</th>
+                    <th class="col-desc">Email</th>
+                    <th class="col-org">Organizaciones</th>
+                    <th class="col-status">Estado</th>
+                    <th class="col-status">Rol</th>
+                    <th class="cf-text-end cf-pe-4 col-actions">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for u in users %}
                 <tr>
-                    <td class="cf-ps-4 cf-text-muted">{{ u.id }}</td>
-                    <td class="cf-fw-bold">{{ u.username }}</td>
-                    <td>{{ u.first_name }} {{ u.last_name }}</td>
-                    <td>{{ u.email|default:"—" }}</td>
-                    <td>{{ u.orgs_count }}</td>
-                    <td>
+                    <td class="cf-ps-4 col-date cf-text-muted">{{ u.id }}</td>
+                    <td class="cf-fw-bold col-desc">{{ u.username }}</td>
+                    <td class="col-desc">{{ u.first_name }} {{ u.last_name }}</td>
+                    <td class="col-desc">{{ u.email|default:"—" }}</td>
+                    <td class="col-org">{{ u.orgs_count }}</td>
+                    <td class="col-status">
                         {% if u.is_active %}
                         <span class="cf-badge cf-badge--success">Activo</span>
                         {% else %}
                         <span class="cf-badge">Inactivo</span>
                         {% endif %}
                     </td>
-                    <td>
+                    <td class="col-status">
                         {% if u.is_superuser %}
                         <span class="cf-badge cf-badge--primary">Superadmin</span>
                         {% elif u.is_staff %}
@@ -60,7 +60,7 @@
                         <span class="cf-text-muted">Usuario</span>
                         {% endif %}
                     </td>
-                    <td class="cf-text-end cf-pe-4">
+                    <td class="cf-text-end cf-pe-4 col-actions">
                         <div class="cf-btn-group">
                             <button type="button" class="cf-btn cf-btn--sm cf-btn--outline" title="Editar"
                                 onclick="editUser({{ u.id }}, '{{ u.username|escapejs }}', '{{ u.first_name|escapejs }}', '{{ u.last_name|escapejs }}', '{{ u.email|escapejs }}', {{ u.is_active|yesno:'true,false' }}, {{ u.is_staff|yesno:'true,false' }}, {{ u.is_superuser|yesno:'true,false' }})">

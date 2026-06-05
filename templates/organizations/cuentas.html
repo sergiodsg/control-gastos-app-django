@@ -29,7 +29,9 @@
         <div class="cf-card__body">
             <div class="cf-flex cf-justify-between cf-items-start cf-mb-3">
                 <div>
-                    <span class="cf-badge cf-badge--{% if acc.currency == 'USD' %}info{% else %}success{% endif %} cf-mb-2">{{ acc.currency }}</span>
+                    <span class="cf-badge cf-badge--{% if acc.currency == 'USD' %}info{% else %}success{% endif %} cf-mb-2">
+                        {% if acc.currency == 'USD' %}Cuenta en Dólares{% else %}Cuenta en Bolívares{% endif %}
+                    </span>
                     <h5 class="cf-card__title">{{ acc.name }}</h5>
                     <p class="cf-text-muted cf-fs-sm cf-mb-0">{{ acc.bank_name }}</p>
                 </div>
@@ -93,9 +95,13 @@
                         <label class="cf-label">Número de cuenta</label>
                         {{ form.account_number }}
                     </div>
-                    <div class="cf-form-group cf-grid-col-span-2">
+                    <div class="cf-form-group">
                         <label class="cf-label">Titular</label>
                         {{ form.holder }}
+                    </div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Nombre de la cuenta</label>
+                        {{ form.name }}
                     </div>
                 </div>
                 <div id="initialAmountFields">

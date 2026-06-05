@@ -249,14 +249,18 @@
    BADGES
    ============================================ */
 .cf-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
+    display: inline-block;
+    max-width: 100%;
     padding: 0.3rem 0.85rem;
     border-radius: var(--radius-pill);
     font-size: 0.78rem;
     font-weight: 600;
     line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+    vertical-align: middle;
+    text-align: center;
 }
 
 .cf-badge--success {
@@ -441,6 +445,28 @@
     margin-bottom: 1rem;
 }
 
+.cf-input-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.cf-input-icon-wrapper .cf-icon {
+    position: absolute;
+    left: 0.85rem;
+    color: var(--text-subtle);
+    pointer-events: none;
+    transition: var(--transition);
+}
+
+.cf-input-icon-wrapper .cf-input {
+    padding-left: 2.5rem;
+}
+
+.cf-input-icon-wrapper .cf-input:focus + .cf-icon {
+    color: var(--color-morado);
+}
+
 .cf-form-row {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -530,6 +556,75 @@
 .table {
     width: 100%;
     border-collapse: collapse;
+}
+
+.cf-table--resizable {
+    table-layout: fixed;
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.cf-table--resizable th,
+.cf-table--resizable td {
+    white-space: nowrap;
+    position: relative;
+    padding: 0.75rem 0.5rem;
+}
+
+/* Ellipsis only for data columns, NOT for actions */
+.cf-table--resizable th:not(.col-actions),
+.cf-table--resizable td:not(.col-actions) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Refactored Percentage-Based Layout - Optimized for Balance */
+.cf-table--resizable .col-date     { width: 14%; min-width: 110px; } /* Increased */
+.cf-table--resizable .col-desc     { width: 16%; min-width: 150px; } /* Decreased */
+.cf-table--resizable .col-amount   { width: 12%; min-width: 110px; }
+.cf-table--resizable .col-rate     { width: 8%;  min-width: 80px; }
+.cf-table--resizable .col-category { width: 12%; min-width: 110px; }
+.cf-table--resizable .col-status   { width: 10%; min-width: 90px; }
+.cf-table--resizable .col-org      { width: 12%; min-width: 130px; }
+.cf-table--resizable .col-actions  { width: 16%; min-width: 180px; } /* Increased to prevent cut-off */
+
+/* Correctly align the actions header and buttons */
+.cf-table--resizable th.col-actions {
+    text-align: center;
+}
+
+.cf-table--resizable td.col-actions {
+    overflow: visible !important; /* Critical to prevent 'white wall' */
+    text-align: center;
+}
+
+.cf-table--resizable .col-actions .cf-btn-group {
+    gap: 0.2rem;
+    justify-content: center;
+    width: 100%;
+}
+
+.cf-table__resizer {
+    position: absolute;
+    top: 20%;
+    right: 0;
+    width: 10px;
+    cursor: col-resize;
+    user-select: none;
+    height: 60%;
+    z-index: 10;
+    border-right: 2px solid var(--border-subtle); /* Always visible subtle line */
+    transition: all 0.2s ease;
+}
+
+.cf-table--resizable th:hover .cf-table__resizer {
+    border-right-color: var(--color-gris-claro);
+}
+
+.cf-table__resizer:hover,
+.cf-table__resizer.is-resizing {
+    border-right-color: var(--color-morado);
+    border-right-width: 4px;
 }
 
 .cf-table th,
@@ -739,12 +834,58 @@
     background: var(--bg-surface);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-lg);
-    padding: 1rem 1.25rem;
+    padding: 1.25rem;
     margin-bottom: 1.25rem;
 }
 
-.cf-filter-bar .cf-form-row {
-    align-items: end;
+.cf-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.cf-filter-form .cf-form-group {
+    margin-bottom: 0;
+    flex: 1 1 160px;
+}
+
+.cf-filter-form .cf-form-group--search {
+    flex: 2 1 240px;
+}
+
+.cf-filter-form .cf-form-group--date {
+    flex: 1 1 140px;
+}
+
+.cf-filter-form .cf-filter-actions {
+    flex: 0 0 auto;
+}
+
+.cf-filter-form .cf-input,
+.cf-filter-form .cf-select,
+.cf-filter-form .cf-btn {
+    height: 38px;
+    box-sizing: border-box;
+}
+
+.cf-filter-form .cf-filter-actions .cf-btn {
+    padding: 0 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 768px) {
+    .cf-filter-form .cf-form-group {
+        flex: 1 1 100%;
+    }
+    .cf-filter-form .cf-filter-actions {
+        flex: 1 1 100%;
+    }
+    .cf-filter-form .cf-filter-actions .cf-btn {
+        width: 100%;
+    }
 }
 
 /* KPI stat */
