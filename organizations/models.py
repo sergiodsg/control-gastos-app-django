@@ -135,8 +135,11 @@ class Transaction(models.Model):
     amount_usd = models.DecimalField(max_digits=20, decimal_places=2, verbose_name="Monto en Dólares")
     daily_rate = models.DecimalField(max_digits=20, decimal_places=4, verbose_name="Tasa del día")
     
+    bank_fee_bs = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name="Comisión bancaria (Bs)")
+    bank_fee_usd = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name="Comisión bancaria ($)")
+    
     real_dollars = models.DecimalField(max_digits=20, decimal_places=2, blank=True, null=True, verbose_name="Dólares reales")
-    real_dollar_rate = models.DecimalField(max_digits=20, decimal_places=4, blank=True, null=True, verbose_name="Tasa dólar real")
+    bank_fee_real_usd = models.DecimalField(max_digits=20, decimal_places=2, default=0, verbose_name="Comisión dólares reales ($)")
 
     class Meta:
         verbose_name = "Transacción"

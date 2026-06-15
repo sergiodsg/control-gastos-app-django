@@ -12,7 +12,8 @@ class TransactionForm(forms.ModelForm):
         fields = [
             'date', 'organization', 'account', 'reference_number', 'description', 
             'notes', 'category', 'project', 'valuation', 
-            'status', 'amount_bs', 'amount_usd', 'daily_rate'
+            'status', 'amount_bs', 'amount_usd', 'daily_rate',
+            'bank_fee_bs', 'bank_fee_usd', 'real_dollars', 'bank_fee_real_usd'
         ]
         widgets = {
             'date': forms.DateInput(attrs={'class': 'cf-input', 'type': 'date', 'required': 'required'}),
@@ -28,16 +29,61 @@ class TransactionForm(forms.ModelForm):
             'amount_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number', 'required': 'required'}),
             'amount_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number', 'required': 'required'}),
             'daily_rate': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.0001', 'type': 'number', 'required': 'required'}),
+            'bank_fee_bs': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
+            'bank_fee_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
+            'real_dollars': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
+            'bank_fee_real_usd': forms.NumberInput(attrs={'class': 'cf-input', 'step': '0.01', 'type': 'number'}),
         }
 
     def clean(self):
         cleaned_data = super().clean()
-        amount_bs = cleaned_data.get('amount_bs')
-        amount_usd = cleaned_data.get('amount_usd')
-        daily_rate = cleaned_data.get('daily_rate') or 1
-        amount_bs, amount_usd = apply_dual_currency_amounts(amount_bs, amount_usd, daily_rate)
-        cleaned_data['amount_bs'] = amount_bs
-        cleaned_data['amount_usd'] = amount_usd
+        account = cleaned_data.get('account')
+        if not account:
+            return cleaned_data
+
+        real_dollars = cleaned_data.get('real_dollars') or 0
+        bank_fee_real_usd = cleaned_data.get('bank_fee_real_usd') or 0
+        
+        # Si la cuenta es en dólares, forzar el uso de real_dollars
+        if account.currency == Account.CURRENCY_USD:
+            amount_usd_bcv = cleaned_data.get('amount_usd') or 0
+            
+            # Si el usuario mandó el monto en el campo BCV por error, lo movemos a real_dollars
+            if real_dollars == 0 and amount_usd_bcv != 0:
+                real_dollars = amount_usd_bcv
+                cleaned_data['real_dollars'] = real_dollars
+
+            if real_dollars == 0:
+                raise ValidationError("Una cuenta en dólares solo puede recibir fondos en Dólares Reales.")
+
+            cleaned_data['amount_bs'] = 0
+            cleaned_data['amount_usd'] = 0
+            cleaned_data['bank_fee_bs'] = 0
+            cleaned_data['bank_fee_usd'] = 0
+            # Mantenemos bank_fee_real_usd tal cual viene del form
+        
+        else:
+            # CUENTA EN BOLÍVARES: Solo BCV
+            if real_dollars != 0 or bank_fee_real_usd != 0:
+                raise ValidationError("Una cuenta en bolívares solo puede recibir fondos mediante BCV (Bolívares o Dólares BCV).")
+            
+            cleaned_data['real_dollars'] = 0
+            cleaned_data['bank_fee_real_usd'] = 0
+            
+            amount_bs = cleaned_data.get('amount_bs') or 0
+            amount_usd = cleaned_data.get('amount_usd') or 0
+            daily_rate = cleaned_data.get('daily_rate') or 1
+            amount_bs, amount_usd = apply_dual_currency_amounts(amount_bs, amount_usd, daily_rate)
+            cleaned_data['amount_bs'] = amount_bs
+            cleaned_data['amount_usd'] = amount_usd
+
+            # Comisión bancaria BCV
+            bank_fee_bs = cleaned_data.get('bank_fee_bs') or 0
+            bank_fee_usd = cleaned_data.get('bank_fee_usd') or 0
+            bank_fee_bs, bank_fee_usd = apply_dual_currency_amounts(bank_fee_bs, bank_fee_usd, daily_rate)
+            cleaned_data['bank_fee_bs'] = bank_fee_bs
+            cleaned_data['bank_fee_usd'] = bank_fee_usd
+
         return cleaned_data
 
     def __init__(self, *args, **kwargs):

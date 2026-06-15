@@ -146,6 +146,11 @@
     </div>
 
     <script src="{% static 'js/Base/dropdown.js' %}"></script>
+    <script>
+        window.userRole = "{{ user_role }}";
+        window.userIsViewer = {% if user_is_viewer %}true{% else %}false{% endif %};
+        window.userIsEditor = {% if user_is_editor %}true{% else %}false{% endif %};
+    </script>
     <script src="{% static 'js/Base/alert.js' %}"></script>
     <script src="{% static 'js/Base/modal.js' %}"></script>
     <script src="{% static 'js/Base/table-resizable.js' %}"></script>

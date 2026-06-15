@@ -5,52 +5,115 @@
     </div>
     <div class="cf-form-group">
         <span class="cf-stat-label">Descripción</span>
-        <div>{{ transaction.description }}</div>
+        <div class="cf-fw-medium">{{ transaction.description }}</div>
     </div>
-    <div class="cf-form-row">
-        <div class="cf-form-group">
-            <span class="cf-stat-label">Monto (USD)</span>
-            <div class="cf-fw-bold {% if transaction.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ transaction.amount_usd }} $</div>
+
+    {% if transaction.real_dollars %}
+        {# VISTA PARA DÓLARES REALES #}
+        <div class="cf-card cf-p-4 cf-mb-4" style="background: {% if transaction.real_dollars < 0 %}var(--color-danger-light, #fff5f5){% else %}var(--color-success-light, #f0fff4){% endif %}; border: 1px solid {% if transaction.real_dollars < 0 %}var(--color-danger){% else %}var(--color-success){% endif %};">
+            <div class="cf-flex cf-justify-between cf-items-center">
+                <div>
+                    <span class="cf-stat-label" style="color: var(--color-text-muted);">Monto (Dólares Reales)</span>
+                    <div class="cf-stat-value {% if transaction.real_dollars < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}" style="font-size: 1.5rem;">
+                        {{ transaction.real_dollars|floatformat:2 }} $
+                    </div>
+                </div>
+                <div class="cf-icon-box {% if transaction.real_dollars < 0 %}cf-icon-box--danger{% else %}cf-icon-box--success{% endif %}">
+                    <i class="fa-solid {% if transaction.real_dollars < 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                </div>
+            </div>
         </div>
-        <div class="cf-form-group">
-            <span class="cf-stat-label">Monto (BS)</span>
-            <div class="cf-fw-bold">{{ transaction.amount_bs }} Bs.</div>
+    {% else %}
+        {# VISTA PARA BCV #}
+        <div class="cf-card cf-p-4 cf-mb-4" style="background: {% if transaction.amount_usd < 0 %}var(--color-danger-light, #fff5f5){% else %}var(--color-success-light, #f0fff4){% endif %}; border: 1px solid {% if transaction.amount_usd < 0 %}var(--color-danger){% else %}var(--color-success){% endif %};">
+            <div class="cf-flex cf-justify-between cf-items-center">
+                <div>
+                    <span class="cf-stat-label" style="color: var(--color-text-muted);">Monto (BCV)</span>
+                    <div class="cf-stat-value {% if transaction.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}" style="font-size: 1.5rem;">
+                        {{ transaction.amount_usd|floatformat:2 }} $
+                    </div>
+                    <div class="cf-text-muted cf-fs-sm">{{ transaction.amount_bs|floatformat:2 }} Bs.</div>
+                </div>
+                <div class="cf-icon-box {% if transaction.amount_usd < 0 %}cf-icon-box--danger{% else %}cf-icon-box--success{% endif %}">
+                    <i class="fa-solid {% if transaction.amount_usd < 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
+                </div>
+            </div>
         </div>
-    </div>
+    {% endif %}
+
     <div class="cf-form-row">
+        {% if not transaction.real_dollars %}
         <div class="cf-form-group">
             <span class="cf-stat-label">Tasa del día</span>
-            <div>{{ transaction.daily_rate }}</div>
+            <div class="cf-fw-medium">{{ transaction.daily_rate|floatformat:4 }}</div>
         </div>
+        {% endif %}
         <div class="cf-form-group">
             <span class="cf-stat-label">Referencia</span>
-            <div>{{ transaction.reference_number|default:"-" }}</div>
+            <div class="cf-fw-medium">{{ transaction.reference_number|default:"-" }}</div>
+        </div>
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Cuenta</span>
+            <div class="cf-fw-medium">{{ transaction.account.name }}</div>
         </div>
     </div>
+
+    {% if transaction.bank_fee_bs != 0 or transaction.bank_fee_usd != 0 or transaction.bank_fee_real_usd != 0 %}
+    <div class="cf-card cf-p-3 cf-mb-4" style="background: var(--color-light); border: 1px dashed var(--color-border);">
+        <span class="cf-stat-label cf-mb-2 cf-d-block">Comisión Bancaria</span>
+        <div class="cf-flex cf-gap-4">
+            {% if transaction.bank_fee_real_usd != 0 %}
+            <div>
+                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_real_usd|floatformat:2 }} $</div>
+                <span class="cf-fs-xs cf-text-muted">Dólares Reales</span>
+            </div>
+            {% else %}
+            <div>
+                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_usd|floatformat:2 }} $</div>
+                <span class="cf-fs-xs cf-text-muted">Dólares (BCV)</span>
+            </div>
+            <div>
+                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_bs|floatformat:2 }} Bs.</div>
+                <span class="cf-fs-xs cf-text-muted">Bolívares (BCV)</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
     <div class="cf-form-row">
         <div class="cf-form-group">
             <span class="cf-stat-label">Categoría</span>
             <div>
                 {% if transaction.category %}
                 <span class="cf-badge cf-badge--pill" style="background-color: {{ transaction.category.color }}; color: #fff; border: none;">{{ transaction.category.name }}</span>
-                {% else %}-{% endif %}
+                {% else %}<span class="cf-text-muted">Sin categoría</span>{% endif %}
             </div>
         </div>
         <div class="cf-form-group">
             <span class="cf-stat-label">Estado</span>
-            <div>{{ transaction.get_status_display }}</div>
+            <div>
+                {% if transaction.status == 'completado' %}
+                <span class="cf-badge cf-badge--success">Completado</span>
+                {% elif transaction.status == 'pendiente' %}
+                <span class="cf-badge cf-badge--info">Pendiente</span>
+                {% else %}
+                <span class="cf-badge cf-badge--danger">Cancelado</span>
+                {% endif %}
+            </div>
         </div>
     </div>
     {% if transaction.project %}
     <div class="cf-form-group">
         <span class="cf-stat-label">Proyecto</span>
-        <div>{{ transaction.project.name }}</div>
+        <div class="cf-fw-medium">{{ transaction.project.name }}</div>
     </div>
     {% endif %}
     {% if transaction.notes %}
     <div class="cf-form-group cf-mb-0">
         <span class="cf-stat-label">Notas</span>
-        <div class="cf-card cf-card--surface cf-p-4 cf-fs-sm">{{ transaction.notes }}</div>
+        <div class="cf-card cf-card--surface cf-p-4 cf-fs-sm" style="background: #f8f9fa;">{{ transaction.notes }}</div>
     </div>
     {% endif %}
 </div>
+

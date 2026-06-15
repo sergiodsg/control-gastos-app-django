@@ -17,9 +17,11 @@
             <span class="cf-breadcrumb__sep cf-breadcrumb__active">Categorías</span>
         </nav>
     </div>
+    {% if not user_is_viewer %}
     <button type="button" class="cf-btn cf-btn--primary" data-cf-modal="categoryModal" onclick="resetForm()">
-        <i class="fa-solid fa-plus"></i> Nueva Categoría
+        <i class="fa-solid fa-plus"></i> Categoría
     </button>
+    {% endif %}
 </div>
 
 {% if categories %}
@@ -34,12 +36,14 @@
             <p class="cf-text-muted cf-fs-sm">{{ cat.description|default:"Sin descripción" }}</p>
         </div>
         <div class="cf-card__footer cf-flex cf-justify-end cf-gap-2">
+            {% if not user_is_viewer %}
             <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editCategory({{ cat.id }}, '{{ cat.name|escapejs }}', '{{ cat.description|default:""|escapejs }}', '{{ cat.color }}')">
                 <i class="fa-solid fa-pencil cf-me-1"></i> Editar
             </button>
             <button class="cf-btn cf-btn--sm cf-btn--outline-danger" onclick="confirmDelete({{ cat.id }})">
                 <i class="fa-solid fa-trash cf-me-1"></i> Eliminar
             </button>
+            {% endif %}
         </div>
     </div>
     {% endfor %}
@@ -79,7 +83,9 @@
             </div>
             <div class="cf-modal__footer">
                 <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button>
+                {% if not user_is_viewer %}
                 <button type="submit" class="cf-btn cf-btn--primary">Guardar</button>
+                {% endif %}
             </div>
         </form>
     </div>
@@ -99,7 +105,9 @@
             <form id="deleteForm" method="post" action="">
                 {% csrf_token %}
                 <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                {% if not user_is_viewer %}
                 <button type="submit" class="cf-btn cf-btn--danger">Eliminar</button>
+                {% endif %}
             </form>
         </div>
     </div>

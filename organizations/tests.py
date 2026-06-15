@@ -58,6 +58,52 @@ class TransactionAccessTest(TestCase):
         session['org_id'] = self.org_a.id
         session.save()
 
+    def test_valuation_visibility_in_project_detail(self):
+        """
+        Verify that valuations are rendered in the project detail view.
+        """
+        from .models import Valuation
+        valuation = Valuation.objects.create(
+            project=self.project_p,
+            name="Valuacion de Prueba",
+            amount_usd=1000,
+            amount_bs=36000,
+            daily_rate=36
+        )
+        
+        url = reverse('detalle_proyecto', kwargs={'proj_id': self.project_p.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Valuacion de Prueba")
+
+    def test_valuation_visibility_for_viewer(self):
+        """
+        Verify that valuations are rendered in the project detail view for viewers.
+        """
+        from .models import Valuation
+        # Change user role to Viewer in their Profile
+        profile = self.user_a.profile
+        profile.edit = 'Viewer'
+        profile.save()
+        
+        valuation = Valuation.objects.create(
+            project=self.project_p,
+            name="Valuacion Viewer",
+            amount_usd=500,
+            amount_bs=18000,
+            daily_rate=36
+        )
+        
+        url = reverse('detalle_proyecto', kwargs={'proj_id': self.project_p.id})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Valuacion Viewer")
+        # Ensure buttons are hidden for viewers
+        self.assertNotContains(response, "Añadir Valuación")
+        self.assertNotContains(response, "Nueva Transacción")
+        # But toggle should be visible
+        self.assertContains(response, "Gestionar Valuaciones")
+
     def test_edit_shared_project_transaction_success(self):
         """
         Verify that editing a transaction from another organization
@@ -75,6 +121,9 @@ class TransactionAccessTest(TestCase):
             'project': self.project_p.id,
             'category': self.category_b.id,
             'status': 'completado',
+            'bank_fee_bs': 0,
+            'bank_fee_usd': 0,
+            'bank_fee_real_usd': 0,
         }
         response = self.client.post(url, data, follow=True)
         self.assertEqual(response.status_code, 200)

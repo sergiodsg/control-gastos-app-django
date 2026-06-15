@@ -48,7 +48,7 @@ const CFModal = (function () {
     function init() {
         document.addEventListener('click', function (e) {
             const trigger = e.target.closest('[data-cf-modal]');
-            if (trigger) {
+            if (trigger && !trigger.disabled) {
                 e.preventDefault();
                 open(trigger.getAttribute('data-cf-modal'));
                 return;

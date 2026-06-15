@@ -443,7 +443,7 @@ function initSuperadminUsers(config) {
         form.action = config.crearUrl;
     };
 
-    window.editUser = function (id, username, firstName, lastName, email, isActive, isStaff, isSuperuser) {
+    window.editUser = function (id, username, firstName, lastName, email, isActive, isStaff, isSuperuser, role) {
         const form = document.getElementById('userEditForm');
         form.action = config.editarUrlTemplate.replace('{id}', id);
         document.getElementById('userEditModalTitle').innerText = 'Editar — ' + username;
@@ -454,6 +454,7 @@ function initSuperadminUsers(config) {
         form.querySelector('[name="is_active"]').checked = isActive;
         form.querySelector('[name="is_staff"]').checked = isStaff;
         form.querySelector('[name="is_superuser"]').checked = isSuperuser;
+        form.querySelector('[name="edit"]').value = role || 'Editor';
         form.querySelector('[name="new_password"]').value = '';
         form.querySelector('[name="new_password_confirm"]').value = '';
 

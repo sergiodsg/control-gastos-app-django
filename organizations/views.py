@@ -2,35 +2,56 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation
+from accounts.models import Profile
 from .amounts import create_initial_balance_transaction
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from django.contrib import messages
-from django.db.models import Sum, OuterRef, Subquery, Value
+from django.db.models import Sum, OuterRef, Subquery, Value, F
 from django.db.models.functions import Coalesce, TruncMonth
+from accounts.decorators import viewer_restricted
 
-def get_chart_data(transactions_qs):
+def get_chart_data(transactions_qs, mode='bcv', json_format=True):
     # 1. Desglose de Gastos por Categoría
-    category_spending = transactions_qs.filter(amount_usd__lt=0).values('category__name', 'category__color').annotate(
-        total=Sum('amount_usd')
-    ).order_by('total')
+    if mode == 'real':
+        category_spending = transactions_qs.filter(real_dollars__lt=0).values('category__name', 'category__color').annotate(
+            total=Sum('real_dollars')
+        ).order_by('total')
+    else:
+        category_spending = transactions_qs.filter(amount_usd__lt=0).values('category__name', 'category__color').annotate(
+            total=Sum('amount_usd')
+        ).order_by('total')
     
     cat_labels = [item['category__name'] or 'Sin categoría' for item in category_spending]
     cat_series = [float(abs(item['total'])) for item in category_spending]
     cat_colors = [item['category__color'] or '#000000' for item in category_spending]
 
     # 2. Balance Total (Ingresos vs Gastos)
-    totals_data = transactions_qs.aggregate(
-        income=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
-        expense=Sum('amount_usd', filter=models.Q(amount_usd__lt=0))
-    )
-    
-    total_income = float(totals_data['income'] or 0)
-    total_expense = float(abs(totals_data['expense'] or 0))
+    if mode == 'real':
+        totals_data = transactions_qs.aggregate(
+            income=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+            expense=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+            fees=Sum('bank_fee_real_usd')
+        )
+        total_income = float(totals_data['income'] or 0)
+        total_expense = float(abs(totals_data['expense'] or 0)) + float(totals_data['fees'] or 0)
+    else:
+        totals_data = transactions_qs.aggregate(
+            income=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+            expense=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+            fees=Sum('bank_fee_usd')
+        )
+        total_income = float(totals_data['income'] or 0)
+        total_expense = float(abs(totals_data['expense'] or 0)) + float(totals_data['fees'] or 0)
 
     # 3. Evolución del Saldo
-    evolution_data = transactions_qs.order_by('date').values('date').annotate(
-        daily_sum=Sum('amount_usd')
-    )
+    if mode == 'real':
+        evolution_data = transactions_qs.order_by('date').values('date').annotate(
+            daily_sum=Sum(F('real_dollars') - F('bank_fee_real_usd'))
+        )
+    else:
+        evolution_data = transactions_qs.order_by('date').values('date').annotate(
+            daily_sum=Sum(F('amount_usd') - F('bank_fee_usd'))
+        )
     
     evo_labels = []
     evo_series = []
@@ -40,15 +61,26 @@ def get_chart_data(transactions_qs):
         evo_labels.append(item['date'].strftime('%Y-%m-%d'))
         evo_series.append(round(current_balance, 2))
 
-    return {
-        'cat_labels': json.dumps(cat_labels),
-        'cat_series': json.dumps(cat_series),
-        'cat_colors': json.dumps(cat_colors),
-        'total_income': total_income,
-        'total_expense': total_expense,
-        'evo_labels': json.dumps(evo_labels),
-        'evo_series': json.dumps(evo_series),
-    }
+    if json_format:
+        return {
+            'cat_labels': json.dumps(cat_labels),
+            'cat_series': json.dumps(cat_series),
+            'cat_colors': json.dumps(cat_colors),
+            'total_income': total_income,
+            'total_expense': total_expense,
+            'evo_labels': json.dumps(evo_labels),
+            'evo_series': json.dumps(evo_series),
+        }
+    else:
+        return {
+            'cat_labels': cat_labels,
+            'cat_series': cat_series,
+            'cat_colors': cat_colors,
+            'total_income': total_income,
+            'total_expense': total_expense,
+            'evo_labels': evo_labels,
+            'evo_series': evo_series,
+        }
 from django.utils import timezone
 from datetime import timedelta
 import json
@@ -110,15 +142,22 @@ def get_filtered_totals_both(org_id, filter_type):
     res = transactions.aggregate(
         income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
         expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        fees_usd=Sum('bank_fee_usd'),
         income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
-        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+        fees_bs=Sum('bank_fee_bs'),
+        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+        fees_real_usd=Sum('bank_fee_real_usd')
     )
-    
+
     return {
         'income_usd': res['income_usd'] or 0,
-        'expense_usd': abs(res['expense_usd'] or 0),
+        'expense_usd': abs(res['expense_usd'] or 0) + (res['fees_usd'] or 0),
         'income_bs': res['income_bs'] or 0,
-        'expense_bs': abs(res['expense_bs'] or 0),
+        'expense_bs': abs(res['expense_bs'] or 0) + (res['fees_bs'] or 0),
+        'income_real_usd': res['income_real_usd'] or 0,
+        'expense_real_usd': abs(res['expense_real_usd'] or 0) + (res['fees_real_usd'] or 0),
     }
 
 def get_bcv_rate(target_date=None):
@@ -139,25 +178,62 @@ def get_bcv_rate(target_date=None):
 
 @login_required
 def home_organizacion(request):
-
     org_id = request.session.get('org_id')
     if not org_id:
         return redirect('dashboard')
     
+    view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
+    
     totals = Transaction.objects.filter(organization_id=org_id).aggregate(
-        balance_usd=Sum('amount_usd'),
-        balance_bs=Sum('amount_bs')
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
     )
     
     income_filter = request.GET.get('income_filter', 'all')
     expense_filter = request.GET.get('expense_filter', 'all')
     
-    # Si los filtros son iguales, evitar doble consulta
-    inc_totals = get_filtered_totals_both(org_id, income_filter)
-    if income_filter == expense_filter:
-        exp_totals = inc_totals
-    else:
-        exp_totals = get_filtered_totals_both(org_id, expense_filter)
+    def get_filtered_totals_by_mode(filter_val, mode):
+        transactions = Transaction.objects.filter(organization_id=org_id)
+        today = timezone.localdate()
+        if filter_val != 'all':
+            if filter_val == 'day': start_date = today - timedelta(days=1)
+            elif filter_val == 'week': start_date = today - timedelta(days=7)
+            elif filter_val == '15days': start_date = today - timedelta(days=15)
+            elif filter_val == 'month': start_date = today - timedelta(days=30)
+            elif filter_val == '3months': start_date = today - timedelta(days=90)
+            elif filter_val == '6months': start_date = today - timedelta(days=180)
+            elif filter_val == 'year': start_date = today - timedelta(days=365)
+            transactions = transactions.filter(date__gte=start_date)
+
+        if mode == 'real':
+            res = transactions.aggregate(
+                income=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+                expense=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+                fees=Sum('bank_fee_real_usd')
+            )
+            return {
+                'income': res['income'] or 0,
+                'expense': abs(res['expense'] or 0) + (res['fees'] or 0)
+            }
+        else:
+            res = transactions.aggregate(
+                income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+                expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+                fees_usd=Sum('bank_fee_usd'),
+                income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+                expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+                fees_bs=Sum('bank_fee_bs')
+            )
+            return {
+                'income_usd': res['income_usd'] or 0,
+                'expense_usd': abs(res['expense_usd'] or 0) + (res['fees_usd'] or 0),
+                'income_bs': res['income_bs'] or 0,
+                'expense_bs': abs(res['expense_bs'] or 0) + (res['fees_bs'] or 0),
+            }
+
+    inc_totals = get_filtered_totals_by_mode(income_filter, view_mode)
+    exp_totals = get_filtered_totals_by_mode(expense_filter, view_mode)
     
     try:
         rates = as_dashboard_rates()
@@ -170,20 +246,28 @@ def home_organizacion(request):
         }
     
     sort = request.GET.get('sort', 'desc')
-    if sort == 'asc':
-        recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('date', 'id')[:10]
-    else:
-        recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
+    recent_transactions = Transaction.objects.filter(organization_id=org_id).order_by('-date', '-id')[:10]
     
-    chart_data = get_chart_data(Transaction.objects.filter(organization_id=org_id))
+    # Filtrar chart_data por el modo seleccionado
+    base_qs = Transaction.objects.filter(organization_id=org_id)
+    if view_mode == 'real':
+        chart_qs = base_qs.exclude(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+    else:
+        chart_qs = base_qs.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+        
+    chart_data = get_chart_data(chart_qs, mode=view_mode)
     
     context = {
+        'view_mode': view_mode,
         'balance_usd': totals['balance_usd'] or 0,
         'balance_bs': totals['balance_bs'] or 0,
-        'income_usd': inc_totals['income_usd'],
-        'income_bs': inc_totals['income_bs'],
-        'expense_usd': exp_totals['expense_usd'],
-        'expense_bs': exp_totals['expense_bs'],
+        'balance_real_usd': totals['balance_real_usd'] or 0,
+        'income_usd': inc_totals.get('income_usd', 0),
+        'income_bs': inc_totals.get('income_bs', 0),
+        'income_real_usd': inc_totals.get('income', 0),
+        'expense_usd': exp_totals.get('expense_usd', 0),
+        'expense_bs': exp_totals.get('expense_bs', 0),
+        'expense_real_usd': exp_totals.get('expense', 0),
         'income_filter': income_filter,
         'expense_filter': expense_filter,
         'rates': rates,
@@ -202,7 +286,6 @@ def home_organizacion(request):
             ('all', 'Desde el principio'),
         ]
     }
-    
     return render(request, 'organizations/home.html', context)
 
 @login_required
@@ -234,12 +317,19 @@ def crear_organizacion(request):
 
 from io import BytesIO
 from django.http import HttpResponse
+from django.template.loader import render_to_string
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import cm
 from reportlab.lib.enums import TA_CENTER, TA_RIGHT
+from reportlab.graphics.shapes import Drawing, String
+from reportlab.graphics.charts.piecharts import Pie
+from reportlab.graphics.charts.barcharts import VerticalBarChart
+from reportlab.graphics.charts.linecharts import HorizontalLineChart
+from reportlab.graphics.widgets.markers import makeMarker
+from reportlab.lib import colors
 
 @login_required
 def lista_transacciones(request):
@@ -255,13 +345,29 @@ def lista_transacciones(request):
     date_to = request.GET.get('date_to')
     category_id = request.GET.get('category')
     search_query = request.GET.get('search', '')
+    tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
+    view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
+
+    # Sincronización: El filtro de transacciones afecta al toggle de balance
+    if tx_filter == 'real':
+        view_mode = 'real'
+    elif tx_filter == 'bcv':
+        view_mode = 'bcv'
+    # Si es 'all', se mantiene el view_mode que venga en el GET (o el default)
 
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
     if category_id == 'None' or category_id == '': category_id = None
     
+    # Base: TODAS las transacciones para la tabla
     transactions_list = Transaction.objects.filter(organization=org)
+
+    # Filtrar por tipo de transacción (BCV / Real Dollars)
+    if tx_filter == 'real':
+        transactions_list = transactions_list.exclude(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+    elif tx_filter == 'bcv':
+        transactions_list = transactions_list.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
     
     if search_query:
         transactions_list = transactions_list.filter(
@@ -275,6 +381,7 @@ def lista_transacciones(request):
             models.Q(status__icontains=search_query) |
             models.Q(amount_bs__icontains=search_query) |
             models.Q(amount_usd__icontains=search_query) |
+            models.Q(real_dollars__icontains=search_query) |
             models.Q(daily_rate__icontains=search_query)
         )
 
@@ -290,20 +397,13 @@ def lista_transacciones(request):
         if date_to:
             transactions_list = transactions_list.filter(date__lte=date_to)
     elif filter_type != 'all' and filter_type != 'custom':
-        if filter_type == 'day':
-            start_date = today
-        elif filter_type == 'week':
-            start_date = today - timedelta(days=7)
-        elif filter_type == '15days':
-            start_date = today - timedelta(days=15)
-        elif filter_type == 'month':
-            start_date = today - timedelta(days=30)
-        elif filter_type == 'quarter':
-            start_date = today - timedelta(days=90)
-        elif filter_type == '6months':
-            start_date = today - timedelta(days=180)
-        elif filter_type == 'year':
-            start_date = today - timedelta(days=365)
+        if filter_type == 'day': start_date = today - timedelta(days=1)
+        elif filter_type == 'week': start_date = today - timedelta(days=7)
+        elif filter_type == '15days': start_date = today - timedelta(days=15)
+        elif filter_type == 'month': start_date = today - timedelta(days=30)
+        elif filter_type == 'quarter': start_date = today - timedelta(days=90)
+        elif filter_type == '6months': start_date = today - timedelta(days=180)
+        elif filter_type == 'year': start_date = today - timedelta(days=365)
         transactions_list = transactions_list.filter(date__gte=start_date)
     
     sort = request.GET.get('sort', 'desc')
@@ -312,16 +412,40 @@ def lista_transacciones(request):
     else:
         transactions_list = transactions_list.order_by('-date', '-id')
 
-    # Calcular totales filtrados
-
-    totals = transactions_list.aggregate(
-        balance_usd=Sum('amount_usd'),
-        balance_bs=Sum('amount_bs'),
-        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
-        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
-        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
-        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
-    )
+    # --- Calcular totales filtrados basados en view_mode para los KPIs ---
+    if view_mode == 'real':
+        kpi_qs = transactions_list.exclude(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+        totals = kpi_qs.aggregate(
+            balance=Sum(F('real_dollars') - F('bank_fee_real_usd')),
+            income=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+            expense=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+            fees=Sum('bank_fee_real_usd')
+        )
+        res_totals = {
+            'balance_real_usd': totals['balance'] or 0,
+            'income_real_usd': totals['income'] or 0,
+            'expense_real_usd': abs(totals['expense'] or 0) + (totals['fees'] or 0),
+        }
+    else:
+        kpi_qs = transactions_list.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+        totals = kpi_qs.aggregate(
+            balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+            balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+            income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+            income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+            expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+            expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+            fees_usd=Sum('bank_fee_usd'),
+            fees_bs=Sum('bank_fee_bs')
+        )
+        res_totals = {
+            'balance_usd': totals['balance_usd'] or 0,
+            'balance_bs': totals['balance_bs'] or 0,
+            'income_usd': totals['income_usd'] or 0,
+            'income_bs': totals['income_bs'] or 0,
+            'expense_usd': abs(totals['expense_usd'] or 0) + (totals['fees_usd'] or 0),
+            'expense_bs': abs(totals['expense_bs'] or 0) + (totals['fees_bs'] or 0),
+        }
     
     paginator = Paginator(transactions_list, 20)
     page_number = request.GET.get('page')
@@ -335,6 +459,9 @@ def lista_transacciones(request):
     for p in projects:
         projects_data[p.id] = list(Valuation.objects.filter(project=p).values('id', 'name', 'amount_usd'))
 
+    # Mapeo de cuentas a monedas para lógica en JS
+    accounts_data = {a.id: a.currency for a in Account.objects.filter(organization=org)}
+
     bcv_rate = get_bcv_rate()
     categories = Category.objects.filter(organization=org)
 
@@ -345,54 +472,103 @@ def lista_transacciones(request):
         'categories': categories,
         'selected_category': category_id,
         'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
+        'accounts_data': json.dumps(accounts_data),
         'filter_type': filter_type,
         'date_from': date_from,
         'date_to': date_to,
         'search': search_query,
         'sort': sort,
-        'totals': {
-            'balance_usd': totals['balance_usd'] or 0,
-            'balance_bs': totals['balance_bs'] or 0,
-            'income_usd': totals['income_usd'] or 0,
-            'income_bs': totals['income_bs'] or 0,
-            'expense_usd': abs(totals['expense_usd'] or 0),
-            'expense_bs': abs(totals['expense_bs'] or 0),
-        },
+        'view_mode': view_mode,
+        'tx_filter': tx_filter,
+        'totals': res_totals,
+        'tx_filter_options': [
+            ('all', 'Todas las transacciones'),
+            ('bcv', 'Transacciones BCV'),
+            ('real', 'Transacciones Dólares Reales'),
+        ],
         'filter_options': [
-            ('day', 'Último día'),
-            ('week', 'Última semana'),
+            ('day', 'Hoy'),
+            ('week', 'Esta semana'),
             ('15days', 'Últimos 15 días'),
             ('month', 'Último mes'),
-            ('quarter', 'Trimestre'),
-            ('6months', '6 meses'),
+            ('quarter', 'Último trimestre'),
+            ('6months', 'Últimos 6 meses'),
             ('year', 'Último año'),
-            ('custom', 'Rango personalizado'),
-            ('all', 'Todas'),
+            ('all', 'Todo el tiempo'),
+            ('custom', 'Personalizado'),
         ]
     })
 
 @login_required
-def exportar_pdf_transacciones(request):
+def _get_report_data(request):
     org_id = request.session.get('org_id')
     org = get_object_or_404(Organization, id=org_id)
     
+    report_type = request.GET.get('report_type', 'bcv') # 'bcv' or 'real'
     filter_type = request.GET.get('filter_type', 'all')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
     category_id = request.GET.get('category')
+    search_query = request.GET.get('search', '')
+    account_id = request.GET.get('account')
+    tx_filter = request.GET.get('tx_filter', 'all')
+    project_id = request.GET.get('project')
 
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
     if category_id == 'None' or category_id == '': category_id = None
+    if account_id == 'None' or account_id == '': account_id = None
+    if project_id == 'None' or project_id == '': project_id = None
     
-    transactions = Transaction.objects.filter(organization=org)
+    if project_id:
+        # Si filtramos por proyecto, buscamos transacciones de ese proyecto donde la org tenga acceso
+        project = get_object_or_404(Project, id=project_id)
+        # Verificar acceso
+        is_owner = project.organization == org
+        is_shared = project.shared_organizations.filter(organization=org).exists()
+        if not (is_owner or is_shared):
+             return org, Transaction.objects.none(), report_type, {}, "Sin Acceso"
+        
+        transactions = Transaction.objects.filter(project_id=project_id)
+    else:
+        transactions = Transaction.objects.filter(organization=org)
+
+    if account_id:
+        transactions = transactions.filter(account_id=account_id)
     
+    # Filtrar por tipo de reporte: BCV o Dólares Reales (Filtro base del PDF)
+    if report_type == 'real':
+        transactions = transactions.exclude(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+    else:
+        transactions = transactions.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+    
+    # Aplicar tx_filter adicional si viene de la URL (para coincidir con la vista web)
+    if tx_filter == 'real' and report_type == 'bcv':
+        transactions = transactions.none()
+    elif tx_filter == 'bcv' and report_type == 'real':
+        transactions = transactions.none()
+
     if category_id:
         transactions = transactions.filter(category_id=category_id)
     
+    if search_query:
+        transactions = transactions.filter(
+            models.Q(description__icontains=search_query) |
+            models.Q(reference_number__icontains=search_query) |
+            models.Q(notes__icontains=search_query) |
+            models.Q(category__name__icontains=search_query) |
+            models.Q(account__name__icontains=search_query) |
+            models.Q(project__name__icontains=search_query) |
+            models.Q(valuation__name__icontains=search_query) |
+            models.Q(status__icontains=search_query) |
+            models.Q(amount_bs__icontains=search_query) |
+            models.Q(amount_usd__icontains=search_query) |
+            models.Q(real_dollars__icontains=search_query) |
+            models.Q(daily_rate__icontains=search_query)
+        )
+    
     today = timezone.localdate()
-    now = timezone.now()
     filter_label = "Todas"
     
     if category_id:
@@ -429,11 +605,17 @@ def exportar_pdf_transacciones(request):
         
     transactions = transactions.order_by('date', 'id')
     
-    # Calcular totales del reporte
     report_totals = transactions.aggregate(
-        total_usd=Sum('amount_usd'),
-        total_bs=Sum('amount_bs')
+        total_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        total_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        total_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
     )
+    
+    return org, transactions, report_type, report_totals, filter_label
+
+def exportar_pdf_transacciones(request):
+    org, transactions, report_type, report_totals, filter_label = _get_report_data(request)
+    now = timezone.now()
     
     # --- Generación de PDF con ReportLab ---
     response = HttpResponse(content_type='application/pdf')
@@ -495,10 +677,33 @@ def exportar_pdf_transacciones(request):
     elements.append(Paragraph(f"<b>Generado el:</b> {now.strftime('%d/%m/%Y %H:%M')}", info_style))
     elements.append(Spacer(1, 0.5*cm))
     elements.append(Paragraph(f"<b>Filtro aplicado:</b> {filter_label}", filter_style))
-    
+    elements.append(Spacer(1, 0.5*cm))
+
     # Datos de la tabla
-    data = [
-        [
+    if report_type == 'real':
+        header = [
+            Paragraph("Fecha", header_cell_style),
+            Paragraph("Descripción", header_cell_style),
+            Paragraph("Referencia", header_cell_style),
+            Paragraph("Monto (Dólares)", header_cell_style),
+            Paragraph("Notas", header_cell_style)
+        ]
+        data = [header]
+        for trans in transactions:
+            data.append([
+                trans.date.strftime("%d/%m/%Y"),
+                Paragraph(trans.description or "", cell_style),
+                trans.reference_number or "---",
+                f"{trans.real_dollars or 0:,.2f} $",
+                Paragraph(trans.notes or "", cell_style)
+            ])
+        
+        if transactions:
+            data.append(["", "BALANCE TOTAL:", "", f"{report_totals['total_real_usd'] or 0:,.2f} $", ""])
+            
+        col_widths = [2.5*cm, 8.5*cm, 3.5*cm, 4.5*cm, 6.0*cm]
+    else:
+        header = [
             Paragraph("Fecha", header_cell_style),
             Paragraph("Descripción", header_cell_style),
             Paragraph("Referencia", header_cell_style),
@@ -507,32 +712,28 @@ def exportar_pdf_transacciones(request):
             Paragraph("Monto (USD)", header_cell_style),
             Paragraph("Notas", header_cell_style)
         ]
-    ]
-    
-    for trans in transactions:
-        row = [
-            trans.date.strftime("%d/%m/%Y"),
-            Paragraph(trans.description or "", cell_style),
-            trans.reference_number or "---",
-            f"{trans.amount_bs:,.2f}",
-            f"{trans.daily_rate:,.4f}",
-            f"{trans.amount_usd:,.2f}",
-            Paragraph(trans.notes or "", cell_style)
-        ]
-        data.append(row)
-    
-    # Fila de balance
-    if transactions:
-        data.append([
-            "", "", "BALANCE:",
-            f"{report_totals['total_bs'] or 0:,.2f} Bs.",
-            "",
-            f"{report_totals['total_usd'] or 0:,.2f} $",
-            ""
-        ])
-
-    # Anchos de columna basados en el template original
-    col_widths = [1.94*cm, 5.29*cm, 2.12*cm, 3.0*cm, 1.76*cm, 3.0*cm, 5.29*cm]
+        data = [header]
+        for trans in transactions:
+            data.append([
+                trans.date.strftime("%d/%m/%Y"),
+                Paragraph(trans.description or "", cell_style),
+                trans.reference_number or "---",
+                f"{trans.amount_bs:,.2f}",
+                f"{trans.daily_rate:,.4f}",
+                f"{trans.amount_usd:,.2f}",
+                Paragraph(trans.notes or "", cell_style)
+            ])
+            
+        if transactions:
+            data.append([
+                "", "", "BALANCE TOTAL:",
+                f"{report_totals['total_bs'] or 0:,.2f} Bs.",
+                "",
+                f"{report_totals['total_usd'] or 0:,.2f} $",
+                ""
+            ])
+            
+        col_widths = [2.2*cm, 5.5*cm, 2.8*cm, 3.2*cm, 2.2*cm, 3.2*cm, 5.5*cm]
     
     table = Table(data, colWidths=col_widths, repeatRows=1)
     
@@ -549,19 +750,27 @@ def exportar_pdf_transacciones(request):
     # Colores condicionales y negritas
     for i, trans in enumerate(transactions):
         idx = i + 1
-        # Monto BS
-        if trans.amount_bs < 0:
-            table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#dc3545"))
+        if report_type == 'real':
+            # Monto USD Real
+            if trans.real_dollars < 0:
+                table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#dc3545"))
+            else:
+                table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#198754"))
+            table_style.add('FONTNAME', (3, idx), (3, idx), 'Helvetica-Bold')
         else:
-            table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#198754"))
-        table_style.add('FONTNAME', (3, idx), (3, idx), 'Helvetica-Bold')
-        
-        # Monto USD
-        if trans.amount_usd < 0:
-            table_style.add('TEXTCOLOR', (5, idx), (5, idx), colors.HexColor("#dc3545"))
-        else:
-            table_style.add('TEXTCOLOR', (5, idx), (5, idx), colors.HexColor("#198754"))
-        table_style.add('FONTNAME', (5, idx), (5, idx), 'Helvetica-Bold')
+            # Monto BS
+            if trans.amount_bs < 0:
+                table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#dc3545"))
+            else:
+                table_style.add('TEXTCOLOR', (3, idx), (3, idx), colors.HexColor("#198754"))
+            table_style.add('FONTNAME', (3, idx), (3, idx), 'Helvetica-Bold')
+            
+            # Monto USD (BCV)
+            if trans.amount_usd < 0:
+                table_style.add('TEXTCOLOR', (5, idx), (5, idx), colors.HexColor("#dc3545"))
+            else:
+                table_style.add('TEXTCOLOR', (5, idx), (5, idx), colors.HexColor("#198754"))
+            table_style.add('FONTNAME', (5, idx), (5, idx), 'Helvetica-Bold')
 
     # Estilo de la última fila (Balance)
     if transactions:
@@ -570,20 +779,119 @@ def exportar_pdf_transacciones(request):
         table_style.add('FONTNAME', (0, last_row), (-1, last_row), 'Helvetica-Bold')
         table_style.add('ALIGN', (2, last_row), (2, last_row), 'RIGHT')
         
-        total_bs = report_totals['total_bs'] or 0
-        if total_bs < 0:
-            table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#dc3545"))
+        if report_type == 'real':
+            total_real = report_totals['total_real_usd'] or 0
+            if total_real < 0:
+                table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#dc3545"))
+            else:
+                table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#198754"))
         else:
-            table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#198754"))
-            
-        total_usd = report_totals['total_usd'] or 0
-        if total_usd < 0:
-            table_style.add('TEXTCOLOR', (5, last_row), (5, last_row), colors.HexColor("#dc3545"))
-        else:
-            table_style.add('TEXTCOLOR', (5, last_row), (5, last_row), colors.HexColor("#198754"))
+            total_bs = report_totals['total_bs'] or 0
+            if total_bs < 0:
+                table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#dc3545"))
+            else:
+                table_style.add('TEXTCOLOR', (3, last_row), (3, last_row), colors.HexColor("#198754"))
+                
+            total_usd = report_totals['total_usd'] or 0
+            if total_usd < 0:
+                table_style.add('TEXTCOLOR', (5, last_row), (5, last_row), colors.HexColor("#dc3545"))
+            else:
+                table_style.add('TEXTCOLOR', (5, last_row), (5, last_row), colors.HexColor("#198754"))
 
     table.setStyle(table_style)
     elements.append(table)
+    elements.append(Spacer(1, 1*cm))
+
+    # --- Resumen Gráfico ---
+    cd = get_chart_data(transactions, mode=report_type, json_format=False)
+    
+    if transactions.exists():
+        elements.append(Paragraph("Resumen Gráfico", styles['Heading2']))
+        elements.append(Spacer(1, 0.2*cm))
+        
+        chart_elements = []
+        
+        # a) Gastos por Categoría (Pie)
+        if cd['cat_series']:
+            d1 = Drawing(8*cm, 6*cm)
+            pc = Pie()
+            pc.x = 1.5*cm
+            pc.y = 0.5*cm
+            pc.width = 4.5*cm
+            pc.height = 4.5*cm
+            pc.data = cd['cat_series']
+            pc.labels = cd['cat_labels']
+            pc.sideLabels = 1
+            pc.slices.fontSize = 7
+            for i, color in enumerate(cd['cat_colors']):
+                pc.slices[i].fillColor = colors.HexColor(color)
+            d1.add(pc)
+            d1.add(String(4*cm, 5.5*cm, "Gastos por Categoría", textAnchor='middle', fontName='Helvetica-Bold', fontSize=10))
+            chart_elements.append(d1)
+        else:
+            chart_elements.append(Paragraph("No hay datos de gastos por categoría", cell_style))
+
+        # b) Ingresos vs Gastos (Bar)
+        d2 = Drawing(8*cm, 6*cm)
+        bc = VerticalBarChart()
+        bc.x = 1*cm
+        bc.y = 1*cm
+        bc.width = 6*cm
+        bc.height = 4*cm
+        bc.data = [[cd['total_income']], [cd['total_expense']]]
+        bc.categoryAxis.categoryNames = ['Balance']
+        bc.bars[0].fillColor = colors.green # Ingresos
+        bc.bars[1].fillColor = colors.red   # Gastos
+        bc.valueAxis.valueMin = 0
+        bc.valueAxis.labels.fontSize = 7
+        d2.add(bc)
+        # Leyenda simple manual para el gráfico de barras
+        d2.add(String(1*cm, 0.2*cm, "Verde: Ingresos", fontSize=7, fillColor=colors.green))
+        d2.add(String(4*cm, 0.2*cm, "Rojo: Gastos", fontSize=7, fillColor=colors.red))
+        d2.add(String(4*cm, 5.5*cm, "Ingresos vs Gastos", textAnchor='middle', fontName='Helvetica-Bold', fontSize=10))
+        chart_elements.append(d2)
+
+        # c) Evolución del Saldo (Line)
+        if cd['evo_series']:
+            d3 = Drawing(9*cm, 6*cm)
+            lc = HorizontalLineChart()
+            lc.x = 1*cm
+            lc.y = 1.2*cm
+            lc.width = 7.5*cm
+            lc.height = 3.8*cm
+            lc.data = [cd['evo_series']]
+            # Limitar etiquetas de fecha si hay demasiadas
+            if len(cd['evo_labels']) > 10:
+                step = len(cd['evo_labels']) // 10
+                lc.categoryAxis.categoryNames = [label if i % step == 0 else '' for i, label in enumerate(cd['evo_labels'])]
+            else:
+                lc.categoryAxis.categoryNames = cd['evo_labels']
+            
+            lc.categoryAxis.labels.fontSize = 6
+            lc.categoryAxis.labels.angle = 45
+            lc.categoryAxis.labels.boxAnchor = 'ne'
+            lc.valueAxis.labels.fontSize = 7
+            
+            # Ajustar rango del eje Y
+            all_vals = cd['evo_series'] + [0]
+            lc.valueAxis.valueMin = min(all_vals) * 1.1 if min(all_vals) < 0 else 0
+            lc.valueAxis.valueMax = max(all_vals) * 1.1 if max(all_vals) > 0 else 10
+            
+            d3.add(lc)
+            d3.add(String(4.5*cm, 5.5*cm, "Evolución del Saldo", textAnchor='middle', fontName='Helvetica-Bold', fontSize=10))
+            chart_elements.append(d3)
+        else:
+            chart_elements.append(Paragraph("No hay datos de evolución", cell_style))
+
+        # Organizar gráficos en una tabla
+        charts_table = Table([chart_elements], colWidths=[8.5*cm, 8.5*cm, 9*cm])
+        charts_table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ]))
+        elements.append(charts_table)
+        elements.append(Spacer(1, 0.5*cm))
+
     
     # Footer
     footer_style = ParagraphStyle(
@@ -602,7 +910,30 @@ def exportar_pdf_transacciones(request):
     return response
 
 
+def exportar_xlsx_transacciones(request):
+    org, transactions, report_type, report_totals, filter_label = _get_report_data(request)
+    now = timezone.now()
+    
+    filename = f"balance_general_{org.name}_{now.strftime('%Y%m%d')}.xls"
+    
+    context = {
+        'org': org,
+        'transactions': transactions,
+        'report_type': report_type,
+        'report_totals': report_totals,
+        'filter_label': filter_label,
+        'now': now,
+    }
+    
+    html_content = render_to_string('organizations/reportes/transacciones_excel.html', context)
+    
+    response = HttpResponse(html_content, content_type='application/vnd.ms-excel')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
 @login_required
+@viewer_restricted
 def guardar_transaccion(request, trans_id=None):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -687,6 +1018,7 @@ def guardar_transaccion(request, trans_id=None):
     return redirect('lista_transacciones')
 
 @login_required
+@viewer_restricted
 def eliminar_transaccion(request, trans_id):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -757,6 +1089,7 @@ def lista_categorias(request):
     })
 
 @login_required
+@viewer_restricted
 def guardar_categoria(request, cat_id=None):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -780,6 +1113,7 @@ def guardar_categoria(request, cat_id=None):
     return redirect('lista_categorias')
 
 @login_required
+@viewer_restricted
 def eliminar_categoria(request, cat_id):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -804,8 +1138,9 @@ def lista_cuentas(request):
     
     org = get_object_or_404(Organization, id=org_id)
     accounts = Account.objects.filter(organization=org).annotate(
-        balance_usd=Sum('transactions__amount_usd'),
-        balance_bs=Sum('transactions__amount_bs')
+        balance_usd=Sum(F('transactions__amount_usd') - F('transactions__bank_fee_usd')),
+        balance_bs=Sum(F('transactions__amount_bs') - F('transactions__bank_fee_bs')),
+        balance_real_usd=Sum('transactions__real_dollars')
     )
     
     form = AccountForm()
@@ -833,6 +1168,7 @@ def lista_cuentas(request):
     })
 
 @login_required
+@viewer_restricted
 def guardar_cuenta(request, acc_id=None):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -906,6 +1242,7 @@ def guardar_cuenta(request, acc_id=None):
     return redirect('lista_cuentas')
 
 @login_required
+@viewer_restricted
 def eliminar_cuenta(request, acc_id):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -941,8 +1278,9 @@ def detalle_cuenta(request, acc_id):
     if category_id == 'None' or category_id == '': category_id = None
     
     transactions_list = Transaction.objects.filter(account=account)
-    
+
     if search_query:
+
         transactions_list = transactions_list.filter(
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
@@ -953,6 +1291,7 @@ def detalle_cuenta(request, acc_id):
             models.Q(status__icontains=search_query) |
             models.Q(amount_bs__icontains=search_query) |
             models.Q(amount_usd__icontains=search_query) |
+            models.Q(real_dollars__icontains=search_query) |
             models.Q(daily_rate__icontains=search_query)
         )
 
@@ -990,12 +1329,18 @@ def detalle_cuenta(request, acc_id):
         transactions_list = transactions_list.order_by('-date', '-id')
     
     totals = transactions_list.aggregate(
-        balance_usd=Sum('amount_usd'),
-        balance_bs=Sum('amount_bs'),
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
         income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
         expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
         income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
-        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+        fees_usd=Sum('bank_fee_usd'),
+        fees_bs=Sum('bank_fee_bs'),
+        fees_real_usd=Sum('bank_fee_real_usd')
     )
     
     paginator = Paginator(transactions_list, 20)
@@ -1016,6 +1361,9 @@ def detalle_cuenta(request, acc_id):
         ('custom', 'Personalizado'),
     ]
 
+    # Mapeo de cuentas a monedas para lógica en JS
+    accounts_data = {a.id: a.currency for a in Account.objects.filter(organization=org)}
+
     return render(request, 'organizations/detalle_cuenta.html', {
         'account': account,
         'page_obj': page_obj,
@@ -1027,13 +1375,17 @@ def detalle_cuenta(request, acc_id):
         'categories': categories,
         'selected_category': category_id,
         'filter_options': filter_options,
+        'accounts_data': json.dumps(accounts_data),
         'totals': {
             'balance_usd': totals['balance_usd'] or 0,
             'balance_bs': totals['balance_bs'] or 0,
+            'balance_real_usd': totals['balance_real_usd'] or 0,
             'income_usd': totals['income_usd'] or 0,
-            'expense_usd': abs(totals['expense_usd'] or 0),
+            'expense_usd': abs(totals['expense_usd'] or 0) + (totals['fees_usd'] or 0),
             'income_bs': totals['income_bs'] or 0,
-            'expense_bs': abs(totals['expense_bs'] or 0),
+            'expense_bs': abs(totals['expense_bs'] or 0) + (totals['fees_bs'] or 0),
+            'income_real_usd': totals['income_real_usd'] or 0,
+            'expense_real_usd': abs(totals['expense_real_usd'] or 0) + (totals['fees_real_usd'] or 0),
         }
     })
 
@@ -1054,39 +1406,29 @@ def lista_proyectos(request):
         user_accesses__user=request.user
     ).distinct()
 
-    # Subconsultas para calcular balance de MI organización
-    org_usd_subquery = Transaction.objects.filter(
-        project_id=OuterRef('pk'),
-        organization_id=org_id
-    ).order_by().values('project').annotate(
-        total=Sum('amount_usd')
-    ).values('total')
-
-    org_bs_subquery = Transaction.objects.filter(
-        project_id=OuterRef('pk'),
-        organization_id=org_id
-    ).order_by().values('project').annotate(
-        total=Sum('amount_bs')
-    ).values('total')
-
     # Subconsultas para calcular balance TOTAL del proyecto (todas las orgs)
     total_usd_subquery = Transaction.objects.filter(
         project_id=OuterRef('pk')
     ).order_by().values('project').annotate(
-        total=Sum('amount_usd')
+        total=Sum(F('amount_usd') - F('bank_fee_usd'))
     ).values('total')
 
     total_bs_subquery = Transaction.objects.filter(
         project_id=OuterRef('pk')
     ).order_by().values('project').annotate(
-        total=Sum('amount_bs')
+        total=Sum(F('amount_bs') - F('bank_fee_bs'))
+    ).values('total')
+
+    total_real_usd_subquery = Transaction.objects.filter(
+        project_id=OuterRef('pk')
+    ).order_by().values('project').annotate(
+        total=Sum(F('real_dollars') - F('bank_fee_real_usd'))
     ).values('total')
 
     projects = projects_qs.annotate(
-        org_balance_usd=Coalesce(Subquery(org_usd_subquery), Value(0, output_field=models.DecimalField())),
-        org_balance_bs=Coalesce(Subquery(org_bs_subquery), Value(0, output_field=models.DecimalField())),
         total_balance_usd=Coalesce(Subquery(total_usd_subquery), Value(0, output_field=models.DecimalField())),
-        total_balance_bs=Coalesce(Subquery(total_bs_subquery), Value(0, output_field=models.DecimalField()))
+        total_balance_bs=Coalesce(Subquery(total_bs_subquery), Value(0, output_field=models.DecimalField())),
+        total_balance_real_usd=Coalesce(Subquery(total_real_usd_subquery), Value(0, output_field=models.DecimalField()))
     )
 
     form = ProjectForm()
@@ -1097,6 +1439,7 @@ def lista_proyectos(request):
     })
 
 @login_required
+@viewer_restricted
 def guardar_proyecto(request, proj_id=None):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -1128,6 +1471,7 @@ def guardar_proyecto(request, proj_id=None):
     return redirect('lista_proyectos')
 
 @login_required
+@viewer_restricted
 def eliminar_proyecto(request, proj_id):
     org_id = request.session.get('org_id')
     if not org_id:
@@ -1165,6 +1509,14 @@ def detalle_proyecto(request, proj_id):
     date_to = request.GET.get('date_to')
     selected_org_id = request.GET.get('organization')
     search_query = request.GET.get('search', '')
+    tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
+    view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
+
+    # Sincronización: El filtro de transacciones afecta al toggle de balance
+    if tx_filter == 'real':
+        view_mode = 'real'
+    elif tx_filter == 'bcv':
+        view_mode = 'bcv'
 
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
@@ -1172,6 +1524,12 @@ def detalle_proyecto(request, proj_id):
 
     # Ver TODAS las transacciones del proyecto (de cualquier organización con acceso)
     transactions_list = Transaction.objects.filter(project=project)
+
+    # Filtrar por tipo de transacción (BCV / Real Dollars)
+    if tx_filter == 'real':
+        transactions_list = transactions_list.exclude(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+    elif tx_filter == 'bcv':
+        transactions_list = transactions_list.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
 
     if search_query:
         transactions_list = transactions_list.filter(
@@ -1185,6 +1543,7 @@ def detalle_proyecto(request, proj_id):
             models.Q(status__icontains=search_query) |
             models.Q(amount_bs__icontains=search_query) |
             models.Q(amount_usd__icontains=search_query) |
+            models.Q(real_dollars__icontains=search_query) |
             models.Q(daily_rate__icontains=search_query)
         )
 
@@ -1222,8 +1581,13 @@ def detalle_proyecto(request, proj_id):
         transactions_list = transactions_list.order_by('-date', '-id')
 
     # Anotar valuaciones con el monto cubierto por transacciones de crédito de TODAS las organizaciones
+    # Sumamos tanto amount_usd (BCV) como real_dollars
     valuations = list(Valuation.objects.filter(project=project).annotate(
-        covered_usd=Sum('transactions__amount_usd', filter=models.Q(transactions__amount_usd__gt=0)),
+        covered_usd=Sum(
+            Coalesce('transactions__amount_usd', Value(0, output_field=models.DecimalField())) + 
+            Coalesce('transactions__real_dollars', Value(0, output_field=models.DecimalField())),
+            filter=models.Q(transactions__amount_usd__gt=0) | models.Q(transactions__real_dollars__gt=0)
+        ),
         covered_bs=Sum('transactions__amount_bs', filter=models.Q(transactions__amount_bs__gt=0))
     ))
 
@@ -1233,21 +1597,52 @@ def detalle_proyecto(request, proj_id):
         if val.amount_usd > 0:
             covered = val.covered_usd or 0
             val.progress = min(round((covered / val.amount_usd) * 100, 2), 100)
+        elif val.amount_bs > 0:
+            covered = val.covered_bs or 0
+            val.progress = min(round((covered / val.amount_bs) * 100, 2), 100)
 
-    # Totales para el balance del proyecto (transacciones filtradas)
+    # Totales GENERALES del proyecto (sin filtros de período/búsqueda/org)
+    overall_project = Transaction.objects.filter(project=project).aggregate(
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+        fees_usd=Sum('bank_fee_usd'),
+        fees_bs=Sum('bank_fee_bs'),
+        fees_real_usd=Sum('bank_fee_real_usd')
+    )
+    overall_org = Transaction.objects.filter(project=project, organization=org).aggregate(
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
+    )
+
+    # Totales FILTRADOS para el dashboard dinámico
     totals_project = transactions_list.aggregate(
-        balance_usd=Sum('amount_usd'),
-        balance_bs=Sum('amount_bs'),
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
         income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
         expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
         income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
-        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0))
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+        fees_usd=Sum('bank_fee_usd'),
+        fees_bs=Sum('bank_fee_bs'),
+        fees_real_usd=Sum('bank_fee_real_usd')
     )
     
-    # Totales solo para la organización actual (balance de la organización)
+    # Totales solo para la organización actual (balance de la organización FILTRADO)
     totals_org = transactions_list.filter(organization=org).aggregate(
-        balance_usd=Sum('amount_usd'),
-        balance_bs=Sum('amount_bs')
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
     )
 
     paginator = Paginator(transactions_list, 20)
@@ -1261,12 +1656,12 @@ def detalle_proyecto(request, proj_id):
     # Organizaciones para el filtro y datos dinámicos
     orgs_with_access = (Organization.objects.filter(projects=project) | Organization.objects.filter(shared_projects__project=project)).distinct()
     
-    chart_data = get_chart_data(transactions_list)
+    chart_data = get_chart_data(transactions_list, mode=view_mode)
 
     orgs_data = {}
     for o in orgs_with_access:
         orgs_data[o.id] = {
-            'accounts': list(Account.objects.filter(organization=o).values('id', 'name')),
+            'accounts': list(Account.objects.filter(organization=o).values('id', 'name', 'currency')),
             'categories': list(Category.objects.filter(organization=o).values('id', 'name'))
         }
 
@@ -1299,21 +1694,37 @@ def detalle_proyecto(request, proj_id):
         'filter_options': filter_options,
         'chart_data': chart_data,
         'sort': sort,
+        'view_mode': view_mode,
+        'tx_filter': tx_filter,
         'totals': {
-            'balance_usd': totals_project['balance_usd'] or 0,
-            'balance_bs': totals_project['balance_bs'] or 0,
-            'income_usd': totals_project['income_usd'] or 0,
-            'expense_usd': abs(totals_project['expense_usd'] or 0),
-            'income_bs': totals_project['income_bs'] or 0,
-            'expense_bs': abs(totals_project['expense_bs'] or 0),
-            'org_balance_usd': totals_org['balance_usd'] or 0,
-            'org_balance_bs': totals_org['balance_bs'] or 0,
-        }
+            'balance_usd': (overall_project['balance_usd'] or 0) + (overall_project['balance_real_usd'] or 0),
+            'balance_bs': overall_project['balance_bs'] or 0,
+            'balance_real_usd': overall_project['balance_real_usd'] or 0,
+            'org_balance_usd': (overall_org['balance_usd'] or 0) + (overall_org['balance_real_usd'] or 0),
+            'org_balance_bs': overall_org['balance_bs'] or 0,
+            'org_balance_real_usd': overall_org['balance_real_usd'] or 0,
+            'income_usd': (overall_project['income_usd'] or 0) + (overall_project['income_real_usd'] or 0),
+            'income_bs': overall_project['income_bs'] or 0,
+            'income_real_usd': overall_project['income_real_usd'] or 0,
+            'expense_usd': abs((overall_project['expense_usd'] or 0) + (overall_project['expense_real_usd'] or 0)) + 
+                           (overall_project['fees_usd'] or 0) + (overall_project['fees_real_usd'] or 0),
+            'expense_bs': abs(overall_project['expense_bs'] or 0) + (overall_project['fees_bs'] or 0),
+            'expense_real_usd': abs(overall_project['expense_real_usd'] or 0) + (overall_project['fees_real_usd'] or 0),
+            # Filtros dinámicos
+            'filtered_balance_usd': (totals_project['balance_usd'] or 0) + (totals_project['balance_real_usd'] or 0),
+            'filtered_balance_bs': totals_project['balance_bs'] or 0,
+        },
+        'tx_filter_options': [
+            ('all', 'Todas las transacciones'),
+            ('bcv', 'Transacciones BCV'),
+            ('real', 'Transacciones Dólares Reales'),
+        ],
     })
 
 # --- Valuaciones ---
 
 @login_required
+@viewer_restricted
 def guardar_valuacion(request, proj_id, val_id=None):
     org_id = request.session.get('org_id')
     org = get_object_or_404(Organization, id=org_id)
@@ -1343,6 +1754,7 @@ def guardar_valuacion(request, proj_id, val_id=None):
     return redirect('detalle_proyecto', proj_id=project.id)
 
 @login_required
+@viewer_restricted
 def eliminar_valuacion(request, val_id):
     org_id = request.session.get('org_id')
     org = get_object_or_404(Organization, id=org_id)

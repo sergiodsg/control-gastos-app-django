@@ -1,5 +1,5 @@
 .home-kpi-primary .cf-stat-value {
-    font-size: 2.25rem;
+    line-height: 1.2;
 }
 
 .home-kpi-primary .cf-card__body {
@@ -8,7 +8,6 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-height: 180px;
 }
 
 .home-kpi-primary .cf-icon {

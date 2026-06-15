@@ -89,5 +89,7 @@ class SuperadminPanelTests(TestCase):
         account = Account.objects.get(organization__name='Empresa USD')
         self.assertEqual(account.currency, Account.CURRENCY_USD)
         tx = Transaction.objects.get(account=account)
-        self.assertEqual(tx.amount_usd, 250)
-        self.assertGreater(tx.amount_bs, 0)
+        self.assertEqual(tx.real_dollars, 250)
+        self.assertEqual(tx.amount_usd, 0)
+        self.assertEqual(tx.amount_bs, 0)
+

@@ -16,6 +16,7 @@ urlpatterns = [
     path('transacciones/eliminar/<int:trans_id>/', views.eliminar_transaccion, name='eliminar_transaccion'),
     path('transacciones/detalle/<int:trans_id>/', views.detalle_transaccion, name='detalle_transaccion'),
     path('transacciones/exportar-pdf/', views.exportar_pdf_transacciones, name='exportar_pdf_transacciones'),
+    path('transacciones/exportar-xlsx/', views.exportar_xlsx_transacciones, name='exportar_xlsx_transacciones'),
     
     # Categorías
     path('categorias/', views.lista_categorias, name='lista_categorias'),

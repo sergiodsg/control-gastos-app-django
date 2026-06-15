@@ -35,9 +35,11 @@
 </div>
 
 <div class="cf-mt-4 cf-text-end">
+    {% if not user_is_viewer %}
     <button type="button" class="cf-btn cf-btn--primary cf-btn--lg" id="save-config">
         Guardar cambios
     </button>
+    {% endif %}
 </div>
 {% endblock %}
 

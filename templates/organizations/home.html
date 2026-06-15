@@ -15,11 +15,33 @@
 
 <div class="cf-grid cf-grid--kpi cf-mb-4">
     <div class="cf-card cf-card--primary home-kpi-primary">
-        <div class="cf-card__body cf-p-5">
-            <i class="fa-solid fa-building-columns cf-icon"></i>
-            <h5 class="cf-mb-2" style="opacity: 0.85;">Balance Actual</h5>
-            <div class="cf-stat-value currency-usd-content">${{ balance_usd|floatformat:2 }}</div>
-            <div class="cf-stat-value currency-bs-content cf-hidden">Bs. {{ balance_bs|floatformat:2 }}</div>
+        <div class="cf-card__body cf-p-4">
+            <div class="cf-flex cf-items-center cf-justify-between cf-w-full cf-mb-3">
+                <div class="cf-flex cf-items-center cf-gap-2" style="margin-right: 2rem;">
+                    <i class="fa-solid fa-wallet" style="font-size: 1.2rem; opacity: 0.9;"></i>
+                    <h5 class="cf-mb-0" style="opacity: 0.85; font-weight: 600; font-size: 0.9rem; letter-spacing: 0.5px;">VISTA GLOBAL</h5>
+                </div>
+                <!-- Toggle de Vista -->
+                <div class="cf-tab-group" style="padding: 4px; border-radius: var(--radius-md); background: rgba(255,255,255,0.18); border: none; gap: 4px; margin-right: 4px;">
+                    <a href="?view_mode=bcv&income_filter={{ income_filter }}&expense_filter={{ expense_filter }}" class="cf-tab {% if view_mode == 'bcv' %}is-active{% endif %}" style="padding: 6px 16px; font-size: 0.75rem; border-radius: var(--radius-sm); color: #fff; min-width: 60px; justify-content: center;">BCV</a>
+                    <a href="?view_mode=real&income_filter={{ income_filter }}&expense_filter={{ expense_filter }}" class="cf-tab {% if view_mode == 'real' %}is-active{% endif %}" style="padding: 6px 16px; font-size: 0.75rem; border-radius: var(--radius-sm); color: #fff; min-width: 60px; justify-content: center;">Dólares</a>
+                </div>
+            </div>
+            
+            <div class="cf-flex cf-w-full cf-items-center cf-justify-around cf-gap-4">
+                <div class="cf-text-center">
+                    <small style="display:block; opacity: 0.7; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">BCV</small>
+                    <div class="cf-stat-value currency-usd-content" style="font-size: 1.4rem; font-weight: 700;">${{ balance_usd|floatformat:2 }}</div>
+                    <div class="cf-stat-value currency-bs-content cf-hidden" style="font-size: 1.4rem; font-weight: 700;">Bs. {{ balance_bs|floatformat:2 }}</div>
+                </div>
+                
+                <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.25);"></div>
+
+                <div class="cf-text-center">
+                    <small style="display:block; opacity: 0.7; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Dólares</small>
+                    <div class="cf-stat-value" style="font-size: 1.4rem; font-weight: 700;">${{ balance_real_usd|floatformat:2 }}</div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -27,15 +49,20 @@
         <div class="cf-card__body cf-p-5">
             <div class="cf-flex cf-justify-between cf-items-start cf-mb-3">
                 <div>
-                    <h5 class="cf-text-muted cf-mb-1">Ingresos</h5>
+                    <h5 class="cf-text-muted cf-mb-1">Ingresos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
+                    {% if view_mode == 'real' %}
+                    <div class="cf-stat-value cf-text-success">${{ income_real_usd|floatformat:2 }}</div>
+                    {% else %}
                     <div class="cf-stat-value cf-text-success currency-usd-content">${{ income_usd|floatformat:2 }}</div>
                     <div class="cf-stat-value cf-text-success currency-bs-content cf-hidden">Bs. {{ income_bs|floatformat:2 }}</div>
+                    {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--success">
                     <i class="fa-solid fa-arrow-trend-up"></i>
                 </div>
             </div>
             <form method="get" class="cf-mt-4">
+                <input type="hidden" name="view_mode" value="{{ view_mode }}">
                 <label class="cf-stat-label">Filtrar por período:</label>
                 <select name="income_filter" class="cf-select cf-input--sm" onchange="this.form.submit()">
                     {% for value, label in filter_options %}
@@ -51,15 +78,20 @@
         <div class="cf-card__body cf-p-5">
             <div class="cf-flex cf-justify-between cf-items-start cf-mb-3">
                 <div>
-                    <h5 class="cf-text-muted cf-mb-1">Gastos</h5>
+                    <h5 class="cf-text-muted cf-mb-1">Gastos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
+                    {% if view_mode == 'real' %}
+                    <div class="cf-stat-value cf-text-danger">${{ expense_real_usd|floatformat:2 }}</div>
+                    {% else %}
                     <div class="cf-stat-value cf-text-danger currency-usd-content">${{ expense_usd|floatformat:2 }}</div>
                     <div class="cf-stat-value cf-text-danger currency-bs-content cf-hidden">Bs. {{ expense_bs|floatformat:2 }}</div>
+                    {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--danger">
                     <i class="fa-solid fa-arrow-trend-down"></i>
                 </div>
             </div>
             <form method="get" class="cf-mt-4">
+                <input type="hidden" name="view_mode" value="{{ view_mode }}">
                 <label class="cf-stat-label">Filtrar por período:</label>
                 <select name="expense_filter" class="cf-select cf-input--sm" onchange="this.form.submit()">
                     {% for value, label in filter_options %}
@@ -259,7 +291,7 @@
             colors: {{ chart_data.cat_colors|safe }},
             chart: { ...commonOptions.chart, type: 'donut' },
             legend: { position: 'bottom' },
-            tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
+            tooltip: { y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toFixed(2)}` } }
         }).render();
 
         // 2. Ingresos vs Gastos (Totales)
@@ -274,7 +306,7 @@
             chart: { ...commonOptions.chart, type: 'bar' },
             plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4 } },
             legend: { show: false },
-            tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
+            tooltip: { y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toFixed(2)}` } }
         }).render();
 
         // 3. Evolución del Saldo
@@ -289,7 +321,7 @@
             chart: { ...commonOptions.chart, type: 'area' },
             stroke: { curve: 'smooth', width: 2 },
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } },
-            tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `$${v.toFixed(2)}` } }
+            tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toFixed(2)}` } }
         }).render();
     });
 </script>

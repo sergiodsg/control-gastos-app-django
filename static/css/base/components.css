@@ -18,6 +18,15 @@
     cursor: pointer;
 }
 
+.cf-btn:disabled,
+.cf-btn[disabled] {
+    opacity: 0.55;
+    cursor: not-allowed !important;
+    pointer-events: none;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
 .cf-btn--primary {
     background: var(--color-morado);
     color: #fff;

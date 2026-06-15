@@ -17,28 +17,68 @@
         </nav>
     </div>
     <div class="cf-flex cf-gap-2 tx-actions">
-        <a href="{% url 'exportar_pdf_transacciones' %}?filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="cf-btn cf-btn--outline-danger" target="_blank">
-            <i class="fa-solid fa-file-pdf"></i> <span class="cf-hidden-sm-label">Reporte PDF</span>
-        </a>
+        <div class="cf-dropdown">
+            <button type="button" class="cf-btn cf-btn--outline-danger" data-cf-dropdown>
+                <i class="fa-solid fa-file-pdf"></i> <span class="cf-hidden-sm-label">Reporte PDF</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
+            </button>
+            <div class="cf-dropdown__menu">
+                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}" class="cf-dropdown__item" target="_blank">
+                    <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
+                </a>
+                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}" class="cf-dropdown__item" target="_blank">
+                    <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
+                </a>
+            </div>
+        </div>
+        <div class="cf-dropdown">
+            <button type="button" class="cf-btn cf-btn--outline-success" data-cf-dropdown>
+                <i class="fa-solid fa-file-excel"></i> <span class="cf-hidden-sm-label">Reporte Excel</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
+            </button>
+            <div class="cf-dropdown__menu">
+                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}" class="cf-dropdown__item" target="_blank">
+                    <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
+                </a>
+                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}" class="cf-dropdown__item" target="_blank">
+                    <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
+                </a>
+            </div>
+        </div>
+        {% if not user_is_viewer %}
         <button type="button" class="cf-btn cf-btn--primary" data-cf-modal="transactionModal" onclick="resetForm()">
             <i class="fa-solid fa-plus"></i> Transacción
         </button>
+        {% endif %}
     </div>
 </div>
 
+<div id="transactions-container">
 <div class="cf-grid cf-grid--kpi cf-mb-4">
     <div class="cf-card cf-card--primary">
         <div class="cf-card__body cf-p-5">
-            <i class="fa-solid fa-building-columns cf-icon"></i>
-            <h5 class="cf-mb-2" style="opacity: 0.85;">Balance Filtrado</h5>
-            <div class="currency-usd-content">
-                <div class="cf-stat-value cf-text-white cf-fw-bold">${{ totals.balance_usd|floatformat:2 }}</div>
-                <div style="opacity: 0.85;" class="cf-fs-sm">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+            <div class="cf-flex cf-items-center cf-justify-between cf-w-full cf-mb-3">
+                <div class="cf-flex cf-items-center cf-gap-2">
+                    <i class="fa-solid fa-building-columns cf-icon"></i>
+                    <h5 class="cf-mb-0" style="opacity: 0.85; font-weight: 600; font-size: 0.9rem;">BALANCE FILTRADO</h5>
+                </div>
+                <!-- Toggle de Vista -->
+                <div class="cf-tab-group" style="padding: 3px; border-radius: var(--radius-md); background: rgba(255,255,255,0.15); border: none; gap: 2px;">
+                    <a href="?view_mode=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&sort={{ sort }}&tx_filter={{ tx_filter }}" class="cf-tab {% if view_mode == 'bcv' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm); color: #fff;">BCV</a>
+                    <a href="?view_mode=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&sort={{ sort }}&tx_filter={{ tx_filter }}" class="cf-tab {% if view_mode == 'real' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm); color: #fff;">Dólares</a>
+                </div>
             </div>
-            <div class="currency-bs-content cf-hidden">
-                <div class="cf-stat-value cf-text-white cf-fw-bold">Bs. {{ totals.balance_bs|floatformat:2 }}</div>
-                <div style="opacity: 0.85;" class="cf-fs-sm">${{ totals.balance_usd|floatformat:2 }}</div>
-            </div>
+
+            {% if view_mode == 'real' %}
+                <div class="cf-stat-value cf-text-white cf-fw-bold">${{ totals.balance_real_usd|floatformat:2 }}</div>
+            {% else %}
+                <div class="currency-usd-content">
+                    <div class="cf-stat-value cf-text-white cf-fw-bold">${{ totals.balance_usd|floatformat:2 }}</div>
+                    <div style="opacity: 0.85;" class="cf-fs-sm">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+                </div>
+                <div class="currency-bs-content cf-hidden">
+                    <div class="cf-stat-value cf-text-white cf-fw-bold">Bs. {{ totals.balance_bs|floatformat:2 }}</div>
+                    <div style="opacity: 0.85;" class="cf-fs-sm">${{ totals.balance_usd|floatformat:2 }}</div>
+                </div>
+            {% endif %}
         </div>
     </div>
 
@@ -46,15 +86,19 @@
         <div class="cf-card__body cf-p-5">
             <div class="cf-flex cf-justify-between cf-items-start cf-mb-2">
                 <div>
-                    <h5 class="cf-text-muted cf-mb-1">Ingresos</h5>
-                    <div class="currency-usd-content">
-                        <div class="cf-stat-value cf-text-success">${{ totals.income_usd|floatformat:2 }}</div>
-                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">{{ totals.income_bs|floatformat:2 }} Bs.</div>
-                    </div>
-                    <div class="currency-bs-content cf-hidden">
-                        <div class="cf-stat-value cf-text-success">Bs. {{ totals.income_bs|floatformat:2 }}</div>
-                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">${{ totals.income_usd|floatformat:2 }}</div>
-                    </div>
+                    <h5 class="cf-text-muted cf-mb-1">Ingresos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
+                    {% if view_mode == 'real' %}
+                        <div class="cf-stat-value cf-text-success">${{ totals.income_real_usd|floatformat:2 }}</div>
+                    {% else %}
+                        <div class="currency-usd-content">
+                            <div class="cf-stat-value cf-text-success">${{ totals.income_usd|floatformat:2 }}</div>
+                            <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">{{ totals.income_bs|floatformat:2 }} Bs.</div>
+                        </div>
+                        <div class="currency-bs-content cf-hidden">
+                            <div class="cf-stat-value cf-text-success">Bs. {{ totals.income_bs|floatformat:2 }}</div>
+                            <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">${{ totals.income_usd|floatformat:2 }}</div>
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--success">
                     <i class="fa-solid fa-arrow-trend-up"></i>
@@ -67,15 +111,19 @@
         <div class="cf-card__body cf-p-5">
             <div class="cf-flex cf-justify-between cf-items-start cf-mb-2">
                 <div>
-                    <h5 class="cf-text-muted cf-mb-1">Gastos</h5>
-                    <div class="currency-usd-content">
-                        <div class="cf-stat-value cf-text-danger">${{ totals.expense_usd|floatformat:2 }}</div>
-                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
-                    </div>
-                    <div class="currency-bs-content cf-hidden">
-                        <div class="cf-stat-value cf-text-danger">Bs. {{ totals.expense_bs|floatformat:2 }}</div>
-                        <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">${{ totals.expense_usd|floatformat:2 }}</div>
-                    </div>
+                    <h5 class="cf-text-muted cf-mb-1">Gastos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
+                    {% if view_mode == 'real' %}
+                        <div class="cf-stat-value cf-text-danger">${{ totals.expense_real_usd|floatformat:2 }}</div>
+                    {% else %}
+                        <div class="currency-usd-content">
+                            <div class="cf-stat-value cf-text-danger">${{ totals.expense_usd|floatformat:2 }}</div>
+                            <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
+                        </div>
+                        <div class="currency-bs-content cf-hidden">
+                            <div class="cf-stat-value cf-text-danger">Bs. {{ expense_bs|floatformat:2 }}</div>
+                            <div class="cf-fw-medium cf-fs-sm" style="opacity: 0.75;">${{ totals.expense_usd|floatformat:2 }}</div>
+                        </div>
+                    {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--danger">
                     <i class="fa-solid fa-arrow-trend-down"></i>
@@ -103,6 +151,16 @@
                 <option value="">Todas las categorías</option>
                 {% for cat in categories %}
                 <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 2b. Tipo de Transacción -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Tipo:</label>
+            <select name="tx_filter" class="cf-select cf-input--sm dynamic-search">
+                {% for value, label in tx_filter_options %}
+                <option value="{{ value }}" {% if tx_filter == value %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -142,8 +200,8 @@
             <table class="cf-table cf-table--resizable">
                 <thead>
                     <tr>
-                        <th class="cf-ps-4 col-date">
-                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                        <th class="cf-ps-4">
+                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&view_mode={{ view_mode }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
                                 Fecha
                                 {% if sort == 'asc' %}
                                 <i class="fa-solid fa-sort-up"></i>
@@ -152,6 +210,7 @@
                                 {% endif %}
                             </a>
                         </th>
+
                         <th class="col-desc">Descripción</th>
                         <th class="col-amount">Monto (USD)</th>
                         <th class="col-amount cf-only-lg-up">Monto (BS)</th>
@@ -166,9 +225,18 @@
                     <tr>
                         <td class="cf-ps-4 col-date">{{ trans.date|date:"d/m" }}<span class="cf-only-md-up">/{{ trans.date|date:"Y" }}</span></td>
                         <td class="col-desc" title="{{ trans.description }}">{{ trans.description }}</td>
-                        <td class="cf-fw-bold col-amount {% if trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ trans.amount_usd|floatformat:2 }} $</td>
-                        <td class="cf-text-muted cf-fs-sm col-amount cf-only-lg-up">{{ trans.amount_bs|floatformat:2 }} Bs.</td>
-                        <td class="col-rate cf-only-xl-up">{{ trans.daily_rate|floatformat:2 }}</td>
+                        <td class="cf-fw-bold col-amount {% if trans.real_dollars < 0 or trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">
+                            {% if trans.real_dollars %}{{ trans.real_dollars|floatformat:2 }} $
+                            {% else %}{{ trans.amount_usd|floatformat:2 }} ${% endif %}
+                        </td>
+                        <td class="cf-text-muted cf-fs-sm col-amount cf-only-lg-up">
+                            {% if trans.real_dollars %}-
+                            {% else %}{{ trans.amount_bs|floatformat:2 }} Bs.{% endif %}
+                        </td>
+                        <td class="col-rate cf-only-xl-up">
+                            {% if trans.real_dollars %}-
+                            {% else %}{{ trans.daily_rate|floatformat:2 }}{% endif %}
+                        </td>
                         <td class="col-category cf-only-md-up">
                             {% if trans.category %}
                             <span class="cf-badge cf-badge--pill" style="background-color: {{ trans.category.color }}; color: #fff; border: none;">{{ trans.category.name }}</span>
@@ -182,10 +250,12 @@
                         <td class="cf-text-end cf-pe-4 col-actions">
                             <div class="cf-btn-group">
                                 <button class="cf-btn cf-btn--sm cf-btn--outline-secondary" onclick="viewDetail({{ trans.id }})" title="Ver"><i class="fa-solid fa-eye"></i></button>
-                                <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{{ trans.category.id|default:"" }}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
-                                <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editTransaction({{ trans.id }}, '{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{{ trans.category.id|default:"" }}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+                                {% if not user_is_viewer %}
+                                <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{{ trans.category.id|default:"" }}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
+                                <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editTransaction({{ trans.id }}, '{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{{ trans.category.id|default:"" }}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
 
                                 <button class="cf-btn cf-btn--sm cf-btn--outline-danger" onclick="confirmDelete({{ trans.id }})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+                                {% endif %}
                             </div>
                         </td>
 
@@ -206,15 +276,16 @@
     {% if page_obj.has_other_pages %}
     <nav class="cf-mt-4">
         <ul class="cf-pagination">
-            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="ajax-link">Anterior</a></li>{% endif %}
+            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&view_mode={{ view_mode }}" class="ajax-link">Anterior</a></li>{% endif %}
             {% for i in page_obj.paginator.page_range %}
             {% if page_obj.number == i %}<li class="is-active"><span>{{ i }}</span></li>
-            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="ajax-link">{{ i }}</a></li>{% endif %}
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&view_mode={{ view_mode }}" class="ajax-link">{{ i }}</a></li>{% endif %}
             {% endfor %}
-            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}" class="ajax-link">Siguiente</a></li>{% endif %}
+            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&view_mode={{ view_mode }}" class="ajax-link">Siguiente</a></li>{% endif %}
         </ul>
     </nav>
     {% endif %}
+</div> <!-- End of transactions-container -->
 </div>
 
 <div class="cf-modal" id="transactionModal" tabindex="-1" aria-hidden="true">
@@ -250,7 +321,21 @@
 
                         <div class="cf-hidden">{{ form.amount_usd }}{{ form.amount_bs }}</div>
                     </div>
+
                     <div class="cf-form-group">
+                        <div class="cf-flex cf-justify-between cf-items-center cf-mb-2">
+                            <label class="cf-label cf-mb-0">Dólares Reales</label>
+                            <div class="cf-switch cf-mb-0">
+                                <input type="checkbox" id="realDollarSwitch">
+                                <label for="realDollarSwitch" class="cf-fs-sm">Usar Dólares Reales</label>
+                            </div>
+                        </div>
+                        <div id="realDollarInputContainer" style="display: none;">
+                            {{ form.real_dollars }}
+                        </div>
+                    </div>
+
+                    <div class="cf-form-group" id="dailyRateContainer">
                         <div class="cf-flex cf-justify-between cf-items-center cf-mb-2">
                             <label class="cf-label cf-mb-0">Tasa del día</label>
                             <div class="cf-switch cf-mb-0">
@@ -269,6 +354,40 @@
                     <div class="cf-form-group"><label class="cf-label">Proyecto</label>{{ form.project }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ form.description }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Notas</label>{{ form.notes }}</div>
+
+                    <!-- Comisión Bancaria -->
+                    <div class="cf-form-group" style="grid-column: 1 / -1;">
+                        <div class="cf-flex cf-items-center cf-gap-2">
+                            <input type="checkbox" id="has_bank_fee" class="cf-checkbox">
+                            <label for="has_bank_fee" class="cf-label cf-mb-0" style="cursor: pointer;">Tiene comisión bancaria</label>
+                        </div>
+                    </div>
+
+                    <div id="bankFeeContainer" style="display: none; grid-column: 1 / -1; background: var(--color-light); padding: 1rem; border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+                        <div class="cf-form-row">
+                            <!-- Comisión BCV -->
+                            <div class="cf-form-group cf-mb-0" id="bcvFeeInputGroup">
+                                <label class="cf-label cf-flex cf-justify-between">
+                                    Monto Comisión (BCV)
+                                    <button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="feeCurrencyToggleBtn">Cambiar a <span id="nextFeeCurrencyLabel">BS</span></button>
+                                </label>
+                                <div class="cf-input-group">
+                                    <span class="cf-input-group__addon" id="feeCurrencyAddon">$</span>
+                                    <input type="number" step="0.01" class="cf-input" id="id_bank_fee_display" placeholder="0.00">
+                                </div>
+                                <div class="cf-hidden">{{ form.bank_fee_usd }}{{ form.bank_fee_bs }}</div>
+                            </div>
+                            <!-- Comisión Real -->
+                            <div class="cf-form-group cf-mb-0" id="realFeeInputGroup" style="display: none;">
+                                <label class="cf-label">Monto Comisión (Dólares)</label>
+                                <div class="cf-input-group">
+                                    <span class="cf-input-group__addon">$</span>
+                                    {{ form.bank_fee_real_usd }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="cf-form-group cf-mb-0" id="valuationContainer" style="grid-column: 1 / -1; display: none;">
                         <label class="cf-label">Valuación (Créditos)</label>{{ form.valuation }}
                     </div>
@@ -276,7 +395,9 @@
             </div>
             <div class="cf-modal__footer">
                 <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button>
+                {% if not user_is_viewer %}
                 <button type="submit" class="cf-btn cf-btn--primary">Guardar</button>
+                {% endif %}
             </div>
         </form>
     </div>
@@ -307,7 +428,9 @@
             <form id="deleteForm" method="post" action="">
                 {% csrf_token %}
                 <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button>
+                {% if not user_is_viewer %}
                 <button type="submit" class="cf-btn cf-btn--danger">Eliminar</button>
+                {% endif %}
             </form>
         </div>
     </div>
@@ -321,7 +444,8 @@
         crearUrl: "{% url 'crear_transaccion' %}",
         bcvRate: parseFloat("{{ bcv_rate|unlocalize }}") || 1,
         bcvRatesUrl: "{% url 'bcv_rates_api' %}",
-        projectsData: JSON.parse('{{ projects_data|safe|default:"{}" }}')
+        projectsData: JSON.parse('{{ projects_data|safe|default:"{}" }}'),
+        accountsData: JSON.parse('{{ accounts_data|safe|default:"{}" }}')
     });
 </script>
 {% endblock %}

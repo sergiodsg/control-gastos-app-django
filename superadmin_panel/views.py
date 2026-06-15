@@ -201,7 +201,7 @@ def organizaciones(request):
 @superadmin_required
 def usuarios(request):
     users = (
-        User.objects.annotate(
+        User.objects.select_related('profile').annotate(
             orgs_count=Count('organization_accesses', distinct=True),
         )
         .order_by('username')
@@ -225,17 +225,22 @@ def guardar_usuario(request, user_id=None):
     form = form_class(request.POST, instance=user)
     if form.is_valid():
         if user:
-            saved = form.save(commit=False)
+            # Si estamos editando un usuario existente
             if user.pk == request.user.pk:
-                saved.is_superuser = True
-                if not saved.is_active:
-                    messages.error(request, 'No puede desactivar su propia cuenta.')
-                    return redirect('superadmin_usuarios')
-            saved.save()
+                # El superadmin actual no puede desactivarse ni quitarse el superuser desde aquí
+                user_obj = form.save(commit=False)
+                user_obj.is_superuser = True
+                user_obj.is_active = True
+                user_obj.save()
+                form.save_m2m() # Importante para guardar el perfil (vía lógica del form)
+            else:
+                form.save()
         else:
-            saved = form.save()
+            # Nuevo usuario
+            form.save()
+        
         action = 'actualizado' if user else 'creado'
-        messages.success(request, f'Usuario "{saved.username}" {action} correctamente.')
+        messages.success(request, f'Usuario "{form.instance.username}" {action} correctamente.')
     else:
         messages.error(request, 'No se pudo guardar el usuario. Verifique los datos.')
     return redirect('superadmin_usuarios')

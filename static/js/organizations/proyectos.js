@@ -1,5 +1,6 @@
 function initProyectos(config) {
     function resetForm() {
+        if (window.userIsViewer) return;
         document.getElementById('projectForm').reset();
         document.getElementById('projectForm').action = config.crearUrl;
         document.getElementById('modalTitle').innerText = 'Nuevo Proyecto';
@@ -8,6 +9,7 @@ function initProyectos(config) {
     window.resetForm = resetForm;
 
     window.editProject = function (id, name, description) {
+        if (window.userIsViewer) return;
         const form = document.getElementById('projectForm');
         form.action = '/proyectos/guardar/' + id + '/';
         document.getElementById('modalTitle').innerText = 'Editar Proyecto';
@@ -17,6 +19,7 @@ function initProyectos(config) {
     };
 
     window.confirmDelete = function (id) {
+        if (window.userIsViewer) return;
         document.getElementById('deleteForm').action = '/proyectos/eliminar/' + id + '/';
         CFModal.open('deleteModal');
     };

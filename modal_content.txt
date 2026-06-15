@@ -1,0 +1,71 @@
+<div class="cf-modal" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--lg">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title" id="transactionModalTitle">Nueva Transacción</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <input type="hidden" name="project" value="{{ project.id }}">
+            <div class="cf-modal__body">
+                <div class="cf-form-group">
+                    <label class="cf-label">Tipo de Transacción</label>
+                    <div class="cf-radio-group">
+                        <input type="radio" name="transaction_type" id="type_egreso" value="egreso" checked>
+                        <label class="cf-radio--danger" for="type_egreso"><i class="fa-solid fa-circle-minus cf-me-1"></i>Egreso</label>
+                        <input type="radio" name="transaction_type" id="type_ingreso" value="ingreso">
+                        <label class="cf-radio--success" for="type_ingreso"><i class="fa-solid fa-circle-plus cf-me-1"></i>Ingreso</label>
+                    </div>
+                </div>
+                <div class="cf-form-row">
+                    <div class="cf-form-group"><label class="cf-label">Fecha</label>{{ trans_form.date }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Estado</label>{{ trans_form.status }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Organización</label>{{ trans_form.organization }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Cuenta</label>{{ trans_form.account }}</div>
+                    <div class="cf-form-group">
+                        <label class="cf-label cf-flex cf-justify-between">Monto<button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="t_currencyToggleBtn">Cambiar a <span id="t_nextCurrencyLabel">BS</span></button></label>
+                        <div class="cf-input-group"><span class="cf-input-group__addon" id="t_currencyAddon">$</span><input type="number" step="0.01" class="cf-input" id="id_t_amount_display" placeholder="0.00" required></div>
+                        <div class="cf-hidden">{{ trans_form.amount_usd }}{{ trans_form.amount_bs }}</div>
+                    </div>
+                    <div class="cf-form-group">
+                        <div class="cf-flex cf-justify-between cf-items-center cf-mb-2"><label class="cf-label cf-mb-0">Tasa del día</label><div class="cf-switch"><input type="checkbox" id="t_manualRateSwitch"><label for="t_manualRateSwitch" class="cf-fs-sm">Tasa manual</label></div></div>
+                        {{ trans_form.daily_rate }}
+                    </div>
+                    <div class="cf-form-group"><label class="cf-label">Referencia</label>{{ trans_form.reference_number }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Categoría</label>{{ trans_form.category }}</div>
+                    <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ trans_form.description }}</div>
+                    <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Notas</label>{{ trans_form.notes }}</div>
+                    <div class="cf-form-group cf-mb-0" style="grid-column: 1 / -1;"><label class="cf-label">Valuación</label>{{ trans_form.valuation }}</div>
+                </div>
+            </div>
+            <div class="cf-modal__footer">
+                <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button>
+                <button type="submit" class="cf-btn cf-btn--primary">Guardar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="cf-modal" id="detailModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--lg">
+        <div class="cf-modal__header" style="background: var(--color-info); color: #fff; border-radius: var(--radius-lg) var(--radius-lg) 0 0;">
+            <h5 class="cf-modal__title">Detalle de Transacción</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <div class="cf-modal__body" id="detailContent">
+            <div class="cf-text-center cf-p-5"><div class="cf-spinner"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="cf-modal" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog">
+        <div class="cf-modal__header cf-modal__header--danger"><h5 class="cf-modal__title">Confirmar Eliminación</h5><button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button></div>
+        <div class="cf-modal__body">¿Está seguro de que desea eliminar esta transacción? Esta acción no se puede deshacer.</div>
+        <div class="cf-modal__footer"><form id="deleteForm" method="post" action="">{% csrf_token %}<button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cancelar</button><button type="submit" class="cf-btn cf-btn--danger">Eliminar</button></form></div>
+    </div>
+</div>

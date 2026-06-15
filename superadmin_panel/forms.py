@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 
 from BCV.models import ExchangeRateHistory
 from organizations.models import Organization
+from accounts.models import Profile
 
 
 class SuperadminUserCreateForm(UserCreationForm):
@@ -26,6 +27,12 @@ class SuperadminUserCreateForm(UserCreationForm):
         label='Apellido',
         widget=forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Apellido'}),
     )
+    edit = forms.ChoiceField(
+        choices=Profile.ROLE_CHOICES,
+        initial='Editor',
+        label='Edit (Permisos)',
+        widget=forms.Select(attrs={'class': 'cf-select'}),
+    )
     is_active = forms.BooleanField(required=False, initial=True, label='Activo')
     is_staff = forms.BooleanField(required=False, initial=False, label='Staff')
     is_superuser = forms.BooleanField(required=False, initial=False, label='Superadministrador')
@@ -34,7 +41,7 @@ class SuperadminUserCreateForm(UserCreationForm):
         model = User
         fields = (
             'username', 'first_name', 'last_name', 'email',
-            'password1', 'password2', 'is_active', 'is_staff', 'is_superuser',
+            'password1', 'password2', 'edit', 'is_active', 'is_staff', 'is_superuser',
         )
 
     def __init__(self, *args, **kwargs):
@@ -49,6 +56,19 @@ class SuperadminUserCreateForm(UserCreationForm):
                 'placeholder': '********',
             })
 
+    def save(self, commit=True):
+        user = super().save(commit=False)
+        if commit:
+            user.save()
+        
+        # Guardar el perfil si el usuario ya existe o fue guardado
+        if user.pk:
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.edit = self.cleaned_data.get('edit')
+            profile.save()
+            
+        return user
+
 
 class SuperadminUserEditForm(forms.ModelForm):
     new_password = forms.CharField(
@@ -61,19 +81,30 @@ class SuperadminUserEditForm(forms.ModelForm):
         label='Confirmar contraseña',
         widget=forms.PasswordInput(attrs={'class': 'cf-input', 'placeholder': 'Repetir contraseña'}),
     )
+    edit = forms.ChoiceField(
+        choices=Profile.ROLE_CHOICES,
+        label='Edit (Permisos)',
+        widget=forms.Select(attrs={'class': 'cf-select'}),
+    )
     is_active = forms.BooleanField(required=False, label='Activo')
     is_staff = forms.BooleanField(required=False, label='Staff')
     is_superuser = forms.BooleanField(required=False, label='Superadministrador')
 
     class Meta:
         model = User
-        fields = ('username', 'first_name', 'last_name', 'email', 'is_active', 'is_staff', 'is_superuser')
+        fields = ('username', 'first_name', 'last_name', 'email', 'edit', 'is_active', 'is_staff', 'is_superuser')
         widgets = {
             'username': forms.TextInput(attrs={'class': 'cf-input'}),
             'first_name': forms.TextInput(attrs={'class': 'cf-input'}),
             'last_name': forms.TextInput(attrs={'class': 'cf-input'}),
             'email': forms.EmailInput(attrs={'class': 'cf-input'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.instance and self.instance.pk:
+            profile, _ = Profile.objects.get_or_create(user=self.instance)
+            self.fields['edit'].initial = profile.edit
 
     def clean(self):
         cleaned = super().clean()
@@ -91,8 +122,16 @@ class SuperadminUserEditForm(forms.ModelForm):
         password = self.cleaned_data.get('new_password')
         if password:
             user.set_password(password)
+        
         if commit:
             user.save()
+            
+        # Guardar el perfil si el usuario ya existe o fue guardado
+        if user.pk:
+            profile, _ = Profile.objects.get_or_create(user=user)
+            profile.edit = self.cleaned_data.get('edit')
+            profile.save()
+            
         return user
 
 

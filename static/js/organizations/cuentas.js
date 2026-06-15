@@ -68,6 +68,7 @@ function initCuentas(config) {
     }
 
     window.resetForm = function () {
+        if (window.userIsViewer) return;
         form.reset();
         form.action = config.crearUrl;
         document.getElementById('modalTitle').innerText = 'Nueva Cuenta';
@@ -78,6 +79,7 @@ function initCuentas(config) {
     };
 
     window.editAccount = function (id) {
+        if (window.userIsViewer) return;
         var account = accountsData.find(function (item) { return item.id === id; });
         if (!account) return;
 
@@ -108,6 +110,7 @@ function initCuentas(config) {
     };
 
     window.confirmDelete = function (id) {
+        if (window.userIsViewer) return;
         document.getElementById('deleteForm').action = '/cuentas/eliminar/' + id + '/';
         CFModal.open('deleteModal');
     };

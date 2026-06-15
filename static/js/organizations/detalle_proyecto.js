@@ -5,6 +5,7 @@ function initDetalleProyecto(config) {
 
     // Funciones globales de transacción
     window.resetTransactionForm = function () {
+        if (window.userIsViewer) return;
         const form = document.getElementById('transactionForm');
         if (!form) return;
         form.reset();
@@ -36,11 +37,42 @@ function initDetalleProyecto(config) {
         
         tCurrentInputCurrency = 'USD';
         const tAmountDisplay = document.getElementById('id_t_amount_display');
-        if (tAmountDisplay) tAmountDisplay.value = '';
+        if (tAmountDisplay) {
+            tAmountDisplay.value = '';
+            tAmountDisplay.disabled = true;
+        }
+        
+        // Reset real dollars
+        const realSwitch = document.getElementById('realDollarSwitch');
+        if (realSwitch) {
+            realSwitch.checked = false;
+            realSwitch.disabled = true;
+        }
+        const realContainer = document.getElementById('realDollarInputContainer');
+        if (realContainer) realContainer.style.display = 'none';
+        
+        const dailyRateContainer = document.getElementById('dailyRateContainer');
+        if (dailyRateContainer) dailyRateContainer.style.display = 'block';
+
+        const tAmountUsd = form.querySelector('[name="amount_usd"]');
+        if (tAmountUsd && tAmountUsd.parentElement.parentElement) {
+            tAmountUsd.parentElement.parentElement.style.display = 'block';
+        }
+        
+        // Reset bank fee
+        const hasFee = document.getElementById('has_bank_fee');
+        if (hasFee) {
+            hasFee.checked = false;
+            hasFee.disabled = true;
+        }
+        const feeContainer = document.getElementById('bankFeeContainer');
+        if (feeContainer) feeContainer.style.display = 'none';
+
         updateTCurrencyUI();
     };
 
-    window.editTransaction = function (id, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
+    window.editTransaction = function (id, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd) {
+        if (window.userIsViewer) return;
         const form = document.getElementById('transactionForm');
         if (!form) return;
         form.action = '/transacciones/guardar/' + id + '/';
@@ -77,70 +109,77 @@ function initDetalleProyecto(config) {
         const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
         if (tManualRateSwitch) tManualRateSwitch.checked = true;
         
-        const valNum = parseFloat(usd.toString().replace(',', '.'));
+        // Real Dollars logic
+        const realDollarsNum = parseFloat((real_dollars || 0).toString().replace(',', '.'));
+        const realSwitch = document.getElementById('realDollarSwitch');
+        const realContainer = document.getElementById('realDollarInputContainer');
+        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        
+        if (tAmountDisplay) tAmountDisplay.disabled = false;
+        if (realSwitch) realSwitch.disabled = false;
+        
+        if (realDollarsNum !== 0) {
+            if (realSwitch) realSwitch.checked = true;
+            if (realContainer) realContainer.style.display = 'block';
+            form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
+            document.getElementById('dailyRateContainer').style.display = 'none';
+            if (tAmountDisplay) tAmountDisplay.parentElement.parentElement.style.display = 'none';
+        } else {
+            if (realSwitch) realSwitch.checked = false;
+            if (realContainer) realContainer.style.display = 'none';
+            document.getElementById('dailyRateContainer').style.display = 'block';
+            if (tAmountDisplay) tAmountDisplay.parentElement.parentElement.style.display = 'block';
+        }
+
+        const valNum = (realDollarsNum !== 0) ? realDollarsNum : parseFloat(usd.toString().replace(',', '.'));
         const egresoRadio = document.getElementById('type_egreso');
         const ingresoRadio = document.getElementById('type_ingreso');
         if (egresoRadio) egresoRadio.checked = valNum < 0;
         if (ingresoRadio) ingresoRadio.checked = valNum >= 0;
         
-        tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
-        const tAmountDisplay = document.getElementById('id_t_amount_display');
+        tCurrentInputCurrency = (realDollarsNum === 0 && parseFloat(usd.toString().replace(',', '.')) !== 0) ? 'USD' : 'BS';
         if (tAmountDisplay) tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.toString().replace(',', '.')) || 0);
         
+        // Bank Fee logic
+        const fBs = parseFloat((fee_bs || 0).toString().replace(',', '.'));
+        const fUsd = parseFloat((fee_usd || 0).toString().replace(',', '.'));
+        const fReal = parseFloat((fee_real_usd || 0).toString().replace(',', '.'));
+        
+        form.querySelector('[name="bank_fee_bs"]').value = fBs;
+        form.querySelector('[name="bank_fee_usd"]').value = fUsd;
+        form.querySelector('[name="bank_fee_real_usd"]').value = fReal;
+
+        const hasFee = document.getElementById('has_bank_fee');
+        if (hasFee) {
+            hasFee.disabled = false;
+            if (fBs > 0 || fUsd > 0 || fReal > 0) {
+                hasFee.checked = true;
+                document.getElementById('bankFeeContainer').style.display = 'block';
+                if (realDollarsNum !== 0) {
+                    document.getElementById('bcvFeeInputGroup').style.display = 'none';
+                    document.getElementById('realFeeInputGroup').style.display = 'block';
+                } else {
+                    document.getElementById('bcvFeeInputGroup').style.display = 'block';
+                    document.getElementById('realFeeInputGroup').style.display = 'none';
+                    // fee currency logic ...
+                }
+            } else {
+                hasFee.checked = false;
+                document.getElementById('bankFeeContainer').style.display = 'none';
+            }
+        }
+
         updateTCurrencyUI();
         CFModal.open('transactionModal');
     };
 
-    window.duplicateTransaction = function (orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId) {
+    window.duplicateTransaction = function (orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd) {
+        if (window.userIsViewer) return;
         window.resetTransactionForm();
+        window.editTransaction(0, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd);
         const form = document.getElementById('transactionForm');
-        if (!form) return;
         form.action = config.crearTransUrl;
         document.getElementById('transactionModalTitle').innerText = 'Duplicar Transacción (Nueva)';
-        
-        const dateField = form.querySelector('[name="date"]');
-        if (dateField) dateField.value = date;
-        
-        const orgSelect = form.querySelector('[name="organization"]');
-        if (orgSelect) {
-            orgSelect.value = orgId;
-            updateOrgFields(orgId, accId, catId);
-        }
-        
-        form.querySelector('[name="description"]').value = desc;
-        form.querySelector('[name="reference_number"]').value = ref;
-        form.querySelector('[name="notes"]').value = notes;
-        form.querySelector('[name="status"]').value = status;
-        
-        const vSelect = form.querySelector('[name="valuation"]');
-        if (vSelect) vSelect.value = valId;
-        
-        const tAmountBs = form.querySelector('[name="amount_bs"]');
-        const tAmountUsd = form.querySelector('[name="amount_usd"]');
-        const tRate = form.querySelector('[name="daily_rate"]');
-        
-        if (tAmountBs) tAmountBs.value = bs.toString().replace(',', '.');
-        if (tAmountUsd) tAmountUsd.value = usd.toString().replace(',', '.');
-        if (tRate) {
-            tRate.value = rate.toString().replace(',', '.');
-            tRate.disabled = false;
-        }
-        
-        const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
-        if (tManualRateSwitch) tManualRateSwitch.checked = true;
-        
-        const valNum = parseFloat(usd.toString().replace(',', '.'));
-        const egresoRadio = document.getElementById('type_egreso');
-        const ingresoRadio = document.getElementById('type_ingreso');
-        if (egresoRadio) egresoRadio.checked = valNum < 0;
-        if (ingresoRadio) ingresoRadio.checked = valNum >= 0;
-        
-        tCurrentInputCurrency = (valNum !== 0 && !isNaN(valNum)) ? 'USD' : 'BS';
-        const tAmountDisplay = document.getElementById('id_t_amount_display');
-        if (tAmountDisplay) tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.toString().replace(',', '.')) || 0);
-        
-        updateTCurrencyUI();
-        CFModal.open('transactionModal');
     };
 
     // Auxiliares internos
@@ -234,19 +273,142 @@ function initDetalleProyecto(config) {
         tAmountDisplay.classList.toggle('cf-text-success', !isEgreso);
     }
 
+    function updateDashboard() {
+        const container = document.getElementById('transactions-container');
+        if (!container) return;
+        container.style.opacity = '0.5';
+        const filterForm = document.querySelector('.cf-filter-form');
+        const formData = new URLSearchParams(new FormData(filterForm));
+        
+        // Preserve view_mode from active tab
+        const activeTab = document.querySelector('.cf-tab.is-active');
+        if (activeTab) {
+            const urlParams = new URLSearchParams(activeTab.getAttribute('href').split('?')[1]);
+            if (urlParams.has('view_mode')) formData.set('view_mode', urlParams.get('view_mode'));
+        }
+
+        const url = window.location.pathname + '?' + formData.toString();
+        fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.text())
+            .then(html => {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newContent = doc.getElementById('transactions-container');
+                const newKpis = doc.getElementById('projectSummaryCol');
+                if (newContent) container.innerHTML = newContent.innerHTML;
+                if (newKpis) document.getElementById('projectSummaryCol').innerHTML = newKpis.innerHTML;
+                window.history.pushState({}, '', url);
+            })
+            .finally(() => { container.style.opacity = '1'; });
+    }
+
     function setupTListeners() {
         const transactionForm = document.getElementById('transactionForm');
         if (!transactionForm) return;
 
         const orgSelect = transactionForm.querySelector('select[name="organization"]');
+        const accountSelect = transactionForm.querySelector('select[name="account"]');
         const tAmountDisplay = document.getElementById('id_t_amount_display');
         const tRate = transactionForm.querySelector('input[name="daily_rate"]');
         const tDate = transactionForm.querySelector('input[name="date"]');
         const tCurrencyToggleBtn = document.getElementById('t_currencyToggleBtn');
         const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
+        const realDollarSwitch = document.getElementById('realDollarSwitch');
+        const hasFeeCheck = document.getElementById('has_bank_fee');
 
         if (orgSelect) orgSelect.addEventListener('change', function () { updateOrgFields(this.value); });
         
+        if (accountSelect) {
+            accountSelect.addEventListener('change', function() {
+                const accId = this.value;
+                const hasAccount = !!accId;
+                
+                // Enable/Disable amount inputs
+                if (tAmountDisplay) tAmountDisplay.disabled = !hasAccount;
+                if (realDollarSwitch) realDollarSwitch.disabled = !hasAccount;
+                if (hasFeeCheck) hasFeeCheck.disabled = !hasAccount;
+
+                if (hasAccount) {
+                    const orgId = orgSelect.value;
+                    const orgData = orgsData[orgId];
+                    if (orgData && orgData.accounts) {
+                        const acc = orgData.accounts.find(a => a.id == accId);
+                        if (acc) {
+                            const isUSD = (acc.currency === 'USD');
+                            if (realDollarSwitch) {
+                                realDollarSwitch.checked = isUSD;
+                                realDollarSwitch.disabled = !isUSD;
+                                realDollarSwitch.dispatchEvent(new Event('change'));
+                            }
+                        }
+                    }
+                } else {
+                    if (realDollarSwitch) {
+                        realDollarSwitch.checked = false;
+                        realDollarSwitch.disabled = true;
+                        realDollarSwitch.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+        }
+
+        if (realDollarSwitch) {
+            realDollarSwitch.addEventListener('change', function() {
+                const isReal = this.checked;
+                document.getElementById('realDollarInputContainer').style.display = isReal ? 'block' : 'none';
+                document.getElementById('dailyRateContainer').style.display = isReal ? 'none' : 'block';
+                if (tAmountDisplay) tAmountDisplay.parentElement.parentElement.style.display = isReal ? 'none' : 'block';
+                if (tCurrencyToggleBtn) tCurrencyToggleBtn.style.display = isReal ? 'none' : 'inline-block';
+                
+                if (isReal) {
+                    document.getElementById('bcvFeeInputGroup').style.display = 'none';
+                    document.getElementById('realFeeInputGroup').style.display = 'block';
+                } else {
+                    document.getElementById('bcvFeeInputGroup').style.display = 'block';
+                    document.getElementById('realFeeInputGroup').style.display = 'none';
+                }
+            });
+        }
+
+        if (hasFeeCheck) {
+            hasFeeCheck.addEventListener('change', function() {
+                document.getElementById('bankFeeContainer').style.display = this.checked ? 'block' : 'none';
+            });
+        }
+
+        // Filtros dinámicos
+        const filterForm = document.querySelector('.cf-filter-form');
+        if (filterForm) {
+            const txFilterSelect = filterForm.querySelector('select[name="tx_filter"]');
+            if (txFilterSelect) {
+                txFilterSelect.addEventListener('change', function() {
+                    const val = this.value;
+                    const tabs = document.querySelectorAll('.cf-tab');
+                    if (val === 'real' || val === 'bcv') {
+                        tabs.forEach(tab => {
+                            const urlParams = new URLSearchParams(tab.getAttribute('href').split('?')[1]);
+                            const isMatch = (val === 'real' && urlParams.get('view_mode') === 'real') || 
+                                            (val === 'bcv' && urlParams.get('view_mode') === 'bcv');
+                            tab.classList.toggle('is-active', isMatch);
+                        });
+                    }
+                    updateDashboard();
+                });
+            }
+
+            filterForm.querySelectorAll('.dynamic-search').forEach(el => {
+                if (el.name === 'tx_filter') return; // Handled above
+                el.addEventListener('change', updateDashboard);
+                if (el.tagName === 'INPUT' && el.type === 'text') {
+                    let timer;
+                    el.addEventListener('input', () => {
+                        clearTimeout(timer);
+                        timer = setTimeout(updateDashboard, 500);
+                    });
+                }
+            });
+        }
+
         if (tCurrencyToggleBtn) {
             tCurrencyToggleBtn.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -283,11 +445,20 @@ function initDetalleProyecto(config) {
 
         if (transactionForm) {
             transactionForm.addEventListener('submit', function (e) {
-                const amount = parseFloat(tAmountDisplay.value) || 0;
-                if (amount === 0) {
-                    e.preventDefault();
-                    alert('El monto de la transacción no puede ser cero.');
-                    return;
+                if (realDollarSwitch && realDollarSwitch.checked) {
+                    const realVal = parseFloat(transactionForm.querySelector('[name="real_dollars"]').value) || 0;
+                    if (realVal === 0) {
+                        e.preventDefault();
+                        alert('El monto en dólares reales no puede ser cero.');
+                        return;
+                    }
+                } else {
+                    const amount = parseFloat(tAmountDisplay.value) || 0;
+                    if (amount === 0) {
+                        e.preventDefault();
+                        alert('El monto de la transacción no puede ser cero.');
+                        return;
+                    }
                 }
                 if (tRate) tRate.disabled = false;
             });
@@ -301,6 +472,7 @@ function initDetalleProyecto(config) {
     }
 
     window.confirmDeleteTransaction = function (id) {
+        if (window.userIsViewer) return;
         const delForm = document.getElementById('deleteForm');
         if (delForm) delForm.action = '/transacciones/eliminar/' + id + '/?next=' + encodeURIComponent(config.currentPath);
         CFModal.open('deleteModal');
@@ -321,22 +493,25 @@ function initDetalleProyecto(config) {
         const addBtn = document.getElementById('addValuationBtn');
         const container = document.getElementById('valuationsContainer');
         const summaryCol = document.getElementById('projectSummaryCol');
-        if (!container || !btn || !addBtn || !summaryCol) return;
+        if (!container || !btn || !summaryCol) return;
         
         if (container.classList.contains('cf-hidden')) {
             container.classList.remove('cf-hidden');
-            addBtn.style.display = 'inline-flex';
+            container.style.display = 'flex';
+            if (addBtn) addBtn.style.display = 'inline-flex';
             summaryCol.classList.add('project-summary-col--split');
             btn.innerHTML = '<i class="fa-solid fa-eye-slash cf-me-1"></i>Ocultar Valuaciones';
         } else {
             container.classList.add('cf-hidden');
-            addBtn.style.display = 'none';
+            container.style.display = 'none';
+            if (addBtn) addBtn.style.display = 'none';
             summaryCol.classList.remove('project-summary-col--split');
             btn.innerHTML = '<i class="fa-solid fa-gear cf-me-1"></i>Gestionar Valuaciones';
         }
     };
 
     window.resetValuationForm = function () {
+        if (window.userIsViewer) return;
         const valForm = document.getElementById('valuationForm');
         if (!valForm) return;
         valForm.reset();
@@ -357,6 +532,7 @@ function initDetalleProyecto(config) {
     };
 
     window.editValuation = function (id, name, usd, bs, rate) {
+        if (window.userIsViewer) return;
         const valForm = document.getElementById('valuationForm');
         if (!valForm) return;
         valForm.action = '/valuaciones/guardar/' + config.projectId + '/' + id + '/';
@@ -384,6 +560,7 @@ function initDetalleProyecto(config) {
     };
 
     window.confirmDeleteValuation = function (id) {
+        if (window.userIsViewer) return;
         const delValForm = document.getElementById('deleteValForm');
         if (delValForm) delValForm.action = '/valuaciones/eliminar/' + id + '/';
         CFModal.open('deleteValModal');

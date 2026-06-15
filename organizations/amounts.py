@@ -45,9 +45,16 @@ def create_initial_balance_transaction(
         return None
 
     rate = daily_rate or 1
-    amount_bs, amount_usd = opening_balance_transaction_amounts(
-        balance, account.currency, rate
-    )
+    
+    if account.currency == Account.CURRENCY_USD:
+        amount_bs = 0
+        amount_usd = 0
+        real_dollars = balance
+    else:
+        amount_bs, amount_usd = opening_balance_transaction_amounts(
+            balance, account.currency, rate
+        )
+        real_dollars = 0
 
     return Transaction.objects.create(
         organization=organization,
@@ -56,6 +63,7 @@ def create_initial_balance_transaction(
         description=f'Saldo inicial: {account.name}',
         amount_bs=amount_bs,
         amount_usd=amount_usd,
+        real_dollars=real_dollars,
         daily_rate=rate,
         status='completado',
     )
