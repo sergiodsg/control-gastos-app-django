@@ -232,7 +232,11 @@ def guardar_usuario(request, user_id=None):
                 user_obj.is_superuser = True
                 user_obj.is_active = True
                 user_obj.save()
-                form.save_m2m() # Importante para guardar el perfil (vía lógica del form)
+                # Manual profile update since commit=False skips the form's save logic for the profile
+                profile, _ = Profile.objects.get_or_create(user=user_obj)
+                profile.edit = form.cleaned_data.get('edit')
+                profile.save()
+                form.save_m2m() # Guardar el resto de relaciones si las hubiera
             else:
                 form.save()
         else:

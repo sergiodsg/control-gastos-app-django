@@ -53,10 +53,10 @@
                         {% endif %}
                     </td>
                     <td class="col-status">
-                        {% if u.profile.edit == 'Editor' %}
-                        <span class="cf-badge cf-badge--info">Editor</span>
-                        {% else %}
+                        {% if u.profile.edit == 'Viewer' %}
                         <span class="cf-badge cf-badge--outline">Viewer</span>
+                        {% else %}
+                        <span class="cf-badge cf-badge--info">Editor</span>
                         {% endif %}
                     </td>
                     <td class="col-status">

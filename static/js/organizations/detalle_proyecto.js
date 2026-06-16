@@ -99,10 +99,10 @@ function initDetalleProyecto(config) {
         const tAmountUsd = form.querySelector('[name="amount_usd"]');
         const tRate = form.querySelector('[name="daily_rate"]');
         
-        if (tAmountBs) tAmountBs.value = bs.toString().replace(',', '.');
-        if (tAmountUsd) tAmountUsd.value = usd.toString().replace(',', '.');
+        if (tAmountBs) tAmountBs.value = (parseFloat(bs.toString().replace(',', '.')) || 0).toString();
+        if (tAmountUsd) tAmountUsd.value = (parseFloat(usd.toString().replace(',', '.')) || 0).toString();
         if (tRate) {
-            tRate.value = rate.toString().replace(',', '.');
+            tRate.value = (parseFloat(rate.toString().replace(',', '.')) || 1).toString();
             tRate.disabled = false;
         }
         
@@ -110,7 +110,7 @@ function initDetalleProyecto(config) {
         if (tManualRateSwitch) tManualRateSwitch.checked = true;
         
         // Real Dollars logic
-        const realDollarsNum = parseFloat((real_dollars || 0).toString().replace(',', '.'));
+        const realDollarsNum = parseFloat((real_dollars || 0).toString().replace(',', '.')) || 0;
         const realSwitch = document.getElementById('realDollarSwitch');
         const realContainer = document.getElementById('realDollarInputContainer');
         const tAmountDisplay = document.getElementById('id_t_amount_display');
@@ -118,10 +118,24 @@ function initDetalleProyecto(config) {
         if (tAmountDisplay) tAmountDisplay.disabled = false;
         if (realSwitch) realSwitch.disabled = false;
         
-        if (realDollarsNum !== 0) {
+        const orgData = orgsData[orgId];
+        let accCurrency = 'BS';
+        if (orgData && orgData.accounts) {
+            const acc = orgData.accounts.find(a => a.id == accId);
+            if (acc) accCurrency = acc.currency;
+        }
+
+        if (realDollarsNum !== 0 || accCurrency === 'USD') {
             if (realSwitch) realSwitch.checked = true;
             if (realContainer) realContainer.style.display = 'block';
-            form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
+            
+            // Si es cuenta USD pero real_dollars es 0, usamos el usd original
+            if (realDollarsNum === 0 && accCurrency === 'USD') {
+                form.querySelector('[name="real_dollars"]').value = Math.abs(parseFloat(usd.toString().replace(',', '.')) || 0);
+            } else {
+                form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
+            }
+            
             document.getElementById('dailyRateContainer').style.display = 'none';
             if (tAmountDisplay) tAmountDisplay.parentElement.parentElement.style.display = 'none';
         } else {
@@ -131,19 +145,32 @@ function initDetalleProyecto(config) {
             if (tAmountDisplay) tAmountDisplay.parentElement.parentElement.style.display = 'block';
         }
 
-        const valNum = (realDollarsNum !== 0) ? realDollarsNum : parseFloat(usd.toString().replace(',', '.'));
+        const valNum = (realDollarsNum !== 0 || accCurrency === 'USD') ? 
+            (realDollarsNum || parseFloat(usd.toString().replace(',', '.')) || 0) : 
+            parseFloat(usd.toString().replace(',', '.')) || 0;
+            
         const egresoRadio = document.getElementById('type_egreso');
         const ingresoRadio = document.getElementById('type_ingreso');
         if (egresoRadio) egresoRadio.checked = valNum < 0;
         if (ingresoRadio) ingresoRadio.checked = valNum >= 0;
         
-        tCurrentInputCurrency = (realDollarsNum === 0 && parseFloat(usd.toString().replace(',', '.')) !== 0) ? 'USD' : 'BS';
-        if (tAmountDisplay) tAmountDisplay.value = Math.abs(valNum || parseFloat(bs.toString().replace(',', '.')) || 0);
+        const usdNum = parseFloat(usd.toString().replace(',', '.')) || 0;
+        const bsNum = parseFloat(bs.toString().replace(',', '.')) || 0;
+
+        if (accCurrency === 'USD') {
+            tCurrentInputCurrency = 'USD';
+        } else if (accCurrency === 'BS') {
+            tCurrentInputCurrency = 'BS';
+        } else {
+            tCurrentInputCurrency = (usdNum !== 0) ? 'USD' : 'BS';
+        }
+
+        if (tAmountDisplay) tAmountDisplay.value = Math.abs((tCurrentInputCurrency === 'USD') ? usdNum : bsNum);
         
         // Bank Fee logic
-        const fBs = parseFloat((fee_bs || 0).toString().replace(',', '.'));
-        const fUsd = parseFloat((fee_usd || 0).toString().replace(',', '.'));
-        const fReal = parseFloat((fee_real_usd || 0).toString().replace(',', '.'));
+        const fBs = parseFloat((fee_bs || 0).toString().replace(',', '.')) || 0;
+        const fUsd = parseFloat((fee_usd || 0).toString().replace(',', '.')) || 0;
+        const fReal = parseFloat((fee_real_usd || 0).toString().replace(',', '.')) || 0;
         
         form.querySelector('[name="bank_fee_bs"]').value = fBs;
         form.querySelector('[name="bank_fee_usd"]').value = fUsd;
@@ -340,6 +367,10 @@ function initDetalleProyecto(config) {
                                 realDollarSwitch.disabled = !isUSD;
                                 realDollarSwitch.dispatchEvent(new Event('change'));
                             }
+                            
+                            // Sincronizar selectores de moneda con la cuenta
+                            tCurrentInputCurrency = acc.currency;
+                            updateTCurrencyUI();
                         }
                     }
                 } else {

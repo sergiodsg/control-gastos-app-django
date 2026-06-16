@@ -16,8 +16,13 @@ def user_permissions(request):
         
         profile_role = (profile.edit or "").strip()
         context['user_role'] = profile_role
-        context['user_is_viewer'] = (profile_role == 'Viewer')
-        context['user_is_editor'] = (profile_role == 'Editor')
+        # Un superusuario NUNCA es visor, siempre tiene todos los permisos
+        if request.user.is_superuser:
+            context['user_is_viewer'] = False
+            context['user_is_editor'] = True
+        else:
+            context['user_is_viewer'] = (profile_role.lower() == 'viewer')
+            context['user_is_editor'] = (profile_role.lower() == 'editor')
         
         debug_event(
             "context_processor.permissions",

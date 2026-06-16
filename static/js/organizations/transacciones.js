@@ -67,11 +67,11 @@ function initTransacciones(config) {
         form.querySelector('[name="category"]').value = cat;
         form.querySelector('[name="project"]').value = project;
         form.querySelector('[name="status"]').value = status;
-        form.querySelector('[name="amount_bs"]').value = bs.toString().replace(',', '.');
-        form.querySelector('[name="amount_usd"]').value = usd.toString().replace(',', '.');
-        form.querySelector('[name="daily_rate"]').value = rate.toString().replace(',', '.');
+        form.querySelector('[name="amount_bs"]').value = (parseFloat(bs.toString().replace(',', '.')) || 0).toString();
+        form.querySelector('[name="amount_usd"]').value = (parseFloat(usd.toString().replace(',', '.')) || 0).toString();
+        form.querySelector('[name="daily_rate"]').value = (parseFloat(rate.toString().replace(',', '.')) || 1).toString();
 
-        const realDollarsNum = parseFloat((real_dollars || 0).toString().replace(',', '.'));
+        const realDollarsNum = parseFloat((real_dollars || 0).toString().replace(',', '.')) || 0;
         const realSwitch = document.getElementById('realDollarSwitch');
         
         // Enable inputs for editing
@@ -83,16 +83,21 @@ function initTransacciones(config) {
         const accCurrency = config.accountsData[account];
         realSwitch.disabled = (accCurrency !== 'USD');
 
-        if (realDollarsNum !== 0) {
+        if (realDollarsNum !== 0 || accCurrency === 'USD') {
             realSwitch.checked = true;
-            form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
+            // Si es cuenta USD pero real_dollars es 0, usamos el usdNum original
+            if (realDollarsNum === 0 && accCurrency === 'USD') {
+                form.querySelector('[name="real_dollars"]').value = Math.abs(parseFloat(usd.toString().replace(',', '.')) || 0);
+            } else {
+                form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
+            }
             document.getElementById('realDollarInputContainer').style.display = 'block';
             document.getElementById('dailyRateContainer').style.display = 'none';
             document.getElementById('id_amount_display').parentElement.parentElement.style.display = 'none';
             document.getElementById('currencyToggleBtn').style.display = 'none';
             document.getElementById('id_amount_display').required = false;
             
-            if (realDollarsNum < 0) {
+            if (realDollarsNum < 0 || (realDollarsNum === 0 && parseFloat(usd.toString().replace(',', '.')) < 0)) {
                 document.getElementById('type_egreso').checked = true;
             } else {
                 document.getElementById('type_ingreso').checked = true;
@@ -105,8 +110,9 @@ function initTransacciones(config) {
             document.getElementById('currencyToggleBtn').style.display = 'inline-block';
             document.getElementById('id_amount_display').required = true;
             
-            const usdNum = parseFloat(usd.toString().replace(',', '.'));
-            if (usdNum < 0) {
+            const usdNum = parseFloat(usd.toString().replace(',', '.')) || 0;
+            const bsNum = parseFloat(bs.toString().replace(',', '.')) || 0;
+            if (usdNum < 0 || bsNum < 0) {
                 document.getElementById('type_egreso').checked = true;
             } else {
                 document.getElementById('type_ingreso').checked = true;
@@ -120,12 +126,12 @@ function initTransacciones(config) {
                 currentInputCurrency = (usdNum !== 0) ? 'USD' : 'BS';
             }
 
-            document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usdNum : parseFloat(bs.toString().replace(',', '.')));
+            document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usdNum : bsNum);
         }
 
-        const feeBsNum = parseFloat((fee_bs || 0).toString().replace(',', '.'));
-        const feeUsdNum = parseFloat((fee_usd || 0).toString().replace(',', '.'));
-        const feeRealNum = parseFloat((fee_real_usd || 0).toString().replace(',', '.'));
+        const feeBsNum = parseFloat((fee_bs || 0).toString().replace(',', '.')) || 0;
+        const feeUsdNum = parseFloat((fee_usd || 0).toString().replace(',', '.')) || 0;
+        const feeRealNum = parseFloat((fee_real_usd || 0).toString().replace(',', '.')) || 0;
         
         form.querySelector('[name="bank_fee_bs"]').value = feeBsNum;
         form.querySelector('[name="bank_fee_usd"]').value = feeUsdNum;
@@ -188,37 +194,50 @@ function initTransacciones(config) {
         form.querySelector('[name="category"]').value = cat;
         form.querySelector('[name="project"]').value = project;
         form.querySelector('[name="status"]').value = status;
-        form.querySelector('[name="daily_rate"]').value = rate.toString().replace(',', '.');
+        form.querySelector('[name="daily_rate"]').value = (parseFloat(rate.toString().replace(',', '.')) || 1).toString();
 
         // Enable inputs for editing
         document.getElementById('id_amount_display').disabled = false;
         form.querySelector('input[name="real_dollars"]').disabled = false;
         document.getElementById('has_bank_fee').disabled = false;
 
-        const realDollarsNum = parseFloat((real_dollars || 0).toString().replace(',', '.'));
+        const realDollarsNum = parseFloat((real_dollars || 0).toString().replace(',', '.')) || 0;
         const realSwitch = document.getElementById('realDollarSwitch');
 
         // Account-based switch state
         const accCurrency = config.accountsData[account];
         realSwitch.disabled = (accCurrency !== 'USD');
 
-        if (realDollarsNum !== 0) {
+        if (realDollarsNum !== 0 || accCurrency === 'USD') {
             realSwitch.checked = true;
-            form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
+            // Si es cuenta USD pero real_dollars es 0, usamos el usdNum original
+            if (realDollarsNum === 0 && accCurrency === 'USD') {
+                form.querySelector('[name="real_dollars"]').value = Math.abs(parseFloat(usd.toString().replace(',', '.')) || 0);
+            } else {
+                form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
+            }
             document.getElementById('realDollarInputContainer').style.display = 'block';
             document.getElementById('dailyRateContainer').style.display = 'none';
             document.getElementById('id_amount_display').parentElement.parentElement.style.display = 'none';
             document.getElementById('currencyToggleBtn').style.display = 'none';
             document.getElementById('id_amount_display').required = false;
 
-            if (realDollarsNum < 0) {
+            if (realDollarsNum < 0 || (realDollarsNum === 0 && parseFloat(usd.toString().replace(',', '.')) < 0)) {
                 document.getElementById('type_egreso').checked = true;
             } else {
                 document.getElementById('type_ingreso').checked = true;
             }
         } else {
-            const usdNum = parseFloat(usd.toString().replace(',', '.'));
-            if (usdNum < 0) {
+            realSwitch.checked = false;
+            document.getElementById('realDollarInputContainer').style.display = 'none';
+            document.getElementById('dailyRateContainer').style.display = 'block';
+            document.getElementById('id_amount_display').parentElement.parentElement.style.display = 'block';
+            document.getElementById('currencyToggleBtn').style.display = 'inline-block';
+            document.getElementById('id_amount_display').required = true;
+
+            const usdNum = parseFloat(usd.toString().replace(',', '.')) || 0;
+            const bsNum = parseFloat(bs.toString().replace(',', '.')) || 0;
+            if (usdNum < 0 || bsNum < 0) {
                 document.getElementById('type_egreso').checked = true;
             } else {
                 document.getElementById('type_ingreso').checked = true;
@@ -232,12 +251,12 @@ function initTransacciones(config) {
                 currentInputCurrency = (usdNum !== 0) ? 'USD' : 'BS';
             }
 
-            document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usdNum : parseFloat(bs.toString().replace(',', '.')));
+            document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usdNum : bsNum);
         }
 
-        const feeBsNum = parseFloat((fee_bs || 0).toString().replace(',', '.'));
-        const feeUsdNum = parseFloat((fee_usd || 0).toString().replace(',', '.'));
-        const feeRealNum = parseFloat((fee_real_usd || 0).toString().replace(',', '.'));
+        const feeBsNum = parseFloat((fee_bs || 0).toString().replace(',', '.')) || 0;
+        const feeUsdNum = parseFloat((fee_usd || 0).toString().replace(',', '.')) || 0;
+        const feeRealNum = parseFloat((fee_real_usd || 0).toString().replace(',', '.')) || 0;
         
         form.querySelector('[name="bank_fee_bs"]').value = feeBsNum;
         form.querySelector('[name="bank_fee_usd"]').value = feeUsdNum;
@@ -539,6 +558,12 @@ function initTransacciones(config) {
                         // Forzar el disparo del evento change para actualizar la UI
                         realDollarSwitch.dispatchEvent(new Event('change'));
                     }
+
+                    // Sincronizar selectores de moneda con la cuenta
+                    currentInputCurrency = currency;
+                    currentFeeInputCurrency = currency;
+                    updateCurrencyUI();
+                    updateFeeCurrencyUI();
                 } else {
                     if (realDollarSwitch) {
                         realDollarSwitch.checked = false;
