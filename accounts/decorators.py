@@ -10,9 +10,10 @@ def viewer_restricted(view_func):
             try:
                 profile = request.user.profile
             except Profile.DoesNotExist:
-                profile = Profile.objects.create(user=request.user)
+                profile, _ = Profile.objects.get_or_create(user=request.user)
                 
-            if profile.edit == 'Viewer':
+            role = (profile.edit or "").strip()
+            if role == 'Viewer':
                 messages.error(request, "Su cuenta es de solo lectura. No puede realizar esta acción.")
                 return redirect(request.META.get('HTTP_REFERER', 'dashboard'))
         return view_func(request, *args, **kwargs)

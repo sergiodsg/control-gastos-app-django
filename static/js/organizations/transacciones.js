@@ -111,7 +111,15 @@ function initTransacciones(config) {
             } else {
                 document.getElementById('type_ingreso').checked = true;
             }
-            currentInputCurrency = (usdNum !== 0) ? 'USD' : 'BS';
+            // Prefer the account's currency for display
+            if (accCurrency === 'USD') {
+                currentInputCurrency = 'USD';
+            } else if (accCurrency === 'BS') {
+                currentInputCurrency = 'BS';
+            } else {
+                currentInputCurrency = (usdNum !== 0) ? 'USD' : 'BS';
+            }
+
             document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usdNum : parseFloat(bs.toString().replace(',', '.')));
         }
 
@@ -133,7 +141,16 @@ function initTransacciones(config) {
             } else {
                 document.getElementById('bcvFeeInputGroup').style.display = 'block';
                 document.getElementById('realFeeInputGroup').style.display = 'none';
-                currentFeeInputCurrency = (feeUsdNum !== 0) ? 'USD' : 'BS';
+                
+                // Prefer the account's currency for fee display
+                if (accCurrency === 'USD') {
+                    currentFeeInputCurrency = 'USD';
+                } else if (accCurrency === 'BS') {
+                    currentFeeInputCurrency = 'BS';
+                } else {
+                    currentFeeInputCurrency = (feeUsdNum !== 0) ? 'USD' : 'BS';
+                }
+
                 document.getElementById('id_bank_fee_display').value = (currentFeeInputCurrency === 'USD') ? feeUsdNum : feeBsNum;
             }
         } else {
@@ -206,7 +223,15 @@ function initTransacciones(config) {
             } else {
                 document.getElementById('type_ingreso').checked = true;
             }
-            currentInputCurrency = (usdNum !== 0) ? 'USD' : 'BS';
+            // Prefer the account's currency for display
+            if (accCurrency === 'USD') {
+                currentInputCurrency = 'USD';
+            } else if (accCurrency === 'BS') {
+                currentInputCurrency = 'BS';
+            } else {
+                currentInputCurrency = (usdNum !== 0) ? 'USD' : 'BS';
+            }
+
             document.getElementById('id_amount_display').value = Math.abs((currentInputCurrency === 'USD') ? usdNum : parseFloat(bs.toString().replace(',', '.')));
         }
 
@@ -228,7 +253,16 @@ function initTransacciones(config) {
             } else {
                 document.getElementById('bcvFeeInputGroup').style.display = 'block';
                 document.getElementById('realFeeInputGroup').style.display = 'none';
-                currentFeeInputCurrency = (feeUsdNum !== 0) ? 'USD' : 'BS';
+                
+                // Prefer the account's currency for fee display
+                if (accCurrency === 'USD') {
+                    currentFeeInputCurrency = 'USD';
+                } else if (accCurrency === 'BS') {
+                    currentFeeInputCurrency = 'BS';
+                } else {
+                    currentFeeInputCurrency = (feeUsdNum !== 0) ? 'USD' : 'BS';
+                }
+
                 document.getElementById('id_bank_fee_display').value = (currentFeeInputCurrency === 'USD') ? feeUsdNum : feeBsNum;
             }
         }

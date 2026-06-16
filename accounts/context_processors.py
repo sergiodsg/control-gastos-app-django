@@ -12,11 +12,12 @@ def user_permissions(request):
         try:
             profile = request.user.profile
         except Profile.DoesNotExist:
-            profile = Profile.objects.create(user=request.user)
+            profile, _ = Profile.objects.get_or_create(user=request.user)
         
-        context['user_role'] = profile.edit
-        context['user_is_viewer'] = (profile.edit.strip() == 'Viewer')
-        context['user_is_editor'] = (profile.edit.strip() == 'Editor')
+        profile_role = (profile.edit or "").strip()
+        context['user_role'] = profile_role
+        context['user_is_viewer'] = (profile_role == 'Viewer')
+        context['user_is_editor'] = (profile_role == 'Editor')
         
         debug_event(
             "context_processor.permissions",

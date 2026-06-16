@@ -22,7 +22,7 @@ def get_chart_data(transactions_qs, mode='bcv', json_format=True):
         ).order_by('total')
     
     cat_labels = [item['category__name'] or 'Sin categoría' for item in category_spending]
-    cat_series = [float(abs(item['total'])) for item in category_spending]
+    cat_series = [float(abs(item['total'] or 0)) for item in category_spending]
     cat_colors = [item['category__color'] or '#000000' for item in category_spending]
 
     # 2. Balance Total (Ingresos vs Gastos)
@@ -57,7 +57,7 @@ def get_chart_data(transactions_qs, mode='bcv', json_format=True):
     evo_series = []
     current_balance = 0
     for item in evolution_data:
-        current_balance += float(item['daily_sum'])
+        current_balance += float(item['daily_sum'] or 0)
         evo_labels.append(item['date'].strftime('%Y-%m-%d'))
         evo_series.append(round(current_balance, 2))
 
@@ -806,9 +806,6 @@ def exportar_pdf_transacciones(request):
     cd = get_chart_data(transactions, mode=report_type, json_format=False)
     
     if transactions.exists():
-        elements.append(Paragraph("Resumen Gráfico", styles['Heading2']))
-        elements.append(Spacer(1, 0.2*cm))
-        
         chart_elements = []
         
         # a) Gastos por Categoría (Pie)

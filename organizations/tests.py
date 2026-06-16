@@ -104,6 +104,28 @@ class TransactionAccessTest(TestCase):
         # But toggle should be visible
         self.assertContains(response, "Gestionar Valuaciones")
 
+    def test_viewer_restricted_with_whitespace(self):
+        """
+        Verify that viewer_restricted blocks users even if there's trailing whitespace in the role field.
+        """
+        profile = self.user_a.profile
+        profile.edit = 'Viewer ' # Trailing space
+        profile.save()
+        
+        self.client.login(username='user_a', password='password')
+        
+        # Try to create a category (restricted action)
+        url = reverse('crear_categoria')
+        data = {'name': 'Restricted Category', 'color': '#ff0000'}
+        response = self.client.post(url, data)
+        
+        # Should be redirected (to dashboard by default if no referer)
+        self.assertEqual(response.status_code, 302)
+        
+        # Check for error message
+        messages = list(get_messages(response.wsgi_request))
+        self.assertTrue(any("Su cuenta es de solo lectura" in str(m) for m in messages))
+
     def test_edit_shared_project_transaction_success(self):
         """
         Verify that editing a transaction from another organization
