@@ -124,11 +124,20 @@
         <!-- 2. Categoría -->
         <div class="cf-form-group">
             <label class="cf-stat-label">Categorías:</label>
-            <select name="category" class="cf-select cf-input--sm dynamic-search" multiple style="height: auto; min-height: 38px; max-height: 120px;">
-                {% for cat in categories %}
-                <option value="{{ cat.id }}" {% if cat.id|stringformat:"i" in selected_categories %}selected{% endif %}>{{ cat.name }}</option>
-                {% endfor %}
-            </select>
+            <div class="cf-dropdown cf-dropdown-multiselect" id="categoryFilterDropdown">
+                <button type="button" class="cf-select cf-input--sm cf-dropdown-multiselect__toggle" data-cf-dropdown style="padding: 0.4rem 0.65rem;">
+                    <span class="cf-dropdown-multiselect__selected-text">Todas las categorías</span>
+                    <i class="fa-solid fa-chevron-down cf-fs-xs cf-text-muted"></i>
+                </button>
+                <div class="cf-dropdown__menu cf-dropdown-multiselect__menu">
+                    {% for cat in categories %}
+                    <label class="cf-dropdown-multiselect__item">
+                        <input type="checkbox" name="category" value="{{ cat.id }}" class="dynamic-search cf-checkbox" {% if cat.id|stringformat:"i" in selected_categories %}checked{% endif %}>
+                        <span class="cf-badge cf-badge--pill" style="background-color: {{ cat.color }}; color: #fff; border: none; padding: 2px 8px; font-size: 0.75rem;">{{ cat.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
         </div>
 
         <!-- 3. Período -->

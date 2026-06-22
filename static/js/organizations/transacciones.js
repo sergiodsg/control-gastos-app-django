@@ -538,6 +538,24 @@ function initTransacciones(config) {
             });
     }
 
+    function updateSelectedCategoriesText() {
+        const dropdown = document.getElementById('categoryFilterDropdown');
+        if (!dropdown) return;
+        const toggleText = dropdown.querySelector('.cf-dropdown-multiselect__selected-text');
+        if (!toggleText) return;
+        
+        const checkedCheckboxes = dropdown.querySelectorAll('input[type="checkbox"][name="category"]:checked');
+        if (checkedCheckboxes.length === 0) {
+            toggleText.textContent = "Todas las categorías";
+        } else if (checkedCheckboxes.length === 1) {
+            const labelEl = checkedCheckboxes[0].closest('label');
+            const badge = labelEl ? labelEl.querySelector('.cf-badge') : null;
+            toggleText.textContent = badge ? badge.textContent.trim() : "1 seleccionada";
+        } else {
+            toggleText.textContent = `${checkedCheckboxes.length} seleccionadas`;
+        }
+    }
+
     // Inicializar listeners solo cuando el DOM esté listo
     function setupListeners() {
         const form = document.getElementById('transactionForm');
@@ -545,8 +563,18 @@ function initTransacciones(config) {
         const filterForm = document.querySelector('.cf-filter-form');
         if (filterForm) {
             updateExportUrls();
+            
+            // Listeners for checkbox changes to update selected text
+            const categoryDropdown = document.getElementById('categoryFilterDropdown');
+            if (categoryDropdown) {
+                categoryDropdown.querySelectorAll('input[type="checkbox"][name="category"]').forEach(cb => {
+                    cb.addEventListener('change', updateSelectedCategoriesText);
+                });
+                updateSelectedCategoriesText();
+            }
+
             filterForm.querySelectorAll('.dynamic-search').forEach(el => {
-                const eventType = (el.tagName === 'SELECT' || el.type === 'date') ? 'change' : 'input';
+                const eventType = (el.tagName === 'SELECT' || el.type === 'date' || el.type === 'checkbox') ? 'change' : 'input';
                 let debounceTimer;
                 el.addEventListener(eventType, function() {
                     if (eventType === 'input') {
