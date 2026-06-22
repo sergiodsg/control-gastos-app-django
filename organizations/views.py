@@ -1726,7 +1726,7 @@ def detalle_proyecto(request, proj_id):
     for o in orgs_with_access:
         orgs_data[o.id] = {
             'accounts': list(Account.objects.filter(organization=o).values('id', 'name', 'currency')),
-            'categories': list(Category.objects.filter(organization=o).values('id', 'name')),
+            'categories': list(Category.objects.filter(organization=o).values('id', 'name', 'color')),
             'cost_centers': list(CostCenter.objects.filter(organization=o).values('id', 'name', 'code'))
         }
 

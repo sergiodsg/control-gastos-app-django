@@ -371,7 +371,21 @@
                         <input type="text" id="id_reference_number_custom" class="cf-input" placeholder="Nro. Referencia">
                         <div class="cf-hidden">{{ form.reference_number }}</div>
                     </div>
-                    <div class="cf-form-group"><label class="cf-label">Categorías</label>{{ form.categories }}</div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Categorías</label>
+                        <div style="display: none;">
+                            {{ form.categories }}
+                        </div>
+                        <div class="cf-dropdown cf-dropdown-multiselect" id="categoryFormDropdown">
+                            <button type="button" class="cf-select cf-dropdown-multiselect__toggle" data-cf-dropdown style="padding: 0.6rem 0.85rem; width: 100%;">
+                                <span class="cf-dropdown-multiselect__selected-text">Seleccionar categorías</span>
+                                <i class="fa-solid fa-chevron-down cf-fs-xs cf-text-muted"></i>
+                            </button>
+                            <div class="cf-dropdown__menu cf-dropdown-multiselect__menu" id="categoryFormMenu" style="width: 100%; box-sizing: border-box;">
+                                <!-- populated dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
                     <div class="cf-form-group"><label class="cf-label">Centro de Costo</label>{{ form.cost_center }}</div>
                     <div class="cf-form-group"><label class="cf-label">Proyecto</label>{{ form.project }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ form.description }}</div>
@@ -467,7 +481,12 @@
         bcvRate: parseFloat("{{ bcv_rate|unlocalize }}") || 1,
         bcvRatesUrl: "{% url 'bcv_rates_api' %}",
         projectsData: JSON.parse('{{ projects_data|safe|default:"{}" }}'),
-        accountsData: JSON.parse('{{ accounts_data|safe|default:"{}" }}')
+        accountsData: JSON.parse('{{ accounts_data|safe|default:"{}" }}'),
+        categoriesColors: {
+            {% for cat in categories %}
+            "{{ cat.id }}": "{{ cat.color }}"{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        }
     });
 </script>
 {% endblock %}

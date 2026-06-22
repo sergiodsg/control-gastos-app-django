@@ -233,6 +233,20 @@ function initDetalleProyecto(config) {
             categoriesSelect.add(opt);
         });
 
+        // Update custom dropdown
+        const colorsMap = {};
+        if (data.categories) {
+            data.categories.forEach(cat => {
+                colorsMap[cat.id] = cat.color;
+            });
+        }
+        const categoriesDropdown = document.getElementById('categoryFormDropdown');
+        if (categoriesSelect.rebuildCustomDropdown) {
+            categoriesSelect.rebuildCustomDropdown(colorsMap);
+        } else if (categoriesDropdown) {
+            window.initFormCategoriesDropdown(categoriesSelect, categoriesDropdown, colorsMap);
+        }
+
         if (costCenterSelect) {
             costCenterSelect.innerHTML = '<option value="">---------</option>';
             if (data.cost_centers) {
@@ -379,6 +393,8 @@ function initDetalleProyecto(config) {
 
         const orgSelect = transactionForm.querySelector('select[name="organization"]');
         const accountSelect = transactionForm.querySelector('select[name="account"]');
+        const categoriesSelect = transactionForm.querySelector('select[name="categories"]');
+        const categoriesDropdown = document.getElementById('categoryFormDropdown');
         const tAmountDisplay = document.getElementById('id_t_amount_display');
         const tRate = transactionForm.querySelector('input[name="daily_rate"]');
         const tDate = transactionForm.querySelector('input[name="date"]');
@@ -386,6 +402,17 @@ function initDetalleProyecto(config) {
         const tManualRateSwitch = document.getElementById('t_manualRateSwitch');
         const realDollarSwitch = document.getElementById('realDollarSwitch');
         const hasFeeCheck = document.getElementById('has_bank_fee');
+
+        if (categoriesSelect && categoriesDropdown) {
+            const initialOrgId = orgSelect ? orgSelect.value : null;
+            const initialColorsMap = {};
+            if (initialOrgId && orgsData[initialOrgId] && orgsData[initialOrgId].categories) {
+                orgsData[initialOrgId].categories.forEach(cat => {
+                    initialColorsMap[cat.id] = cat.color;
+                });
+            }
+            window.initFormCategoriesDropdown(categoriesSelect, categoriesDropdown, initialColorsMap);
+        }
 
         if (orgSelect) orgSelect.addEventListener('change', function () { updateOrgFields(this.value); });
         

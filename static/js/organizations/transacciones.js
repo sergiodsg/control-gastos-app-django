@@ -9,6 +9,12 @@ function initTransacciones(config) {
         const form = document.getElementById('transactionForm');
         if (!form) return;
         form.reset();
+        
+        const categoriesSelect = form.querySelector('[name="categories"]');
+        if (categoriesSelect && categoriesSelect.rebuildCustomDropdown) {
+            categoriesSelect.rebuildCustomDropdown();
+        }
+
         form.action = config.crearUrl;
         document.getElementById('modalTitle').innerText = 'Nueva Transacción';
 
@@ -81,6 +87,9 @@ function initTransacciones(config) {
                     const opt = categoriesSelect.querySelector(`option[value="${id}"]`);
                     if (opt) opt.selected = true;
                 });
+            }
+            if (categoriesSelect.rebuildCustomDropdown) {
+                categoriesSelect.rebuildCustomDropdown();
             }
         }
         form.querySelector('[name="project"]').value = project;
@@ -222,6 +231,9 @@ function initTransacciones(config) {
                     const opt = categoriesSelect.querySelector(`option[value="${id}"]`);
                     if (opt) opt.selected = true;
                 });
+            }
+            if (categoriesSelect.rebuildCustomDropdown) {
+                categoriesSelect.rebuildCustomDropdown();
             }
         }
         form.querySelector('[name="project"]').value = project;
@@ -571,6 +583,13 @@ function initTransacciones(config) {
     // Inicializar listeners solo cuando el DOM esté listo
     function setupListeners() {
         const form = document.getElementById('transactionForm');
+        if (form) {
+            const categoriesSelect = form.querySelector('select[name="categories"]');
+            const categoriesDropdown = document.getElementById('categoryFormDropdown');
+            if (categoriesSelect && categoriesDropdown) {
+                window.initFormCategoriesDropdown(categoriesSelect, categoriesDropdown, config.categoriesColors);
+            }
+        }
         // Filtros dinámicos
         const filterForm = document.querySelector('.cf-filter-form');
         if (filterForm) {

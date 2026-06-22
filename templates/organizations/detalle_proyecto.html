@@ -372,7 +372,21 @@
                         {{ trans_form.daily_rate }}
                     </div>
                     <div class="cf-form-group"><label class="cf-label">Referencia</label>{{ trans_form.reference_number }}</div>
-                    <div class="cf-form-group"><label class="cf-label">Categorías</label>{{ trans_form.categories }}</div>
+                    <div class="cf-form-group">
+                        <label class="cf-label">Categorías</label>
+                        <div style="display: none;">
+                            {{ trans_form.categories }}
+                        </div>
+                        <div class="cf-dropdown cf-dropdown-multiselect" id="categoryFormDropdown">
+                            <button type="button" class="cf-select cf-dropdown-multiselect__toggle" data-cf-dropdown style="padding: 0.6rem 0.85rem; width: 100%;">
+                                <span class="cf-dropdown-multiselect__selected-text">Seleccionar categorías</span>
+                                <i class="fa-solid fa-chevron-down cf-fs-xs cf-text-muted"></i>
+                            </button>
+                            <div class="cf-dropdown__menu cf-dropdown-multiselect__menu" id="categoryFormMenu" style="width: 100%; box-sizing: border-box;">
+                                <!-- populated dynamically by JS -->
+                            </div>
+                        </div>
+                    </div>
                     <div class="cf-form-group"><label class="cf-label">Centro de Costo</label>{{ trans_form.cost_center }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ trans_form.description }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Notas</label>{{ trans_form.notes }}</div>
