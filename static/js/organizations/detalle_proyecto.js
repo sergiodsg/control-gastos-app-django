@@ -361,7 +361,7 @@ function initDetalleProyecto(config) {
         updateExportUrls();
         const container = document.getElementById('transactions-container');
         if (!container) return;
-        container.style.opacity = '0.5';
+        container.classList.add('is-loading');
         const filterForm = document.querySelector('.cf-filter-form');
         const formData = new URLSearchParams(new FormData(filterForm));
         
@@ -384,7 +384,7 @@ function initDetalleProyecto(config) {
                 if (newKpis) document.getElementById('projectSummaryCol').innerHTML = newKpis.innerHTML;
                 window.history.pushState({}, '', url);
             })
-            .finally(() => { container.style.opacity = '1'; });
+            .finally(() => { container.classList.remove('is-loading'); });
     }
 
     function setupTListeners() {

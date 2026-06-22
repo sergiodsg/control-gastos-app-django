@@ -528,9 +528,8 @@ function initTransacciones(config) {
         const container = document.getElementById('transactions-container');
         if (!container) return;
 
-        // Mostrar estado de carga (opcional but recommended)
-        container.style.opacity = '0.5';
-        container.style.pointerEvents = 'none';
+        // Mostrar estado de carga con clase (activa el spinner CSS)
+        container.classList.add('is-loading');
 
         const form = document.querySelector('.cf-filter-form');
         const formData = new URLSearchParams(new FormData(form));
@@ -557,8 +556,8 @@ function initTransacciones(config) {
                 }
             })
             .finally(() => {
-                container.style.opacity = '1';
-                container.style.pointerEvents = 'auto';
+                container.classList.remove('is-loading');
+                updateSelectedCategoriesText();
             });
     }
 
@@ -570,7 +569,7 @@ function initTransacciones(config) {
         
         const checkedCheckboxes = dropdown.querySelectorAll('input[type="checkbox"][name="category"]:checked');
         if (checkedCheckboxes.length === 0) {
-            toggleText.textContent = "Todas las categorías";
+            toggleText.textContent = "Todas";
         } else if (checkedCheckboxes.length === 1) {
             const labelEl = checkedCheckboxes[0].closest('label');
             const badge = labelEl ? labelEl.querySelector('.cf-badge') : null;
