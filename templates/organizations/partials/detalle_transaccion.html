@@ -83,11 +83,13 @@
 
     <div class="cf-form-row">
         <div class="cf-form-group">
-            <span class="cf-stat-label">Categoría</span>
+            <span class="cf-stat-label">Categorías</span>
             <div>
-                {% if transaction.category %}
-                <span class="cf-badge cf-badge--pill" style="background-color: {{ transaction.category.color }}; color: #fff; border: none;">{{ transaction.category.name }}</span>
-                {% else %}<span class="cf-text-muted">Sin categoría</span>{% endif %}
+                {% for cat in transaction.categories.all %}
+                <span class="cf-badge cf-badge--pill" style="background-color: {{ cat.color }}; color: #fff; border: none; margin-right: 2px;">{{ cat.name }}</span>
+                {% empty %}
+                <span class="cf-text-muted">Sin categoría</span>
+                {% endfor %}
             </div>
         </div>
         <div class="cf-form-group">

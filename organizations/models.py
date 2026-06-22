@@ -125,7 +125,7 @@ class Transaction(models.Model):
     description = models.TextField(verbose_name="Descripción")
     notes = models.TextField(blank=True, null=True, verbose_name="Notas")
     
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, blank=True, null=True, verbose_name="Categoría")
+    categories = models.ManyToManyField(Category, blank=True, related_name='transactions', verbose_name="Categorías")
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Proyecto")
     valuation = models.ForeignKey(Valuation, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Valuación")
     

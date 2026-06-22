@@ -64,7 +64,17 @@ function initTransacciones(config) {
         form.querySelector('[name="reference_number"]').value = ref;
         form.querySelector('[name="description"]').value = desc;
         form.querySelector('[name="notes"]').value = notes;
-        form.querySelector('[name="category"]').value = cat;
+        const categoriesSelect = form.querySelector('[name="categories"]');
+        if (categoriesSelect) {
+            Array.from(categoriesSelect.options).forEach(opt => opt.selected = false);
+            if (cat) {
+                const catIds = cat.toString().split(',');
+                catIds.forEach(id => {
+                    const opt = categoriesSelect.querySelector(`option[value="${id}"]`);
+                    if (opt) opt.selected = true;
+                });
+            }
+        }
         form.querySelector('[name="project"]').value = project;
         form.querySelector('[name="status"]').value = status;
         form.querySelector('[name="amount_bs"]').value = (parseFloat(bs.toString().replace(',', '.')) || 0).toString();
@@ -191,7 +201,17 @@ function initTransacciones(config) {
         form.querySelector('[name="reference_number"]').value = ref;
         form.querySelector('[name="description"]').value = desc;
         form.querySelector('[name="notes"]').value = notes;
-        form.querySelector('[name="category"]').value = cat;
+        const categoriesSelect = form.querySelector('[name="categories"]');
+        if (categoriesSelect) {
+            Array.from(categoriesSelect.options).forEach(opt => opt.selected = false);
+            if (cat) {
+                const catIds = cat.toString().split(',');
+                catIds.forEach(id => {
+                    const opt = categoriesSelect.querySelector(`option[value="${id}"]`);
+                    if (opt) opt.selected = true;
+                });
+            }
+        }
         form.querySelector('[name="project"]').value = project;
         form.querySelector('[name="status"]').value = status;
         form.querySelector('[name="daily_rate"]').value = (parseFloat(rate.toString().replace(',', '.')) || 1).toString();
@@ -459,14 +479,17 @@ function initTransacciones(config) {
             try {
                 const originalUrl = new URL(link.href, window.location.origin);
                 
-                // Actualizar parámetros basados en los campos de formulario
-                formData.forEach((value, key) => {
+                // Borrar claves primero para evitar duplicación
+                for (const key of formData.keys()) {
+                    originalUrl.searchParams.delete(key);
+                }
+                
+                // Añadir todos los valores de FormData
+                for (const [key, value] of formData.entries()) {
                     if (value !== null && value !== undefined && value !== '') {
-                        originalUrl.searchParams.set(key, value);
-                    } else {
-                        originalUrl.searchParams.delete(key);
+                        originalUrl.searchParams.append(key, value);
                     }
-                });
+                }
                 
                 link.href = originalUrl.pathname + originalUrl.search;
             } catch (e) {

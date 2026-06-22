@@ -46,9 +46,9 @@ class TransactionAccessTest(TestCase):
             amount_usd=10,
             daily_rate=10,
             project=self.project_p,
-            category=self.category_b,
             status='completado'
         )
+        self.transaction.categories.add(self.category_b)
         
         self.client = Client()
         self.client.login(username='user_a', password='password')
@@ -141,7 +141,7 @@ class TransactionAccessTest(TestCase):
             'amount_usd': 20,
             'daily_rate': 10,
             'project': self.project_p.id,
-            'category': self.category_b.id,
+            'categories': [self.category_b.id],
             'status': 'completado',
             'bank_fee_bs': 0,
             'bank_fee_usd': 0,
@@ -291,8 +291,8 @@ def test_get_report_data_aplica_filtros(client):
         amount_usd=100.00,
         amount_bs=3600.00,
         daily_rate=36.00,
-        category=cat1
     )
+    t1.categories.add(cat1)
     t2 = Transaction.objects.create(
         organization=org,
         account=acc,
@@ -301,8 +301,8 @@ def test_get_report_data_aplica_filtros(client):
         amount_usd=200.00,
         amount_bs=7200.00,
         daily_rate=36.00,
-        category=cat2
     )
+    t2.categories.add(cat2)
     
     factory = RequestFactory()
     

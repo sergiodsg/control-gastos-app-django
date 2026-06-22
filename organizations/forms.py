@@ -11,7 +11,7 @@ class TransactionForm(forms.ModelForm):
         model = Transaction
         fields = [
             'date', 'organization', 'account', 'reference_number', 'description', 
-            'notes', 'category', 'project', 'valuation', 
+            'notes', 'categories', 'project', 'valuation', 
             'status', 'amount_bs', 'amount_usd', 'daily_rate',
             'bank_fee_bs', 'bank_fee_usd', 'real_dollars', 'bank_fee_real_usd'
         ]
@@ -22,7 +22,7 @@ class TransactionForm(forms.ModelForm):
             'reference_number': forms.TextInput(attrs={'class': 'cf-input', 'placeholder': 'Nro. Referencia'}),
             'description': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Descripción de la transacción', 'required': 'required'}),
             'notes': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Notas adicionales'}),
-            'category': forms.Select(attrs={'class': 'cf-input'}),
+            'categories': forms.SelectMultiple(attrs={'class': 'cf-input cf-select', 'style': 'height: auto; min-height: 80px;'}),
             'project': forms.Select(attrs={'class': 'cf-input'}),
             'valuation': forms.Select(attrs={'class': 'cf-input'}),
             'status': forms.Select(attrs={'class': 'cf-input', 'required': 'required'}),
@@ -108,17 +108,17 @@ class TransactionForm(forms.ModelForm):
             if selected_org:
                 self.fields['organization'].initial = selected_org
                 self.fields['account'].queryset = Account.objects.filter(organization_id=selected_org)
-                self.fields['category'].queryset = Category.objects.filter(organization_id=selected_org)
+                self.fields['categories'].queryset = Category.objects.filter(organization_id=selected_org)
             else:
                 self.fields['account'].queryset = Account.objects.none()
-                self.fields['category'].queryset = Category.objects.none()
+                self.fields['categories'].queryset = Category.objects.none()
         elif organization:
             # Comportamiento original para la vista de transacciones
             self.fields['organization'].queryset = Organization.objects.filter(id=organization.id)
             self.fields['organization'].initial = organization
             self.fields['organization'].widget = forms.HiddenInput()
             
-            self.fields['category'].queryset = Category.objects.filter(organization=organization)
+            self.fields['categories'].queryset = Category.objects.filter(organization=organization)
             self.fields['account'].queryset = Account.objects.filter(organization=organization)
             self.fields['project'].queryset = Project.objects.filter(
                 models.Q(organization=organization) | models.Q(shared_organizations__organization=organization)

@@ -215,8 +215,8 @@ function initDetalleProyecto(config) {
         const form = document.getElementById('transactionForm');
         if (!form) return;
         const accountSelect = form.querySelector('select[name="account"]');
-        const categorySelect = form.querySelector('select[name="category"]');
-        if (!data || !accountSelect || !categorySelect) return;
+        const categoriesSelect = form.querySelector('select[name="categories"]');
+        if (!data || !accountSelect || !categoriesSelect) return;
         
         accountSelect.innerHTML = '<option value="">---------</option>';
         data.accounts.forEach(function (acc) {
@@ -224,11 +224,12 @@ function initDetalleProyecto(config) {
             if (selectedAccountId && acc.id == selectedAccountId) opt.selected = true;
             accountSelect.add(opt);
         });
-        categorySelect.innerHTML = '<option value="">---------</option>';
+        categoriesSelect.innerHTML = '';
+        const catIds = selectedCategoryId ? selectedCategoryId.toString().split(',') : [];
         data.categories.forEach(function (cat) {
             const opt = new Option(cat.name, cat.id);
-            if (selectedCategoryId && cat.id == selectedCategoryId) opt.selected = true;
-            categorySelect.add(opt);
+            if (catIds.includes(cat.id.toString())) opt.selected = true;
+            categoriesSelect.add(opt);
         });
     }
 
@@ -311,14 +312,17 @@ function initDetalleProyecto(config) {
             try {
                 const originalUrl = new URL(link.href, window.location.origin);
                 
-                // Actualizar parámetros basados en los campos de formulario
-                formData.forEach((value, key) => {
+                // Borrar claves primero para evitar duplicación
+                for (const key of formData.keys()) {
+                    originalUrl.searchParams.delete(key);
+                }
+                
+                // Añadir todos los valores de FormData
+                for (const [key, value] of formData.entries()) {
                     if (value !== null && value !== undefined && value !== '') {
-                        originalUrl.searchParams.set(key, value);
-                    } else {
-                        originalUrl.searchParams.delete(key);
+                        originalUrl.searchParams.append(key, value);
                     }
-                });
+                }
                 
                 link.href = originalUrl.pathname + originalUrl.search;
             } catch (e) {

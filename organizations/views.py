@@ -13,17 +13,17 @@ from accounts.decorators import viewer_restricted
 def get_chart_data(transactions_qs, mode='bcv', json_format=True):
     # 1. Desglose de Gastos por Categoría
     if mode == 'real':
-        category_spending = transactions_qs.filter(real_dollars__lt=0).values('category__name', 'category__color').annotate(
+        category_spending = transactions_qs.filter(real_dollars__lt=0).values('categories__name', 'categories__color').annotate(
             total=Sum('real_dollars')
         ).order_by('total')
     else:
-        category_spending = transactions_qs.filter(amount_usd__lt=0).values('category__name', 'category__color').annotate(
+        category_spending = transactions_qs.filter(amount_usd__lt=0).values('categories__name', 'categories__color').annotate(
             total=Sum('amount_usd')
         ).order_by('total')
     
-    cat_labels = [item['category__name'] or 'Sin categoría' for item in category_spending]
+    cat_labels = [item['categories__name'] or 'Sin categoría' for item in category_spending]
     cat_series = [float(abs(item['total'] or 0)) for item in category_spending]
-    cat_colors = [item['category__color'] or '#000000' for item in category_spending]
+    cat_colors = [item['categories__color'] or '#000000' for item in category_spending]
 
     # 2. Balance Total (Ingresos vs Gastos)
     if mode == 'real':
@@ -343,7 +343,14 @@ def lista_transacciones(request):
     filter_type = request.GET.get('filter_type', 'all')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
-    category_id = request.GET.get('category')
+    category_raw = request.GET.getlist('category')
+    category_ids = []
+    for val in category_raw:
+        if ',' in val:
+            category_ids.extend([v.strip() for v in val.split(',') if v.strip()])
+        else:
+            category_ids.append(val)
+    category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
     search_query = request.GET.get('search', '')
     tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
     view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
@@ -358,7 +365,6 @@ def lista_transacciones(request):
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
-    if category_id == 'None' or category_id == '': category_id = None
     
     # Base: TODAS las transacciones para la tabla
     transactions_list = Transaction.objects.filter(organization=org)
@@ -374,7 +380,7 @@ def lista_transacciones(request):
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
             models.Q(notes__icontains=search_query) |
-            models.Q(category__name__icontains=search_query) |
+            models.Q(categories__name__icontains=search_query) |
             models.Q(account__name__icontains=search_query) |
             models.Q(project__name__icontains=search_query) |
             models.Q(valuation__name__icontains=search_query) |
@@ -385,8 +391,8 @@ def lista_transacciones(request):
             models.Q(daily_rate__icontains=search_query)
         )
 
-    if category_id:
-        transactions_list = transactions_list.filter(category_id=category_id)
+    if category_ids:
+        transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
     
     today = timezone.localdate()
     
@@ -470,7 +476,8 @@ def lista_transacciones(request):
         'form': form,
         'bcv_rate': bcv_rate,
         'categories': categories,
-        'selected_category': category_id,
+        'selected_category': category_ids[0] if category_ids else '',
+        'selected_categories': category_ids,
         'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
         'accounts_data': json.dumps(accounts_data),
         'filter_type': filter_type,
@@ -508,7 +515,14 @@ def _get_report_data(request):
     filter_type = request.GET.get('filter_type', 'all')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
-    category_id = request.GET.get('category')
+    category_raw = request.GET.getlist('category')
+    category_ids = []
+    for val in category_raw:
+        if ',' in val:
+            category_ids.extend([v.strip() for v in val.split(',') if v.strip()])
+        else:
+            category_ids.append(val)
+    category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
     search_query = request.GET.get('search', '')
     account_id = request.GET.get('account')
     tx_filter = request.GET.get('tx_filter', 'all')
@@ -518,7 +532,6 @@ def _get_report_data(request):
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
-    if category_id == 'None' or category_id == '': category_id = None
     if account_id == 'None' or account_id == '': account_id = None
     if project_id == 'None' or project_id == '': project_id = None
     if selected_org_id == 'None' or selected_org_id == '': selected_org_id = None
@@ -531,7 +544,7 @@ def _get_report_data(request):
         is_shared = project.shared_organizations.filter(organization=org).exists()
         if not (is_owner or is_shared):
              return org, Transaction.objects.none(), report_type, {}, "Sin Acceso"
-        
+         
         transactions = Transaction.objects.filter(project_id=project_id)
         if selected_org_id:
             transactions = transactions.filter(organization_id=selected_org_id)
@@ -553,15 +566,15 @@ def _get_report_data(request):
     elif tx_filter == 'bcv' and report_type == 'real':
         transactions = transactions.none()
 
-    if category_id:
-        transactions = transactions.filter(category_id=category_id)
+    if category_ids:
+        transactions = transactions.filter(categories__id__in=category_ids).distinct()
     
     if search_query:
         transactions = transactions.filter(
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
             models.Q(notes__icontains=search_query) |
-            models.Q(category__name__icontains=search_query) |
+            models.Q(categories__name__icontains=search_query) |
             models.Q(account__name__icontains=search_query) |
             models.Q(project__name__icontains=search_query) |
             models.Q(valuation__name__icontains=search_query) |
@@ -575,10 +588,11 @@ def _get_report_data(request):
     today = timezone.localdate()
     
     filter_parts = []
-    if category_id:
-        category = Category.objects.filter(id=category_id).first()
-        if category:
-            filter_parts.append(f"Categoría: {category.name}")
+    if category_ids:
+        categories_qs = Category.objects.filter(id__in=category_ids)
+        if categories_qs.exists():
+            names = ", ".join([c.name for c in categories_qs])
+            filter_parts.append(f"Categorías: {names}")
 
     if selected_org_id:
         org_filter = Organization.objects.filter(id=selected_org_id).first()
@@ -1292,12 +1306,18 @@ def detalle_cuenta(request, acc_id):
     filter_type = request.GET.get('filter_type', 'all')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
-    category_id = request.GET.get('category')
+    category_raw = request.GET.getlist('category')
+    category_ids = []
+    for val in category_raw:
+        if ',' in val:
+            category_ids.extend([v.strip() for v in val.split(',') if v.strip()])
+        else:
+            category_ids.append(val)
+    category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
     search_query = request.GET.get('search', '')
 
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
-    if category_id == 'None' or category_id == '': category_id = None
     
     transactions_list = Transaction.objects.filter(account=account)
 
@@ -1307,7 +1327,7 @@ def detalle_cuenta(request, acc_id):
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
             models.Q(notes__icontains=search_query) |
-            models.Q(category__name__icontains=search_query) |
+            models.Q(categories__name__icontains=search_query) |
             models.Q(project__name__icontains=search_query) |
             models.Q(valuation__name__icontains=search_query) |
             models.Q(status__icontains=search_query) |
@@ -1317,8 +1337,8 @@ def detalle_cuenta(request, acc_id):
             models.Q(daily_rate__icontains=search_query)
         )
 
-    if category_id:
-        transactions_list = transactions_list.filter(category_id=category_id)
+    if category_ids:
+        transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
 
     today = timezone.localdate()
     
@@ -1395,7 +1415,8 @@ def detalle_cuenta(request, acc_id):
         'date_from': date_from,
         'date_to': date_to,
         'categories': categories,
-        'selected_category': category_id,
+        'selected_category': category_ids[0] if category_ids else '',
+        'selected_categories': category_ids,
         'filter_options': filter_options,
         'accounts_data': json.dumps(accounts_data),
         'totals': {

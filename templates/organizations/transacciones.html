@@ -146,11 +146,10 @@
 
         <!-- 2. Categoría -->
         <div class="cf-form-group">
-            <label class="cf-stat-label">Categoría:</label>
-            <select name="category" class="cf-select cf-input--sm dynamic-search">
-                <option value="">Todas las categorías</option>
+            <label class="cf-stat-label">Categorías:</label>
+            <select name="category" class="cf-select cf-input--sm dynamic-search" multiple style="height: auto; min-height: 38px; max-height: 120px;">
                 {% for cat in categories %}
-                <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                <option value="{{ cat.id }}" {% if cat.id|stringformat:"i" in selected_categories %}selected{% endif %}>{{ cat.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -238,9 +237,11 @@
                             {% else %}{{ trans.daily_rate|floatformat:2 }}{% endif %}
                         </td>
                         <td class="col-category cf-only-md-up">
-                            {% if trans.category %}
-                            <span class="cf-badge cf-badge--pill" style="background-color: {{ trans.category.color }}; color: #fff; border: none;">{{ trans.category.name }}</span>
-                            {% else %}<span class="cf-text-muted cf-fs-sm">---</span>{% endif %}
+                            {% for cat in trans.categories.all %}
+                            <span class="cf-badge cf-badge--pill" style="background-color: {{ cat.color }}; color: #fff; border: none; margin-right: 2px;">{{ cat.name }}</span>
+                            {% empty %}
+                            <span class="cf-text-muted cf-fs-sm">---</span>
+                            {% endfor %}
                         </td>
                         <td class="col-status cf-only-sm">
                             {% if trans.status == 'completado' %}<span class="cf-badge cf-badge--success">OK</span>
@@ -251,8 +252,8 @@
                             <div class="cf-btn-group">
                                 <button class="cf-btn cf-btn--sm cf-btn--outline-secondary" onclick="viewDetail({{ trans.id }})" title="Ver"><i class="fa-solid fa-eye"></i></button>
                                 {% if not user_is_viewer %}
-                                <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{{ trans.category.id|default:"" }}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
-                                <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editTransaction({{ trans.id }}, '{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{{ trans.category.id|default:"" }}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
+                                <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{% for c in trans.categories.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
+                                <button class="cf-btn cf-btn--sm cf-btn--outline" onclick="editTransaction({{ trans.id }}, '{{ trans.date|date:"Y-m-d" }}', '{{ trans.account.id }}', '{{ trans.reference_number|default:""|escapejs }}', '{{ trans.description|escapejs }}', '{{ trans.notes|default:""|escapejs }}', '{% for c in trans.categories.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}', '{{ trans.project.id|default:"" }}', '{{ trans.valuation.id|default:"" }}', '{{ trans.status }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}')" title="Editar"><i class="fa-solid fa-pencil"></i></button>
 
                                 <button class="cf-btn cf-btn--sm cf-btn--outline-danger" onclick="confirmDelete({{ trans.id }})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                                 {% endif %}
@@ -350,7 +351,7 @@
                         <input type="text" id="id_reference_number_custom" class="cf-input" placeholder="Nro. Referencia">
                         <div class="cf-hidden">{{ form.reference_number }}</div>
                     </div>
-                    <div class="cf-form-group"><label class="cf-label">Categoría</label>{{ form.category }}</div>
+                    <div class="cf-form-group"><label class="cf-label">Categorías</label>{{ form.categories }}</div>
                     <div class="cf-form-group"><label class="cf-label">Proyecto</label>{{ form.project }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ form.description }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Notas</label>{{ form.notes }}</div>
