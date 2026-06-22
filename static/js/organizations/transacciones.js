@@ -46,12 +46,16 @@ function initTransacciones(config) {
         form.querySelector('input[name="real_dollars"]').disabled = true;
         document.getElementById('has_bank_fee').disabled = true;
 
+        // Reset cost center
+        const costCenterSelect = form.querySelector('[name="cost_center"]');
+        if (costCenterSelect) costCenterSelect.value = '';
+
         updateCurrencyUI();
         updateFeeCurrencyUI();
         updateValuationVisibility();
     };
 
-    window.editTransaction = function (id, date, account, ref, desc, notes, cat, project, valuation, status, bs, usd, rate, fee_bs, fee_usd, real_dollars, fee_real_usd) {
+    window.editTransaction = function (id, date, account, ref, desc, notes, cat, cost_center, project, valuation, status, bs, usd, rate, fee_bs, fee_usd, real_dollars, fee_real_usd) {
         if (window.userIsViewer) return;
         const form = document.getElementById('transactionForm');
         if (!form) return;
@@ -64,6 +68,10 @@ function initTransacciones(config) {
         form.querySelector('[name="reference_number"]').value = ref;
         form.querySelector('[name="description"]').value = desc;
         form.querySelector('[name="notes"]').value = notes;
+        
+        const costCenterSelect = form.querySelector('[name="cost_center"]');
+        if (costCenterSelect) costCenterSelect.value = cost_center || '';
+
         const categoriesSelect = form.querySelector('[name="categories"]');
         if (categoriesSelect) {
             Array.from(categoriesSelect.options).forEach(opt => opt.selected = false);
@@ -187,7 +195,7 @@ function initTransacciones(config) {
         CFModal.open('transactionModal');
     };
 
-    window.duplicateTransaction = function (date, account, ref, desc, notes, cat, project, valuation, status, bs, usd, rate, fee_bs, fee_usd, real_dollars, fee_real_usd) {
+    window.duplicateTransaction = function (date, account, ref, desc, notes, cat, cost_center, project, valuation, status, bs, usd, rate, fee_bs, fee_usd, real_dollars, fee_real_usd) {
         if (window.userIsViewer) return;
         window.resetForm();
         const form = document.getElementById('transactionForm');
@@ -201,6 +209,10 @@ function initTransacciones(config) {
         form.querySelector('[name="reference_number"]').value = ref;
         form.querySelector('[name="description"]').value = desc;
         form.querySelector('[name="notes"]').value = notes;
+
+        const costCenterSelect = form.querySelector('[name="cost_center"]');
+        if (costCenterSelect) costCenterSelect.value = cost_center || '';
+
         const categoriesSelect = form.querySelector('[name="categories"]');
         if (categoriesSelect) {
             Array.from(categoriesSelect.options).forEach(opt => opt.selected = false);

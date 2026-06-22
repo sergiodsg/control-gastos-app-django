@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
-from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation
+from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation, CostCenter
 from accounts.models import Profile
 from .amounts import create_initial_balance_transaction
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
@@ -351,6 +351,7 @@ def lista_transacciones(request):
         else:
             category_ids.append(val)
     category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
+    cost_center_id = request.GET.get('cost_center')
     search_query = request.GET.get('search', '')
     tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
     view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
@@ -365,6 +366,7 @@ def lista_transacciones(request):
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
+    if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
     
     # Base: TODAS las transacciones para la tabla
     transactions_list = Transaction.objects.filter(organization=org)
@@ -381,6 +383,8 @@ def lista_transacciones(request):
             models.Q(reference_number__icontains=search_query) |
             models.Q(notes__icontains=search_query) |
             models.Q(categories__name__icontains=search_query) |
+            models.Q(cost_center__code__icontains=search_query) |
+            models.Q(cost_center__name__icontains=search_query) |
             models.Q(account__name__icontains=search_query) |
             models.Q(project__name__icontains=search_query) |
             models.Q(valuation__name__icontains=search_query) |
@@ -393,6 +397,9 @@ def lista_transacciones(request):
 
     if category_ids:
         transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
+
+    if cost_center_id:
+        transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
     
     today = timezone.localdate()
     
@@ -476,6 +483,8 @@ def lista_transacciones(request):
         'form': form,
         'bcv_rate': bcv_rate,
         'categories': categories,
+        'cost_centers': CostCenter.objects.filter(organization=org),
+        'selected_cost_center': cost_center_id,
         'selected_category': category_ids[0] if category_ids else '',
         'selected_categories': category_ids,
         'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
@@ -523,6 +532,7 @@ def _get_report_data(request):
         else:
             category_ids.append(val)
     category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
+    cost_center_id = request.GET.get('cost_center')
     search_query = request.GET.get('search', '')
     account_id = request.GET.get('account')
     tx_filter = request.GET.get('tx_filter', 'all')
@@ -535,6 +545,7 @@ def _get_report_data(request):
     if account_id == 'None' or account_id == '': account_id = None
     if project_id == 'None' or project_id == '': project_id = None
     if selected_org_id == 'None' or selected_org_id == '': selected_org_id = None
+    if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
     
     if project_id:
         # Si filtramos por proyecto, buscamos transacciones de ese proyecto donde la org tenga acceso
@@ -568,6 +579,9 @@ def _get_report_data(request):
 
     if category_ids:
         transactions = transactions.filter(categories__id__in=category_ids).distinct()
+
+    if cost_center_id:
+        transactions = transactions.filter(cost_center_id=cost_center_id)
     
     if search_query:
         transactions = transactions.filter(
@@ -575,6 +589,8 @@ def _get_report_data(request):
             models.Q(reference_number__icontains=search_query) |
             models.Q(notes__icontains=search_query) |
             models.Q(categories__name__icontains=search_query) |
+            models.Q(cost_center__code__icontains=search_query) |
+            models.Q(cost_center__name__icontains=search_query) |
             models.Q(account__name__icontains=search_query) |
             models.Q(project__name__icontains=search_query) |
             models.Q(valuation__name__icontains=search_query) |
@@ -593,6 +609,11 @@ def _get_report_data(request):
         if categories_qs.exists():
             names = ", ".join([c.name for c in categories_qs])
             filter_parts.append(f"Categorías: {names}")
+
+    if cost_center_id:
+        cc_filter = CostCenter.objects.filter(id=cost_center_id).first()
+        if cc_filter:
+            filter_parts.append(f"Centro de Costo: {cc_filter.code} - {cc_filter.name}")
 
     if selected_org_id:
         org_filter = Organization.objects.filter(id=selected_org_id).first()
@@ -1705,7 +1726,8 @@ def detalle_proyecto(request, proj_id):
     for o in orgs_with_access:
         orgs_data[o.id] = {
             'accounts': list(Account.objects.filter(organization=o).values('id', 'name', 'currency')),
-            'categories': list(Category.objects.filter(organization=o).values('id', 'name'))
+            'categories': list(Category.objects.filter(organization=o).values('id', 'name')),
+            'cost_centers': list(CostCenter.objects.filter(organization=o).values('id', 'name', 'code'))
         }
 
     filter_options = [

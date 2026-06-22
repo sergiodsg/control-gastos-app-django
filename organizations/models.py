@@ -111,6 +111,19 @@ class Valuation(models.Model):
     def __str__(self):
         return f"{self.name} - {self.project.name} ({self.amount_usd} $)"
 
+class CostCenter(models.Model):
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='cost_centers', verbose_name="Organización")
+    code = models.CharField(max_length=50, verbose_name="Código")
+    name = models.CharField(max_length=255, verbose_name="Nombre")
+
+    class Meta:
+        verbose_name = "Centro de Costo"
+        verbose_name_plural = "Centros de Costo"
+        unique_together = ('organization', 'code')
+
+    def __str__(self):
+        return f"{self.code} - {self.name}"
+
 class Transaction(models.Model):
     STATUS_CHOICES = [
         ('completado', 'Completado'),
@@ -126,6 +139,7 @@ class Transaction(models.Model):
     notes = models.TextField(blank=True, null=True, verbose_name="Notas")
     
     categories = models.ManyToManyField(Category, blank=True, related_name='transactions', verbose_name="Categorías")
+    cost_center = models.ForeignKey(CostCenter, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Centro de Costo")
     project = models.ForeignKey(Project, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Proyecto")
     valuation = models.ForeignKey(Valuation, on_delete=models.SET_NULL, blank=True, null=True, related_name='transactions', verbose_name="Valuación")
     

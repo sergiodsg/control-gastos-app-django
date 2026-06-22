@@ -1,7 +1,7 @@
 from django.contrib import admin
 from .models import (
     Organization, OrganizationAccess, Account, Category, 
-    Project, Valuation, Transaction, ProjectOrganizationAccess, ProjectUserAccess
+    Project, Valuation, Transaction, ProjectOrganizationAccess, ProjectUserAccess, CostCenter
 )
 
 @admin.register(Organization)
@@ -49,9 +49,15 @@ class ValuationAdmin(admin.ModelAdmin):
     list_display = ('id', 'project', 'name', 'amount_usd', 'amount_bs')
     list_filter = ('project__organization',)
 
+@admin.register(CostCenter)
+class CostCenterAdmin(admin.ModelAdmin):
+    list_display = ('id', 'code', 'name', 'organization')
+    list_filter = ('organization',)
+    search_fields = ('code', 'name')
+
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'date', 'organization', 'account', 'amount_bs', 'amount_usd', 'status')
-    list_filter = ('organization', 'status', 'date')
+    list_display = ('id', 'date', 'organization', 'account', 'cost_center', 'amount_bs', 'amount_usd', 'status')
+    list_filter = ('organization', 'status', 'date', 'cost_center')
     search_fields = ('description', 'reference_number')
     date_hierarchy = 'date'

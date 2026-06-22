@@ -1,7 +1,7 @@
 from django import forms
 from django.core.exceptions import ValidationError
 from django.db import models
-from .models import Transaction, Category, Account, Project, Valuation, Organization
+from .models import Transaction, Category, Account, Project, Valuation, Organization, CostCenter
 from .amounts import apply_dual_currency_amounts
 from .banks import build_account_display_name, validate_bank_for_currency
 from .validators import validate_account_number, validate_holder, validate_rif
@@ -11,7 +11,7 @@ class TransactionForm(forms.ModelForm):
         model = Transaction
         fields = [
             'date', 'organization', 'account', 'reference_number', 'description', 
-            'notes', 'categories', 'project', 'valuation', 
+            'notes', 'categories', 'cost_center', 'project', 'valuation', 
             'status', 'amount_bs', 'amount_usd', 'daily_rate',
             'bank_fee_bs', 'bank_fee_usd', 'real_dollars', 'bank_fee_real_usd'
         ]
@@ -23,6 +23,7 @@ class TransactionForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Descripción de la transacción', 'required': 'required'}),
             'notes': forms.Textarea(attrs={'class': 'cf-input', 'rows': 2, 'placeholder': 'Notas adicionales'}),
             'categories': forms.SelectMultiple(attrs={'class': 'cf-input cf-select', 'style': 'height: auto; min-height: 80px;'}),
+            'cost_center': forms.Select(attrs={'class': 'cf-input'}),
             'project': forms.Select(attrs={'class': 'cf-input'}),
             'valuation': forms.Select(attrs={'class': 'cf-input'}),
             'status': forms.Select(attrs={'class': 'cf-input', 'required': 'required'}),
@@ -109,9 +110,11 @@ class TransactionForm(forms.ModelForm):
                 self.fields['organization'].initial = selected_org
                 self.fields['account'].queryset = Account.objects.filter(organization_id=selected_org)
                 self.fields['categories'].queryset = Category.objects.filter(organization_id=selected_org)
+                self.fields['cost_center'].queryset = CostCenter.objects.filter(organization_id=selected_org)
             else:
                 self.fields['account'].queryset = Account.objects.none()
                 self.fields['categories'].queryset = Category.objects.none()
+                self.fields['cost_center'].queryset = CostCenter.objects.none()
         elif organization:
             # Comportamiento original para la vista de transacciones
             self.fields['organization'].queryset = Organization.objects.filter(id=organization.id)
@@ -120,6 +123,7 @@ class TransactionForm(forms.ModelForm):
             
             self.fields['categories'].queryset = Category.objects.filter(organization=organization)
             self.fields['account'].queryset = Account.objects.filter(organization=organization)
+            self.fields['cost_center'].queryset = CostCenter.objects.filter(organization=organization)
             self.fields['project'].queryset = Project.objects.filter(
                 models.Q(organization=organization) | models.Q(shared_organizations__organization=organization)
             ).distinct()

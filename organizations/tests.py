@@ -8,7 +8,7 @@ from django.test import Client, TestCase
 from django.urls import reverse
 
 from .amounts import opening_balance_transaction_amounts
-from .models import Organization, OrganizationAccess, Project, Transaction, Account, Category, ProjectOrganizationAccess, ProjectUserAccess
+from .models import Organization, OrganizationAccess, Project, Transaction, Account, Category, ProjectOrganizationAccess, ProjectUserAccess, CostCenter
 
 class TransactionAccessTest(TestCase):
     def setUp(self):
@@ -265,7 +265,7 @@ def test_usuario_normal_no_crea_cuenta_con_banco_invalido(client, capsys, settin
 def test_get_report_data_aplica_filtros(client):
     from django.test import RequestFactory
     from organizations.views import _get_report_data
-    from organizations.models import Category, Transaction, Account
+    from organizations.models import Category, Transaction, Account, CostCenter
     from datetime import date
     
     user = User.objects.create_user(username='report_user', password='password')
@@ -282,6 +282,9 @@ def test_get_report_data_aplica_filtros(client):
     
     cat1 = Category.objects.create(organization=org, name='Cat A', color='#111111')
     cat2 = Category.objects.create(organization=org, name='Cat B', color='#222222')
+
+    cc1 = CostCenter.objects.create(organization=org, code='CC01', name='Cost Center One')
+    cc2 = CostCenter.objects.create(organization=org, code='CC02', name='Cost Center Two')
     
     t1 = Transaction.objects.create(
         organization=org,
@@ -291,6 +294,7 @@ def test_get_report_data_aplica_filtros(client):
         amount_usd=100.00,
         amount_bs=3600.00,
         daily_rate=36.00,
+        cost_center=cc1,
     )
     t1.categories.add(cat1)
     t2 = Transaction.objects.create(
@@ -301,6 +305,7 @@ def test_get_report_data_aplica_filtros(client):
         amount_usd=200.00,
         amount_bs=7200.00,
         daily_rate=36.00,
+        cost_center=cc2,
     )
     t2.categories.add(cat2)
     
@@ -341,5 +346,43 @@ def test_get_report_data_aplica_filtros(client):
     _, transactions, _, _, _ = _get_report_data(request)
     assert transactions.count() == 1
     assert transactions[0].id == t1.id
+
+    # 5. Filtrar por centro de costo
+    request = factory.get('/transacciones/exportar-pdf/', {
+        'report_type': 'bcv',
+        'cost_center': cc1.id
+    })
+    request.user = user
+    request.session = {'org_id': org.id}
+    _, transactions, _, _, label = _get_report_data(request)
+    assert transactions.count() == 1
+    assert transactions[0].id == t1.id
+    assert "Centro de Costo: CC01 - Cost Center One" in label
+
+    # 6. Filtrar por búsqueda de código de centro de costo
+    request = factory.get('/transacciones/exportar-pdf/', {
+        'report_type': 'bcv',
+        'search': 'CC02'
+    })
+    request.user = user
+    request.session = {'org_id': org.id}
+    _, transactions, _, _, _ = _get_report_data(request)
+    assert transactions.count() == 1
+    assert transactions[0].id == t2.id
+
+
+@pytest.mark.django_db
+def test_transaction_form_cost_center():
+    from organizations.forms import TransactionForm
+    from organizations.models import CostCenter, Organization
+    org = Organization.objects.create(name='Org Form Test')
+    org2 = Organization.objects.create(name='Other Org')
+    cc = CostCenter.objects.create(organization=org, code='CC01', name='CC 01')
+    cc_other = CostCenter.objects.create(organization=org2, code='CC02', name='CC 02')
+    
+    # Check form queryset filtering
+    form = TransactionForm(organization=org)
+    assert cc in form.fields['cost_center'].queryset
+    assert cc_other not in form.fields['cost_center'].queryset
 
 

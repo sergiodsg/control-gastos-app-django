@@ -71,7 +71,7 @@ function initDetalleProyecto(config) {
         updateTCurrencyUI();
     };
 
-    window.editTransaction = function (id, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd) {
+    window.editTransaction = function (id, orgId, accId, catId, costCenterId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd) {
         if (window.userIsViewer) return;
         const form = document.getElementById('transactionForm');
         if (!form) return;
@@ -84,7 +84,7 @@ function initDetalleProyecto(config) {
         const orgSelect = form.querySelector('[name="organization"]');
         if (orgSelect) {
             orgSelect.value = orgId;
-            updateOrgFields(orgId, accId, catId);
+            updateOrgFields(orgId, accId, catId, costCenterId);
         }
         
         form.querySelector('[name="description"]').value = desc;
@@ -200,22 +200,23 @@ function initDetalleProyecto(config) {
         CFModal.open('transactionModal');
     };
 
-    window.duplicateTransaction = function (orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd) {
+    window.duplicateTransaction = function (orgId, accId, catId, costCenterId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd) {
         if (window.userIsViewer) return;
         window.resetTransactionForm();
-        window.editTransaction(0, orgId, accId, catId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd);
+        window.editTransaction(0, orgId, accId, catId, costCenterId, date, desc, bs, usd, rate, ref, notes, status, valId, real_dollars, fee_bs, fee_usd, fee_real_usd);
         const form = document.getElementById('transactionForm');
         form.action = config.crearTransUrl;
         document.getElementById('transactionModalTitle').innerText = 'Duplicar Transacción (Nueva)';
     };
 
     // Auxiliares internos
-    function updateOrgFields(orgId, selectedAccountId, selectedCategoryId) {
+    function updateOrgFields(orgId, selectedAccountId, selectedCategoryId, selectedCostCenterId) {
         const data = orgsData[orgId];
         const form = document.getElementById('transactionForm');
         if (!form) return;
         const accountSelect = form.querySelector('select[name="account"]');
         const categoriesSelect = form.querySelector('select[name="categories"]');
+        const costCenterSelect = form.querySelector('select[name="cost_center"]');
         if (!data || !accountSelect || !categoriesSelect) return;
         
         accountSelect.innerHTML = '<option value="">---------</option>';
@@ -231,6 +232,17 @@ function initDetalleProyecto(config) {
             if (catIds.includes(cat.id.toString())) opt.selected = true;
             categoriesSelect.add(opt);
         });
+
+        if (costCenterSelect) {
+            costCenterSelect.innerHTML = '<option value="">---------</option>';
+            if (data.cost_centers) {
+                data.cost_centers.forEach(function (cc) {
+                    const opt = new Option(cc.code + ' - ' + cc.name, cc.id);
+                    if (selectedCostCenterId && cc.id == selectedCostCenterId) opt.selected = true;
+                    costCenterSelect.add(opt);
+                });
+            }
+        }
     }
 
     function updateTCurrencyUI() {
