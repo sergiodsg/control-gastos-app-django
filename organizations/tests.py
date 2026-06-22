@@ -259,3 +259,87 @@ def test_usuario_normal_no_crea_cuenta_con_banco_invalido(client, capsys, settin
     assert Transaction.objects.filter(organization=org).count() == 0
     assert any('Seleccione un banco válido en bolívares.' in message for message in messages)
     assert 'cuenta.guardar.error' in debug_output
+
+
+@pytest.mark.django_db
+def test_get_report_data_aplica_filtros(client):
+    from django.test import RequestFactory
+    from organizations.views import _get_report_data
+    from organizations.models import Category, Transaction, Account
+    from datetime import date
+    
+    user = User.objects.create_user(username='report_user', password='password')
+    org = Organization.objects.create(name='Org Report')
+    OrganizationAccess.objects.create(user=user, organization=org)
+    
+    acc = Account.objects.create(
+        organization=org,
+        currency=Account.CURRENCY_BS,
+        name='Cuenta Test',
+        bank_name='Banco de Venezuela',
+        holder='Titular Test'
+    )
+    
+    cat1 = Category.objects.create(organization=org, name='Cat A', color='#111111')
+    cat2 = Category.objects.create(organization=org, name='Cat B', color='#222222')
+    
+    t1 = Transaction.objects.create(
+        organization=org,
+        account=acc,
+        date=date(2026, 6, 1),
+        description='Gastos de Oficina A',
+        amount_usd=100.00,
+        amount_bs=3600.00,
+        daily_rate=36.00,
+        category=cat1
+    )
+    t2 = Transaction.objects.create(
+        organization=org,
+        account=acc,
+        date=date(2026, 6, 15),
+        description='Gastos de Oficina B',
+        amount_usd=200.00,
+        amount_bs=7200.00,
+        daily_rate=36.00,
+        category=cat2
+    )
+    
+    factory = RequestFactory()
+    
+    # 1. Sin filtros
+    request = factory.get('/transacciones/exportar-pdf/', {'report_type': 'bcv'})
+    request.user = user
+    request.session = {'org_id': org.id}
+    _, transactions, _, _, _ = _get_report_data(request)
+    assert transactions.count() == 2
+    
+    # 2. Filtrar por categoría Cat A
+    request = factory.get('/transacciones/exportar-pdf/', {'report_type': 'bcv', 'category': cat1.id})
+    request.user = user
+    request.session = {'org_id': org.id}
+    _, transactions, _, _, label = _get_report_data(request)
+    assert transactions.count() == 1
+    assert transactions[0].id == t1.id
+    assert "Cat A" in label
+
+    # 3. Filtrar por búsqueda
+    request = factory.get('/transacciones/exportar-pdf/', {'report_type': 'bcv', 'search': 'Oficina B'})
+    request.user = user
+    request.session = {'org_id': org.id}
+    _, transactions, _, _, _ = _get_report_data(request)
+    assert transactions.count() == 1
+    assert transactions[0].id == t2.id
+
+    # 4. Filtrar por rango de fechas
+    request = factory.get('/transacciones/exportar-pdf/', {
+        'report_type': 'bcv',
+        'date_from': '2026-06-01',
+        'date_to': '2026-06-10'
+    })
+    request.user = user
+    request.session = {'org_id': org.id}
+    _, transactions, _, _, _ = _get_report_data(request)
+    assert transactions.count() == 1
+    assert transactions[0].id == t1.id
+
+

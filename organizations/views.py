@@ -397,7 +397,7 @@ def lista_transacciones(request):
         if date_to:
             transactions_list = transactions_list.filter(date__lte=date_to)
     elif filter_type != 'all' and filter_type != 'custom':
-        if filter_type == 'day': start_date = today - timedelta(days=1)
+        if filter_type == 'day': start_date = today
         elif filter_type == 'week': start_date = today - timedelta(days=7)
         elif filter_type == '15days': start_date = today - timedelta(days=15)
         elif filter_type == 'month': start_date = today - timedelta(days=30)
@@ -513,6 +513,7 @@ def _get_report_data(request):
     account_id = request.GET.get('account')
     tx_filter = request.GET.get('tx_filter', 'all')
     project_id = request.GET.get('project')
+    selected_org_id = request.GET.get('organization')
 
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
@@ -520,6 +521,7 @@ def _get_report_data(request):
     if category_id == 'None' or category_id == '': category_id = None
     if account_id == 'None' or account_id == '': account_id = None
     if project_id == 'None' or project_id == '': project_id = None
+    if selected_org_id == 'None' or selected_org_id == '': selected_org_id = None
     
     if project_id:
         # Si filtramos por proyecto, buscamos transacciones de ese proyecto donde la org tenga acceso
@@ -531,6 +533,8 @@ def _get_report_data(request):
              return org, Transaction.objects.none(), report_type, {}, "Sin Acceso"
         
         transactions = Transaction.objects.filter(project_id=project_id)
+        if selected_org_id:
+            transactions = transactions.filter(organization_id=selected_org_id)
     else:
         transactions = Transaction.objects.filter(organization=org)
 
@@ -569,39 +573,60 @@ def _get_report_data(request):
         )
     
     today = timezone.localdate()
-    filter_label = "Todas"
     
+    filter_parts = []
     if category_id:
         category = Category.objects.filter(id=category_id).first()
         if category:
-            filter_label += f" | Categoría: {category.name}"
-    
-    if filter_type != 'all' and filter_type != 'custom':
+            filter_parts.append(f"Categoría: {category.name}")
+
+    if selected_org_id:
+        org_filter = Organization.objects.filter(id=selected_org_id).first()
+        if org_filter:
+            filter_parts.append(f"Organización: {org_filter.name}")
+            
+    if date_from or date_to:
+        if date_from:
+            transactions = transactions.filter(date__gte=date_from)
+        if date_to:
+            transactions = transactions.filter(date__lte=date_to)
+        
+        if date_from and date_to:
+            filter_parts.append(f"Rango: {date_from} a {date_to}")
+        elif date_from:
+            filter_parts.append(f"Desde: {date_from}")
+        else:
+            filter_parts.append(f"Hasta: {date_to}")
+    elif filter_type != 'all' and filter_type != 'custom':
+        labels = {
+            'day': "Hoy",
+            'week': "Última semana",
+            '15days': "Últimos 15 días",
+            'month': "Último mes",
+            'quarter': "Trimestre",
+            '6months': "Últimos 6 meses",
+            'year': "Último año",
+        }
+        if filter_type in labels:
+            filter_parts.append(labels[filter_type])
+            
         if filter_type == 'day':
             start_date = today
-            filter_label = "Hoy"
         elif filter_type == 'week':
             start_date = today - timedelta(days=7)
-            filter_label = "Última semana"
         elif filter_type == '15days':
             start_date = today - timedelta(days=15)
-            filter_label = "Últimos 15 días"
         elif filter_type == 'month':
             start_date = today - timedelta(days=30)
-            filter_label = "Último mes"
         elif filter_type == 'quarter':
             start_date = today - timedelta(days=90)
-            filter_label = "Trimestre"
         elif filter_type == '6months':
             start_date = today - timedelta(days=180)
-            filter_label = "Últimos 6 meses"
         elif filter_type == 'year':
             start_date = today - timedelta(days=365)
-            filter_label = "Último año"
         transactions = transactions.filter(date__gte=start_date)
-    elif filter_type == 'custom' and date_from and date_to:
-        transactions = transactions.filter(date__range=[date_from, date_to])
-        filter_label = f"Rango: {date_from} a {date_to}"
+        
+    filter_label = " | ".join(filter_parts) if filter_parts else "Todas"
         
     transactions = transactions.order_by('date', 'id')
     

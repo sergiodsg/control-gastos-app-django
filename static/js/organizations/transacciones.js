@@ -448,8 +448,36 @@ function initTransacciones(config) {
         });
     }
 
+    function updateExportUrls() {
+        const filterForm = document.querySelector('.cf-filter-form');
+        if (!filterForm) return;
+
+        const formData = new FormData(filterForm);
+        const exportLinks = document.querySelectorAll('a[href*="/transacciones/exportar-pdf/"], a[href*="/transacciones/exportar-xlsx/"]');
+        
+        exportLinks.forEach(link => {
+            try {
+                const originalUrl = new URL(link.href, window.location.origin);
+                
+                // Actualizar parámetros basados en los campos de formulario
+                formData.forEach((value, key) => {
+                    if (value !== null && value !== undefined && value !== '') {
+                        originalUrl.searchParams.set(key, value);
+                    } else {
+                        originalUrl.searchParams.delete(key);
+                    }
+                });
+                
+                link.href = originalUrl.pathname + originalUrl.search;
+            } catch (e) {
+                console.error("Error updating export link URL: ", e);
+            }
+        });
+    }
+
     // Auxiliares para filtrado dinámico AJAX
     function updateDashboard() {
+        updateExportUrls();
         const container = document.getElementById('transactions-container');
         if (!container) return;
 
@@ -493,6 +521,7 @@ function initTransacciones(config) {
         // Filtros dinámicos
         const filterForm = document.querySelector('.cf-filter-form');
         if (filterForm) {
+            updateExportUrls();
             filterForm.querySelectorAll('.dynamic-search').forEach(el => {
                 const eventType = (el.tagName === 'SELECT' || el.type === 'date') ? 'change' : 'input';
                 let debounceTimer;
