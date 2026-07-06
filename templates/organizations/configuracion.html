@@ -57,6 +57,31 @@
     </div>
 </div>
 
+<div class="cf-grid cf-grid--2 cf-mt-4">
+    <div class="cf-card cf-h-100">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gráficos del Dashboard
+            </h5>
+            <p class="cf-text-muted cf-fs-sm cf-mb-4">Personaliza qué gráficos mostrar en el inicio.</p>
+            <div class="config-options">
+                <div class="cf-option" id="opt-costcenter-yes">
+                    <input type="radio" name="costcenter-pref" id="costCenterYes" value="yes">
+                    <label class="cf-fw-bold cf-flex-1" for="costCenterYes">
+                        <i class="fa-solid fa-check cf-me-2"></i>Mostrar gastos por centro de costo
+                    </label>
+                </div>
+                <div class="cf-option" id="opt-costcenter-no">
+                    <input type="radio" name="costcenter-pref" id="costCenterNo" value="no">
+                    <label class="cf-fw-bold cf-flex-1" for="costCenterNo">
+                        <i class="fa-solid fa-xmark cf-me-2"></i>Ocultar gastos por centro de costo
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="cf-mt-4 cf-text-end">
     {% if not user_is_viewer %}
     <button type="button" class="cf-btn cf-btn--primary cf-btn--lg" id="save-config">
@@ -107,6 +132,25 @@
         lightOpt.addEventListener('click', function () { updateThemeUI('light'); });
         darkOpt.addEventListener('click', function () { updateThemeUI('dark'); });
 
+        // Cost center chart preference logic
+        const currentCostCenter = localStorage.getItem('show_costcenter_chart') || 'yes';
+        const costCenterYesRadio = document.getElementById('costCenterYes');
+        const costCenterNoRadio = document.getElementById('costCenterNo');
+        const costCenterYesOpt = document.getElementById('opt-costcenter-yes');
+        const costCenterNoOpt = document.getElementById('opt-costcenter-no');
+
+        function updateCostCenterUI(pref) {
+            costCenterYesOpt.classList.toggle('is-selected', pref === 'yes');
+            costCenterNoOpt.classList.toggle('is-selected', pref === 'no');
+            if (pref === 'yes') costCenterYesRadio.checked = true;
+            else costCenterNoRadio.checked = true;
+        }
+
+        updateCostCenterUI(currentCostCenter);
+
+        costCenterYesOpt.addEventListener('click', function () { updateCostCenterUI('yes'); });
+        costCenterNoOpt.addEventListener('click', function () { updateCostCenterUI('no'); });
+
         // Save config button
         document.getElementById('save-config').addEventListener('click', function () {
             // Save currency preference
@@ -118,6 +162,10 @@
             const selectedTheme = document.querySelector('input[name="theme-pref"]:checked').value;
             localStorage.setItem('theme_pref', selectedTheme);
             if (typeof applyThemePreference === 'function') applyThemePreference();
+
+            // Save cost center chart preference
+            const selectedCostCenter = document.querySelector('input[name="costcenter-pref"]:checked').value;
+            localStorage.setItem('show_costcenter_chart', selectedCostCenter);
 
             const btn = document.getElementById('save-config');
             const original = btn.innerHTML;

@@ -35,6 +35,21 @@ def get_chart_data(transactions_qs, mode='bcv', json_format=True):
     cat_series = [float(abs(item['total'] or 0)) for item in category_spending]
     cat_colors = [item['categories__color'] or '#000000' for item in category_spending]
 
+    # 2. Gastos por Centro de Costo (Porcentajes)
+    if mode == 'real':
+        cost_center_spending = transactions_qs.filter(real_dollars__lt=0, cost_center__isnull=False).values('cost_center__name').annotate(
+            total=Sum('real_dollars')
+        ).order_by('total')
+    else:
+        cost_center_spending = transactions_qs.filter(amount_usd__lt=0, cost_center__isnull=False).values('cost_center__name').annotate(
+            total=Sum('amount_usd')
+        ).order_by('total')
+    
+    cc_labels = [item['cost_center__name'] or 'Sin centro de costo' for item in cost_center_spending]
+    cc_values = [float(abs(item['total'] or 0)) for item in cost_center_spending]
+    total_expense_cc = sum(cc_values)
+    cc_percentages = [(v / total_expense_cc * 100) if total_expense_cc > 0 else 0 for v in cc_values]
+
     # 2. Balance Total (Ingresos vs Gastos)
     if mode == 'real':
         totals_data = transactions_qs.aggregate(
@@ -80,6 +95,8 @@ def get_chart_data(transactions_qs, mode='bcv', json_format=True):
             'total_expense': total_expense,
             'evo_labels': json.dumps(evo_labels),
             'evo_series': json.dumps(evo_series),
+            'cc_labels': json.dumps(cc_labels),
+            'cc_percentages': json.dumps(cc_percentages),
         }
     else:
         return {
@@ -90,6 +107,8 @@ def get_chart_data(transactions_qs, mode='bcv', json_format=True):
             'total_expense': total_expense,
             'evo_labels': evo_labels,
             'evo_series': evo_series,
+            'cc_labels': cc_labels,
+            'cc_percentages': cc_percentages,
         }
 
 class DecimalEncoder(json.JSONEncoder):
