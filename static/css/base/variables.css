@@ -57,3 +57,43 @@
     --app-sidebar-border: rgba(255, 255, 255, 0.1);
     --app-sidebar-active-bg: rgba(255, 255, 255, 0.1);
 }
+
+/* Dark Mode Variables */
+[data-theme="dark"] {
+    /* Superficies - Dark Mode */
+    --bg-body: #0f172a;
+    --bg-surface: #1e293b;
+    --bg-card: #1e293b;
+    --bg-muted: #334155;
+    
+    /* Texto */
+    --text-main: #f1f5f9;
+    --text-muted: #94a3b8;
+    --text-subtle: #64748b;
+    
+    /* Bordes y sombras */
+    --border-subtle: #334155;
+    --border-default: #475569;
+    --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.3);
+    --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.2);
+    --shadow-btn: 0 4px 14px rgba(0, 0, 0, 0.4);
+    
+    /* Semánticos ajustados para modo oscuro */
+    --color-success: #10b981;
+    --color-success-bg: #064e3b;
+    --color-success-border: #059669;
+    --color-danger: #f87171;
+    --color-danger-bg: #7f1d1d;
+    --color-danger-border: #ef4444;
+    --color-warning: #fbbf24;
+    --color-warning-bg: #78350f;
+    --color-warning-border: #d97706;
+    --color-info: #94a3b8;
+    --color-info-bg: #1e293b;
+    --color-info-border: #334155;
+    
+    /* Ajustes de sidebar para modo oscuro */
+    --app-sidebar-bg: #020617;
+    --app-sidebar-border: rgba(255, 255, 255, 0.08);
+    --app-sidebar-active-bg: rgba(255, 255, 255, 0.08);
+}
