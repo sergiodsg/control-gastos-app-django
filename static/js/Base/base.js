@@ -1,6 +1,12 @@
 (function () {
     const STORAGE_KEY = 'cashflow_sidebar_collapsed';
 
+    // Apply theme preference from localStorage
+    function applyThemePreference() {
+        const theme = localStorage.getItem('theme_pref') || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+    }
+
     function applyCurrencyPreference() {
         const pref = localStorage.getItem('currency_pref') || 'USD';
         const usdElements = document.querySelectorAll('.currency-usd-content');
@@ -219,6 +225,7 @@
 
     window.addEventListener('DOMContentLoaded', function () {
         initSidebar();
+        applyThemePreference();
         applyCurrencyPreference();
         initAjaxSorting();
         initDynamicSearch();
