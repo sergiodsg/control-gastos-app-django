@@ -624,6 +624,12 @@
     z-index: 10;
     border-right: 2px solid var(--border-subtle); /* Always visible subtle line */
     transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+/* Prevent resizer from appearing on action column */
+.cf-table--resizable th.col-actions .cf-table__resizer {
+    display: none;
 }
 
 .cf-table--resizable th:hover .cf-table__resizer {
