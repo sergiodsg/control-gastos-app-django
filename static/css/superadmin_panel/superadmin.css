@@ -345,7 +345,7 @@
 }
 
 .sa-access-item:hover {
-    background: rgba(55, 65, 81, 0.06);
+    background: var(--bg-muted);
 }
 
 /* --- Vista completa: wizard creación organización --- */
@@ -1028,7 +1028,7 @@
 }
 
 .sa-bcv-cal-day:hover:not(:disabled) {
-    background: rgba(55, 65, 81, 0.08);
+    background: var(--bg-muted);
 }
 
 .sa-bcv-cal-day--muted {
@@ -1138,11 +1138,11 @@
 }
 
 .sa-bcv-rate-tile--usd {
-    border-top: 3px solid #3b82f6;
+    border-top: 3px solid var(--color-info);
 }
 
 .sa-bcv-rate-tile--eur {
-    border-top: 3px solid #8b5cf6;
+    border-top: 3px solid var(--color-morado);
 }
 
 .sa-bcv-rate-tile__head {
@@ -1167,13 +1167,13 @@
 }
 
 .sa-bcv-rate-badge--usd {
-    background: #eff6ff;
-    color: #1d4ed8;
+    background: var(--color-info-bg);
+    color: var(--color-info);
 }
 
 .sa-bcv-rate-badge--eur {
-    background: #f5f3ff;
-    color: #6d28d9;
+    background: var(--bg-muted);
+    color: var(--color-morado);
 }
 
 .sa-bcv-rate-tile__body {
