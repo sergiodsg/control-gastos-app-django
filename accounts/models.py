@@ -17,7 +17,7 @@ class Profile(models.Model):
         verbose_name="Edit"
     )
 
-    def __clon__(self):
+    def __str__(self):
         return f"Perfil de {self.user.username} - {self.edit}"
 
 @receiver(post_save, sender=User)

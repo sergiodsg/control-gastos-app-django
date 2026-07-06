@@ -1,14 +1,24 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
+from django.db import models
+from django.db.models import Sum, OuterRef, Subquery, Value, F, Q
+from django.db.models.functions import Coalesce, TruncMonth
+from django.utils import timezone
+from django.contrib import messages
+from django.core.paginator import Paginator
+from datetime import timedelta
+import json
+from decimal import Decimal
+
 from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation, CostCenter
 from accounts.models import Profile
+from accounts.decorators import viewer_restricted
 from .amounts import create_initial_balance_transaction
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
-from django.contrib import messages
-from django.db.models import Sum, OuterRef, Subquery, Value, F
-from django.db.models.functions import Coalesce, TruncMonth
-from accounts.decorators import viewer_restricted
+from CashFlow.debug import debug_event, first_form_error
+from BCV.services.bcv_scrapper import as_dashboard_rates, get_rate_for_date
+
 
 def get_chart_data(transactions_qs, mode='bcv', json_format=True):
     # 1. Desglose de Gastos por Categoría
@@ -28,16 +38,16 @@ def get_chart_data(transactions_qs, mode='bcv', json_format=True):
     # 2. Balance Total (Ingresos vs Gastos)
     if mode == 'real':
         totals_data = transactions_qs.aggregate(
-            income=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
-            expense=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+            income=Sum('real_dollars', filter=Q(real_dollars__gt=0)),
+            expense=Sum('real_dollars', filter=Q(real_dollars__lt=0)),
             fees=Sum('bank_fee_real_usd')
         )
         total_income = float(totals_data['income'] or 0)
         total_expense = float(abs(totals_data['expense'] or 0)) + float(totals_data['fees'] or 0)
     else:
         totals_data = transactions_qs.aggregate(
-            income=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
-            expense=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+            income=Sum('amount_usd', filter=Q(amount_usd__gt=0)),
+            expense=Sum('amount_usd', filter=Q(amount_usd__lt=0)),
             fees=Sum('bank_fee_usd')
         )
         total_income = float(totals_data['income'] or 0)
@@ -81,14 +91,6 @@ def get_chart_data(transactions_qs, mode='bcv', json_format=True):
             'evo_labels': evo_labels,
             'evo_series': evo_series,
         }
-from django.utils import timezone
-from datetime import timedelta
-import json
-from django.db import models
-from django.core.paginator import Paginator
-from decimal import Decimal
-from CashFlow.debug import debug_event, first_form_error
-from BCV.services.bcv_scrapper import as_dashboard_rates, get_rate_for_date
 
 class DecimalEncoder(json.JSONEncoder):
     def default(self, obj):

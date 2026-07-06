@@ -74,6 +74,17 @@ class TransactionForm(forms.ModelForm):
             amount_bs = cleaned_data.get('amount_bs') or 0
             amount_usd = cleaned_data.get('amount_usd') or 0
             daily_rate = cleaned_data.get('daily_rate') or 1
+            
+            # Validate that daily_rate is positive
+            if daily_rate <= 0:
+                self.add_error('daily_rate', 'La tasa de cambio debe ser mayor a cero.')
+                return cleaned_data
+            
+            # Validate that daily_rate is not negative (additional safety check)
+            if daily_rate < 0:
+                self.add_error('daily_rate', 'La tasa de cambio no puede ser negativa.')
+                return cleaned_data
+            
             amount_bs, amount_usd = apply_dual_currency_amounts(amount_bs, amount_usd, daily_rate)
             cleaned_data['amount_bs'] = amount_bs
             cleaned_data['amount_usd'] = amount_usd
@@ -249,6 +260,16 @@ class ValuationForm(forms.ModelForm):
         usd = cleaned_data.get('amount_usd')
         bs = cleaned_data.get('amount_bs')
         rate = cleaned_data.get('daily_rate') or 1
+        
+        # Validate that daily_rate is positive
+        if rate is not None and rate <= 0:
+            self.add_error('daily_rate', 'La tasa de cambio debe ser mayor a cero.')
+            return cleaned_data
+        
+        # Validate that daily_rate is not negative (additional safety check)
+        if rate is not None and rate < 0:
+            self.add_error('daily_rate', 'La tasa de cambio no puede ser negativa.')
+            return cleaned_data
         
         if (usd and usd != 0) and (not bs or bs == 0):
             cleaned_data['amount_bs'] = round(usd * rate, 2)
