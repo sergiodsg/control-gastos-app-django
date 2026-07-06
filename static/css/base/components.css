@@ -97,7 +97,7 @@
 }
 
 .cf-btn--danger:hover {
-    background: #dc2626;
+    background: color-mix(in srgb, var(--color-danger) 85%, #000);
     color: #fff;
 }
 
@@ -107,7 +107,7 @@
 }
 
 .cf-btn--success:hover {
-    background: #185a42;
+    background: color-mix(in srgb, var(--color-success) 85%, #000);
     color: #fff;
 }
 
@@ -138,7 +138,7 @@
 }
 
 .cf-btn--link-danger:hover {
-    color: #c41e3a;
+    color: var(--color-danger);
 }
 
 .cf-btn--sm {
@@ -233,7 +233,7 @@
     gap: 0.5rem;
     padding: 10px 20px;
     border-radius: var(--radius-md);
-    color: #4a5568;
+    color: var(--text-muted);
     font-weight: 500;
     font-size: 0.9rem;
     text-decoration: none;

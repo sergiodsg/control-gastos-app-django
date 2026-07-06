@@ -60,6 +60,17 @@
 
 /* Dark Mode Variables */
 [data-theme="dark"] {
+    /* Paleta Nueva (Gris Oscuro y Neutro) - Dark Mode Overrides */
+    --color-neutro-light: #1e293b;
+    --color-dark-gray: #94a3b8;   /* Gris claro para modo oscuro */
+    --color-negro-carbon: #0f172a;
+    --color-gris-claro: #64748b;
+    
+    /* Alias legacy adaptados - Dark Mode */
+    --color-morado: #818cf8;      /* Un tono más claro para modo oscuro */
+    --color-azulmarino: #0f172a;
+    --color-azul: #64748b;
+    
     /* Superficies - Dark Mode */
     --bg-body: #0f172a;
     --bg-surface: #1e293b;
