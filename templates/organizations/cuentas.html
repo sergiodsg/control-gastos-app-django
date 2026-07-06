@@ -52,9 +52,11 @@
                 <div class="account-balance">
                 <span class="cf-stat-label">Saldo Actual</span>
                 {% if acc.currency == 'USD' %}
-                <div class="cf-stat-value">{{ acc.balance_usd|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">$</span></div>
+                <div class="cf-stat-value currency-usd-content">{{ acc.balance_usd|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">$</span></div>
+                <div class="cf-stat-value currency-bs-content cf-hidden">{{ acc.balance_bs|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">Bs.</span></div>
                 {% else %}
-                <div class="cf-stat-value">{{ acc.balance_bs|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">Bs.</span></div>
+                <div class="cf-stat-value currency-usd-content">{{ acc.balance_usd|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">$</span></div>
+                <div class="cf-stat-value currency-bs-content cf-hidden">{{ acc.balance_bs|default:0|floatformat:2 }} <span class="cf-fs-sm cf-text-muted">Bs.</span></div>
                 {% endif %}
                 </div>
                 </div>
