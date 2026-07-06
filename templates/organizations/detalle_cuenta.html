@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static l10n %}
+{% load static l10n intcomma %}
 
 {% block title %}{{ account.name }} - Detalle{% endblock %}
 
@@ -44,18 +44,18 @@
             </div>
             <div class="currency-usd-content">
                 {% if account.currency == 'USD' %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_real_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_real_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
                 {% else %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
-                <div style="opacity: 0.85;">{{ totals.balance_bs|floatformat:2 }} Bs.</div>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.balance_bs|intcomma }} Bs.</div>
                 {% endif %}
             </div>
             <div class="currency-bs-content cf-hidden">
                 {% if account.currency == 'USD' %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_real_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_real_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
                 {% else %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
-                <div style="opacity: 0.85;">{{ totals.balance_usd|floatformat:2 }} $</div>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.balance_bs|intcomma }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.balance_usd|intcomma }} $</div>
                 {% endif %}
             </div>
         </div>
@@ -68,18 +68,18 @@
             </div>
             <div class="currency-usd-content">
                 {% if account.currency == 'USD' %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_real_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_real_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
                 {% else %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
-                <div style="opacity: 0.85;">{{ totals.income_bs|floatformat:2 }} Bs.</div>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.income_bs|intcomma }} Bs.</div>
                 {% endif %}
             </div>
             <div class="currency-bs-content cf-hidden">
                 {% if account.currency == 'USD' %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_real_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_real_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
                 {% else %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
-                <div style="opacity: 0.85;">{{ totals.income_usd|floatformat:2 }} $</div>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.income_bs|intcomma }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.income_usd|intcomma }} $</div>
                 {% endif %}
             </div>
         </div>
@@ -92,18 +92,18 @@
             </div>
             <div class="currency-usd-content">
                 {% if account.currency == 'USD' %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_real_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_real_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
                 {% else %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
-                <div style="opacity: 0.85;">{{ totals.expense_bs|floatformat:2 }} Bs.</div>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
+                <div style="opacity: 0.85;">{{ totals.expense_bs|intcomma }} Bs.</div>
                 {% endif %}
             </div>
             <div class="currency-bs-content cf-hidden">
                 {% if account.currency == 'USD' %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_real_usd|floatformat:2 }} <span class="cf-fs-sm">$</span></h3>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_real_usd|intcomma }} <span class="cf-fs-sm">$</span></h3>
                 {% else %}
-                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_bs|floatformat:2 }} <span class="cf-fs-sm">Bs.</span></h3>
-                <div style="opacity: 0.85;">{{ totals.expense_usd|floatformat:2 }} $</div>
+                <h3 class="cf-fw-bold cf-mb-1">{{ totals.expense_bs|intcomma }} <span class="cf-fs-sm">Bs.</span></h3>
+                <div style="opacity: 0.85;">{{ totals.expense_usd|intcomma }} $</div>
                 {% endif %}
             </div>
         </div>
@@ -203,16 +203,16 @@
                         <td class="cf-ps-4 col-date">{{ trans.date|date:"d/m/Y" }}</td>
                         <td class="col-desc" title="{{ trans.description }}">{{ trans.description }}</td>
                         <td class="cf-fw-bold col-amount {% if trans.real_dollars < 0 or trans.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">
-                            {% if trans.real_dollars %}{{ trans.real_dollars|floatformat:2 }} $
-                            {% else %}{{ trans.amount_usd|floatformat:2 }} ${% endif %}
+                            {% if trans.real_dollars %}{{ trans.real_dollars|intcomma }} $
+                            {% else %}{{ trans.amount_usd|intcomma }} ${% endif %}
                         </td>
                         <td class="cf-text-muted cf-fs-sm col-amount">
                             {% if trans.real_dollars %}-
-                            {% else %}{{ trans.amount_bs|floatformat:2 }} Bs.{% endif %}
+                            {% else %}{{ trans.amount_bs|intcomma }} Bs.{% endif %}
                         </td>
                         <td class="col-rate">
                             {% if trans.real_dollars %}-
-                            {% else %}{{ trans.daily_rate|floatformat:4 }}{% endif %}
+                            {% else %}{{ trans.daily_rate|intcomma_rate }}{% endif %}
                         </td>
                         <td class="col-category">
                             {% for cat in trans.categories.all %}

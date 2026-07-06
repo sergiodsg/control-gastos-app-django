@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load intcomma %}
 
 {% block title %}Inicio - {{ request.session.org_name }}{% endblock %}
 
@@ -31,15 +32,15 @@
             <div class="cf-flex cf-w-full cf-items-center cf-justify-around cf-gap-4">
                 <div class="cf-text-center">
                     <small style="display:block; opacity: 0.7; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">BCV</small>
-                    <div class="cf-stat-value currency-usd-content" style="font-size: 1.4rem; font-weight: 700;">${{ balance_usd|floatformat:2 }}</div>
-                    <div class="cf-stat-value currency-bs-content cf-hidden" style="font-size: 1.4rem; font-weight: 700;">Bs. {{ balance_bs|floatformat:2 }}</div>
+                    <div class="cf-stat-value currency-usd-content" style="font-size: 1.4rem; font-weight: 700;">${{ balance_usd|intcomma }}</div>
+                    <div class="cf-stat-value currency-bs-content cf-hidden" style="font-size: 1.4rem; font-weight: 700;">Bs. {{ balance_bs|intcomma }}</div>
                 </div>
                 
                 <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.25);"></div>
 
                 <div class="cf-text-center">
                     <small style="display:block; opacity: 0.7; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Dólares</small>
-                    <div class="cf-stat-value" style="font-size: 1.4rem; font-weight: 700;">${{ balance_real_usd|floatformat:2 }}</div>
+                    <div class="cf-stat-value" style="font-size: 1.4rem; font-weight: 700;">${{ balance_real_usd|intcomma }}</div>
                 </div>
             </div>
         </div>
@@ -51,10 +52,10 @@
                 <div>
                     <h5 class="cf-text-muted cf-mb-1">Ingresos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
                     {% if view_mode == 'real' %}
-                    <div class="cf-stat-value cf-text-success">${{ income_real_usd|floatformat:2 }}</div>
+                    <div class="cf-stat-value cf-text-success">${{ income_real_usd|intcomma }}</div>
                     {% else %}
-                    <div class="cf-stat-value cf-text-success currency-usd-content">${{ income_usd|floatformat:2 }}</div>
-                    <div class="cf-stat-value cf-text-success currency-bs-content cf-hidden">Bs. {{ income_bs|floatformat:2 }}</div>
+                    <div class="cf-stat-value cf-text-success currency-usd-content">${{ income_usd|intcomma }}</div>
+                    <div class="cf-stat-value cf-text-success currency-bs-content cf-hidden">Bs. {{ income_bs|intcomma }}</div>
                     {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--success">
@@ -80,10 +81,10 @@
                 <div>
                     <h5 class="cf-text-muted cf-mb-1">Gastos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
                     {% if view_mode == 'real' %}
-                    <div class="cf-stat-value cf-text-danger">${{ expense_real_usd|floatformat:2 }}</div>
+                    <div class="cf-stat-value cf-text-danger">${{ expense_real_usd|intcomma }}</div>
                     {% else %}
-                    <div class="cf-stat-value cf-text-danger currency-usd-content">${{ expense_usd|floatformat:2 }}</div>
-                    <div class="cf-stat-value cf-text-danger currency-bs-content cf-hidden">Bs. {{ expense_bs|floatformat:2 }}</div>
+                    <div class="cf-stat-value cf-text-danger currency-usd-content">${{ expense_usd|intcomma }}</div>
+                    <div class="cf-stat-value cf-text-danger currency-bs-content cf-hidden">Bs. {{ expense_bs|intcomma }}</div>
                     {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--danger">
@@ -144,7 +145,7 @@
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.7rem;">Oficial</small>
                     </div>
                     <div class="cf-text-end">
-                        <span class="cf-fw-bold" id="val-usd-bcv">{{ rates.usd_bcv.promedio|floatformat:2|default:"--" }}</span>
+                        <span class="cf-fw-bold" id="val-usd-bcv">{{ rates.usd_bcv.promedio|intcomma_rate|default:"--" }}</span>
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.65rem;">Bs/$</small>
                     </div>
                 </div>
@@ -154,7 +155,7 @@
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.7rem;">Promedio</small>
                     </div>
                     <div class="cf-text-end">
-                        <span class="cf-fw-bold" id="val-usd-paralelo">{{ rates.usd_paralelo.promedio|floatformat:2|default:"--" }}</span>
+                        <span class="cf-fw-bold" id="val-usd-paralelo">{{ rates.usd_paralelo.promedio|intcomma_rate|default:"--" }}</span>
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.65rem;">Bs/$</small>
                     </div>
                 </div>
@@ -165,7 +166,7 @@
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.7rem;">Oficial</small>
                     </div>
                     <div class="cf-text-end">
-                        <span class="cf-fw-bold" id="val-eur-bcv">{{ rates.eur_bcv.promedio|floatformat:2|default:"--" }}</span>
+                        <span class="cf-fw-bold" id="val-eur-bcv">{{ rates.eur_bcv.promedio|intcomma_rate|default:"--" }}</span>
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.65rem;">Bs/€</small>
                     </div>
                 </div>
@@ -175,7 +176,7 @@
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.7rem;">Promedio</small>
                     </div>
                     <div class="cf-text-end">
-                        <span class="cf-fw-bold" id="val-eur-paralelo">{{ rates.eur_paralelo.promedio|floatformat:2|default:"--" }}</span>
+                        <span class="cf-fw-bold" id="val-eur-paralelo">{{ rates.eur_paralelo.promedio|intcomma_rate|default:"--" }}</span>
                         <small class="cf-text-muted cf-d-block" style="font-size: 0.65rem;">Bs/€</small>
                     </div>
                 </div>
@@ -211,12 +212,12 @@
                                 <td class="cf-fs-sm col-desc">{{ tx.description }}</td>
                                 <td class="cf-fs-sm col-amount">
                                     <div class="currency-usd-content cf-fw-bold">
-                                        ${{ tx.amount_usd|floatformat:2 }}
-                                        <span class="cf-text-muted cf-fw-medium">({{ tx.amount_bs|floatformat:2 }} Bs.)</span>
+                                        ${{ tx.amount_usd|intcomma }}
+                                        <span class="cf-text-muted cf-fw-medium">({{ tx.amount_bs|intcomma }} Bs.)</span>
                                     </div>
                                     <div class="currency-bs-content cf-fw-bold cf-hidden">
-                                        Bs. {{ tx.amount_bs|floatformat:2 }}
-                                        <span class="cf-text-muted cf-fw-medium">(${{ tx.amount_usd|floatformat:2 }})</span>
+                                        Bs. {{ tx.amount_bs|intcomma }}
+                                        <span class="cf-text-muted cf-fw-medium">(${{ tx.amount_usd|intcomma }})</span>
                                     </div>
                                 </td>
                                 <td class="col-status">
@@ -261,10 +262,10 @@
             const usdBcv = payload.rates.usd_bcv;
             const eurBcv = payload.rates.eur_bcv;
             if (usdBcv && typeof usdBcv.promedio === 'number') {
-                document.getElementById('val-usd-bcv').innerText = usdBcv.promedio.toFixed(2);
+                document.getElementById('val-usd-bcv').innerText = usdBcv.promedio.toLocaleString('de-DE');
             }
             if (eurBcv && typeof eurBcv.promedio === 'number') {
-                document.getElementById('val-eur-bcv').innerText = eurBcv.promedio.toFixed(2);
+                document.getElementById('val-eur-bcv').innerText = eurBcv.promedio.toLocaleString('de-DE');
             }
             document.getElementById('update-time').innerText = new Date().toLocaleString('es-VE');
         } catch (e) {}
@@ -291,7 +292,7 @@
             colors: {{ chart_data.cat_colors|safe }},
             chart: { ...commonOptions.chart, type: 'donut' },
             legend: { position: 'bottom' },
-            tooltip: { y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toFixed(2)}` } }
+            tooltip: { y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toLocaleString('de-DE')}` } }
         }).render();
 
         // 2. Ingresos vs Gastos (Totales)
@@ -306,7 +307,7 @@
             chart: { ...commonOptions.chart, type: 'bar' },
             plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4 } },
             legend: { show: false },
-            tooltip: { y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toFixed(2)}` } }
+            tooltip: { y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toLocaleString('de-DE')}` } }
         }).render();
 
         // 3. Evolución del Saldo
@@ -321,7 +322,7 @@
             chart: { ...commonOptions.chart, type: 'area' },
             stroke: { curve: 'smooth', width: 2 },
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } },
-            tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toFixed(2)}` } }
+            tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toLocaleString('de-DE')}` } }
         }).render();
     });
 </script>

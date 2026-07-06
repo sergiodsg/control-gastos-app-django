@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static intcomma %}
 
 {% block title %}Proyectos - {{ request.session.org_name }}{% endblock %}
 
@@ -43,10 +43,10 @@
                 <div class="cf-mb-0">
                     <span class="cf-stat-label cf-d-block cf-mb-1">Balance Proyecto (Total)</span>
                     <div class="cf-flex cf-justify-between cf-fs-sm">
-                        <div class="cf-fw-bold">${{ proj.total_balance_usd|floatformat:2 }} <span class="cf-text-muted cf-fw-normal">(BCV)</span></div>
-                        <div class="cf-fw-bold cf-text-success">${{ proj.total_balance_real_usd|floatformat:2 }} <span class="cf-text-muted cf-fw-normal">(Dólares)</span></div>
+                        <div class="cf-fw-bold">${{ proj.total_balance_usd|intcomma }} <span class="cf-text-muted cf-fw-normal">(BCV)</span></div>
+                        <div class="cf-fw-bold cf-text-success">${{ proj.total_balance_real_usd|intcomma }} <span class="cf-text-muted cf-fw-normal">(Dólares)</span></div>
                     </div>
-                    <div class="cf-text-muted cf-fs-xs cf-mt-1">{{ proj.total_balance_bs|default:0|floatformat:2 }} Bs.</div>
+                    <div class="cf-text-muted cf-fs-xs cf-mt-1">{{ proj.total_balance_bs|default:0|intcomma }} Bs.</div>
                 </div>
             </div>
         </div>

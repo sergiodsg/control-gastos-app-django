@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static intcomma %}
 
 {% block title %}Organizaciones - Superadmin{% endblock %}
 
@@ -351,7 +351,7 @@
         editarUrlTemplate: "/superadmin/organizaciones/guardar/{id}/",
         accesosUrlTemplate: "/superadmin/organizaciones/{id}/accesos/",
         eliminarUrlTemplate: "/superadmin/organizaciones/eliminar/{id}/",
-        bcvRate: "{{ bcv_rate|floatformat:4 }}",
+        bcvRate: "{{ bcv_rate|intcomma_rate }}",
         bancosBsUrl: "{% static 'json/bancos.json' %}",
         bancosUsdUrl: "{% static 'json/bancos_usd.json' %}",
     });
