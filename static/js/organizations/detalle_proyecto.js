@@ -296,6 +296,15 @@ function initDetalleProyecto(config) {
             tAmountBs.value = val.toFixed(2);
             tAmountUsd.value = (rate !== 0) ? (val / rate).toFixed(2) : 0;
         }
+        
+        // Ensure hidden fields are visible for form submission
+        if (tAmountUsd.parentElement && tAmountUsd.parentElement.parentElement) {
+            tAmountUsd.parentElement.parentElement.style.display = 'block';
+        }
+        if (tAmountBs.parentElement && tAmountBs.parentElement.parentElement) {
+            tAmountBs.parentElement.parentElement.style.display = 'block';
+        }
+        
         updateTTypeColors();
     }
 
@@ -325,6 +334,30 @@ function initDetalleProyecto(config) {
         const isEgreso = egresoRadio.checked;
         tAmountDisplay.classList.toggle('cf-text-danger', isEgreso);
         tAmountDisplay.classList.toggle('cf-text-success', !isEgreso);
+    }
+
+    function syncRealDollarsFields() {
+        const transactionForm = document.getElementById('transactionForm');
+        if (!transactionForm) return;
+
+        const realDollarsInput = transactionForm.querySelector('input[name="real_dollars"]');
+        const tAmountUsd = transactionForm.querySelector('input[name="amount_usd"]');
+        const tAmountBs = transactionForm.querySelector('input[name="amount_bs"]');
+        
+        if (!realDollarsInput || !tAmountUsd || !tAmountBs) return;
+
+        const realVal = parseFloat(realDollarsInput.value) || 0;
+        const egresoRadio = document.getElementById('type_egreso');
+        const isEgreso = egresoRadio ? egresoRadio.checked : true;
+        
+        // Apply sign based on transaction type
+        const signedVal = isEgreso && realVal > 0 ? -realVal : realVal;
+        
+        tAmountUsd.value = signedVal.toFixed(2);
+        // For real dollars, amount_bs should also reflect the real dollar value
+        tAmountBs.value = signedVal.toFixed(2);
+        
+        updateTTypeColors();
     }
 
     function updateExportUrls() {
@@ -465,11 +498,19 @@ function initDetalleProyecto(config) {
                 if (isReal) {
                     document.getElementById('bcvFeeInputGroup').style.display = 'none';
                     document.getElementById('realFeeInputGroup').style.display = 'block';
+                    // Sync real_dollars to amount_usd and amount_bs
+                    syncRealDollarsFields();
                 } else {
                     document.getElementById('bcvFeeInputGroup').style.display = 'block';
                     document.getElementById('realFeeInputGroup').style.display = 'none';
                 }
             });
+        }
+
+        // Add listener for real_dollars input
+        const realDollarsInput = transactionForm.querySelector('input[name="real_dollars"]');
+        if (realDollarsInput) {
+            realDollarsInput.addEventListener('input', syncRealDollarsFields);
         }
 
         if (hasFeeCheck) {
