@@ -105,7 +105,7 @@
     </div>
 </div>
 
-<div class="cf-grid cf-grid--3 cf-mb-4">
+<div class="cf-grid cf-grid--4 cf-mb-4">
     <div class="cf-card">
         <div class="cf-card__body cf-p-5">
             <h5 class="cf-card__title cf-mb-4">
@@ -128,6 +128,14 @@
                 <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Categoría
             </h5>
             <div id="categoryChart" style="min-height: 300px;"></div>
+        </div>
+    </div>
+    <div class="cf-card" id="costCenterChartCard">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Centro de Costo (%)
+            </h5>
+            <div id="costCenterChart" style="min-height: 300px;"></div>
         </div>
     </div>
 </div>
@@ -278,6 +286,13 @@
         syncHeights();
         window.addEventListener('resize', syncHeights);
 
+        // Check cost center chart preference
+        const showCostCenterChart = localStorage.getItem('show_costcenter_chart') !== 'no';
+        const costCenterCard = document.getElementById('costCenterChartCard');
+        if (!showCostCenterChart && costCenterCard) {
+            costCenterCard.style.display = 'none';
+        }
+
         // --- Gráficos ApexCharts ---
         const commonOptions = {
             chart: { toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'inherit' },
@@ -324,6 +339,21 @@
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } },
             tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `{% if view_mode == 'real' %}${% else %}${% endif %}${v.toLocaleString('de-DE')}` } }
         }).render();
+
+        // 4. Gastos por Centro de Costo (Porcentajes) - only if enabled
+        if (showCostCenterChart) {
+            new ApexCharts(document.querySelector("#costCenterChart"), {
+                ...commonOptions,
+                series: {{ chart_data.cc_percentages|safe }},
+                labels: {{ chart_data.cc_labels|safe }},
+                colors: ['#0d6efd', '#6f42c1', '#20c997', '#fd7e14', '#dc3545', '#ffc107', '#17a2b8', '#6610f2', '#e83e8c', '#6c757d'],
+                chart: { ...commonOptions.chart, type: 'pie' },
+                legend: { position: 'bottom' },
+                tooltip: { y: { formatter: (v) => `${v.toFixed(2)}%` } },
+                plotOptions: { pie: { donut: { show: false }, dataLabels: { offset: -5 } } },
+                dataLabels: { enabled: true, formatter: (val) => `${val.toFixed(1)}%` }
+            }).render();
+        }
     });
 </script>
 {% endblock %}
