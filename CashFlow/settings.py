@@ -273,3 +273,6 @@ if IS_DEVELOPMENT and os.environ.get('DJANGO_SQL_LOG', '').lower() in ('1', 'tru
         'level': 'DEBUG',
         'propagate': False,
     }
+
+# Default primary key field type to avoid warnings
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
