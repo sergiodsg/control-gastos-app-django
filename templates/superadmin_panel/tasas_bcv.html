@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static intcomma %}
 
 {% block title %}Tasas BCV - Superadmin{% endblock %}
 
@@ -60,7 +60,7 @@
                 </div>
                 <div class="sa-bcv-rate-tile__body" id="bcvUsdBody">
                     {% if usd_rate %}
-                    <div class="sa-bcv-rate-value">{{ usd_rate.rate|floatformat:4 }}</div>
+                    <div class="sa-bcv-rate-value">{{ usd_rate.rate|intcomma_rate }}</div>
                     <div class="sa-bcv-rate-unit">Bs.</div>
                     <p class="sa-bcv-rate-meta">Actualizado {{ usd_rate.fetched_at|date:"d/m/Y H:i" }}</p>
                     {% else %}
@@ -89,7 +89,7 @@
                 </div>
                 <div class="sa-bcv-rate-tile__body" id="bcvEurBody">
                     {% if eur_rate %}
-                    <div class="sa-bcv-rate-value">{{ eur_rate.rate|floatformat:4 }}</div>
+                    <div class="sa-bcv-rate-value">{{ eur_rate.rate|intcomma_rate }}</div>
                     <div class="sa-bcv-rate-unit">Bs.</div>
                     <p class="sa-bcv-rate-meta">Actualizado {{ eur_rate.fetched_at|date:"d/m/Y H:i" }}</p>
                     {% else %}
@@ -149,7 +149,7 @@
         <button type="button" class="sa-bcv-history-item" data-bcv-date="{{ rate.rate_date|date:'Y-m-d' }}">
             <span class="sa-bcv-history-date">{{ rate.rate_date|date:"d/m/Y" }}</span>
             <span class="sa-bcv-rate-badge sa-bcv-rate-badge--{% if rate.currency == 'USD' %}usd{% else %}eur{% endif %}">{{ rate.currency }}</span>
-            <span class="sa-bcv-history-rate">{{ rate.rate|floatformat:4 }} Bs.</span>
+            <span class="sa-bcv-history-rate">{{ rate.rate|intcomma_rate }} Bs.</span>
             <i class="fa-solid fa-chevron-right sa-bcv-history-arrow"></i>
         </button>
         {% empty %}

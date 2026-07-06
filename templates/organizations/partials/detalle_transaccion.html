@@ -1,3 +1,5 @@
+{% load intcomma %}
+
 <div class="transaction-detail">
     <div class="cf-form-group">
         <span class="cf-stat-label">Fecha</span>
@@ -15,7 +17,7 @@
                 <div>
                     <span class="cf-stat-label" style="color: var(--color-text-muted);">Monto (Dólares Reales)</span>
                     <div class="cf-stat-value {% if transaction.real_dollars < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}" style="font-size: 1.5rem;">
-                        {{ transaction.real_dollars|floatformat:2 }} $
+                        {{ transaction.real_dollars|intcomma }} $
                     </div>
                 </div>
                 <div class="cf-icon-box {% if transaction.real_dollars < 0 %}cf-icon-box--danger{% else %}cf-icon-box--success{% endif %}">
@@ -30,9 +32,9 @@
                 <div>
                     <span class="cf-stat-label" style="color: var(--color-text-muted);">Monto (BCV)</span>
                     <div class="cf-stat-value {% if transaction.amount_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}" style="font-size: 1.5rem;">
-                        {{ transaction.amount_usd|floatformat:2 }} $
+                        {{ transaction.amount_usd|intcomma }} $
                     </div>
-                    <div class="cf-text-muted cf-fs-sm">{{ transaction.amount_bs|floatformat:2 }} Bs.</div>
+                    <div class="cf-text-muted cf-fs-sm">{{ transaction.amount_bs|intcomma }} Bs.</div>
                 </div>
                 <div class="cf-icon-box {% if transaction.amount_usd < 0 %}cf-icon-box--danger{% else %}cf-icon-box--success{% endif %}">
                     <i class="fa-solid {% if transaction.amount_usd < 0 %}fa-arrow-down{% else %}fa-arrow-up{% endif %}"></i>
@@ -45,7 +47,7 @@
         {% if not transaction.real_dollars %}
         <div class="cf-form-group">
             <span class="cf-stat-label">Tasa del día</span>
-            <div class="cf-fw-medium">{{ transaction.daily_rate|floatformat:4 }}</div>
+            <div class="cf-fw-medium">{{ transaction.daily_rate|intcomma_rate }}</div>
         </div>
         {% endif %}
         <div class="cf-form-group">
@@ -64,16 +66,16 @@
         <div class="cf-flex cf-gap-4">
             {% if transaction.bank_fee_real_usd != 0 %}
             <div>
-                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_real_usd|floatformat:2 }} $</div>
+                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_real_usd|intcomma }} $</div>
                 <span class="cf-fs-xs cf-text-muted">Dólares Reales</span>
             </div>
             {% else %}
             <div>
-                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_usd|floatformat:2 }} $</div>
+                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_usd|intcomma }} $</div>
                 <span class="cf-fs-xs cf-text-muted">Dólares (BCV)</span>
             </div>
             <div>
-                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_bs|floatformat:2 }} Bs.</div>
+                <div class="cf-fw-bold cf-text-danger">{{ transaction.bank_fee_bs|intcomma }} Bs.</div>
                 <span class="cf-fs-xs cf-text-muted">Bolívares (BCV)</span>
             </div>
             {% endif %}
