@@ -371,6 +371,18 @@
                         <div class="cf-flex cf-justify-between cf-items-center cf-mb-2"><label class="cf-label cf-mb-0">Tasa del día</label><div class="cf-switch"><input type="checkbox" id="t_manualRateSwitch"><label for="t_manualRateSwitch" class="cf-fs-sm">Tasa manual</label></div></div>
                         {{ trans_form.daily_rate }}
                     </div>
+                    <div class="cf-form-group">
+                        <div class="cf-flex cf-justify-between cf-items-center cf-mb-2">
+                            <label class="cf-label cf-mb-0">Dólares Reales</label>
+                            <div class="cf-switch cf-mb-0">
+                                <input type="checkbox" id="realDollarSwitch">
+                                <label for="realDollarSwitch" class="cf-fs-sm">Usar Dólares Reales</label>
+                            </div>
+                        </div>
+                        <div id="realDollarInputContainer" style="display: none;">
+                            {{ trans_form.real_dollars }}
+                        </div>
+                    </div>
                     <div class="cf-form-group"><label class="cf-label">Referencia</label>{{ trans_form.reference_number }}</div>
                     <div class="cf-form-group">
                         <label class="cf-label">Categorías</label>
@@ -391,6 +403,37 @@
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Descripción</label>{{ trans_form.description }}</div>
                     <div class="cf-form-group" style="grid-column: 1 / -1;"><label class="cf-label">Notas</label>{{ trans_form.notes }}</div>
                     <div class="cf-form-group cf-mb-0" style="grid-column: 1 / -1;"><label class="cf-label">Valuación</label>{{ trans_form.valuation }}</div>
+                    <!-- Comisión Bancaria -->
+                    <div class="cf-form-group" style="grid-column: 1 / -1;">
+                        <div class="cf-flex cf-items-center cf-gap-2">
+                            <input type="checkbox" id="has_bank_fee" class="cf-checkbox">
+                            <label for="has_bank_fee" class="cf-label cf-mb-0" style="cursor: pointer;">Tiene comisión bancaria</label>
+                        </div>
+                    </div>
+                    <div id="bankFeeContainer" style="display: none; grid-column: 1 / -1; background: var(--color-light); padding: 1rem; border-radius: var(--radius-md); border: 1px dashed var(--color-border);">
+                        <div class="cf-form-row">
+                            <!-- Comisión BCV -->
+                            <div class="cf-form-group cf-mb-0" id="bcvFeeInputGroup">
+                                <label class="cf-label cf-flex cf-justify-between">
+                                    Monto Comisión (BCV)
+                                    <button type="button" class="cf-btn cf-btn--xs cf-btn--outline" id="feeCurrencyToggleBtn">Cambiar a <span id="nextFeeCurrencyLabel">BS</span></button>
+                                </label>
+                                <div class="cf-input-group">
+                                    <span class="cf-input-group__addon" id="feeCurrencyAddon">$</span>
+                                    <input type="number" step="0.01" class="cf-input" id="id_bank_fee_display" placeholder="0.00">
+                                </div>
+                                <div class="cf-hidden">{{ trans_form.bank_fee_usd }}{{ trans_form.bank_fee_bs }}</div>
+                            </div>
+                            <!-- Comisión Real -->
+                            <div class="cf-form-group cf-mb-0" id="realFeeInputGroup" style="display: none;">
+                                <label class="cf-label">Monto Comisión (Dólares)</label>
+                                <div class="cf-input-group">
+                                    <span class="cf-input-group__addon">$</span>
+                                    {{ trans_form.bank_fee_real_usd }}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
             <div class="cf-modal__footer">
