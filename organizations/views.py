@@ -1199,7 +1199,7 @@ def lista_cuentas(request):
     accounts = Account.objects.filter(organization=org).annotate(
         balance_usd=Sum(F('transactions__amount_usd') - F('transactions__bank_fee_usd')),
         balance_bs=Sum(F('transactions__amount_bs') - F('transactions__bank_fee_bs')),
-        balance_real_usd=Sum('transactions__real_dollars')
+        balance_real_usd=Sum(F('transactions__real_dollars') - F('transactions__bank_fee_real_usd'))
     )
     
     form = AccountForm()
