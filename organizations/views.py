@@ -570,6 +570,7 @@ def _get_report_data(request):
     tx_filter = request.GET.get('tx_filter', 'all')
     project_id = request.GET.get('project')
     selected_org_id = request.GET.get('organization')
+    status_filter = request.GET.get('status', '')
 
     # Sanitizar valores 'None' que pueden venir de la URL
     if date_from == 'None': date_from = None
@@ -615,6 +616,10 @@ def _get_report_data(request):
     if cost_center_id:
         transactions = transactions.filter(cost_center_id=cost_center_id)
     
+    # Filtrar por estado (status)
+    if status_filter:
+        transactions = transactions.filter(status=status_filter)
+    
     if search_query:
         transactions = transactions.filter(
             models.Q(description__icontains=search_query) |
@@ -651,6 +656,10 @@ def _get_report_data(request):
         org_filter = Organization.objects.filter(id=selected_org_id).first()
         if org_filter:
             filter_parts.append(f"Organización: {org_filter.name}")
+    
+    if status_filter:
+        status_display = status_filter.capitalize()
+        filter_parts.append(f"Estado: {status_display}")
             
     if date_from or date_to:
         if date_from:
