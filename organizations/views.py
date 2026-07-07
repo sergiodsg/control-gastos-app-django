@@ -376,6 +376,7 @@ def lista_transacciones(request):
     search_query = request.GET.get('search', '')
     tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
     view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
+    status_filter = request.GET.get('status', '') # 'completado', 'pendiente', ''
 
     # Sincronización: El filtro de transacciones afecta al toggle de balance
     if tx_filter == 'real':
@@ -421,6 +422,10 @@ def lista_transacciones(request):
 
     if cost_center_id:
         transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
+    
+    # Filtrar por estado (status)
+    if status_filter:
+        transactions_list = transactions_list.filter(status=status_filter)
     
     today = timezone.localdate()
     
@@ -517,11 +522,17 @@ def lista_transacciones(request):
         'sort': sort,
         'view_mode': view_mode,
         'tx_filter': tx_filter,
+        'status_filter': status_filter,
         'totals': res_totals,
         'tx_filter_options': [
             ('all', 'Todas las transacciones'),
             ('bcv', 'Transacciones BCV'),
             ('real', 'Transacciones Dólares Reales'),
+        ],
+        'status_filter_options': [
+            ('', 'Todos los estados'),
+            ('completado', 'Completado'),
+            ('pendiente', 'Pendiente'),
         ],
         'filter_options': [
             ('day', 'Hoy'),
