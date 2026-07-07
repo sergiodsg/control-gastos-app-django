@@ -22,10 +22,10 @@
                 <i class="fa-solid fa-file-pdf"></i> <span class="cf-hidden-sm-label">Reporte PDF</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
             </button>
             <div class="cf-dropdown__menu">
-                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
                 </a>
-                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
                 </a>
             </div>
@@ -35,10 +35,10 @@
                 <i class="fa-solid fa-file-excel"></i> <span class="cf-hidden-sm-label">Reporte Excel</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
             </button>
             <div class="cf-dropdown__menu">
-                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
                 </a>
-                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
                 </a>
             </div>
