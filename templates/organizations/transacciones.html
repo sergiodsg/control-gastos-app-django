@@ -328,6 +328,7 @@
         </div>
                 <form id="transactionForm" method="post" action="{% url 'crear_transaccion' %}">
             {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
             {{ form.organization }}
             <div class="cf-modal__body">
                 <div class="cf-form-group">

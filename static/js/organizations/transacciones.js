@@ -18,6 +18,9 @@ function initTransacciones(config) {
         form.action = config.crearUrl;
         document.getElementById('modalTitle').innerText = 'Nueva Transacción';
 
+        const nextFieldReset = form.querySelector('[name="next"]');
+        if (nextFieldReset) nextFieldReset.value = window.location.pathname + window.location.search;
+
         document.getElementById('manualRateSwitch').checked = false;
         const rateField = document.querySelector('input[name="daily_rate"]');
         rateField.value = bcvRate;
@@ -67,6 +70,9 @@ function initTransacciones(config) {
         if (!form) return;
         form.action = '/transacciones/guardar/' + id + '/';
         document.getElementById('modalTitle').innerText = 'Editar Transacción';
+
+        const nextFieldEdit = form.querySelector('[name="next"]');
+        if (nextFieldEdit) nextFieldEdit.value = window.location.pathname + window.location.search;
 
         form.querySelector('[name="date"]').value = date;
         form.querySelector('[name="account"]').value = account;
@@ -211,6 +217,9 @@ function initTransacciones(config) {
         if (!form) return;
         form.action = config.crearUrl;
         document.getElementById('modalTitle').innerText = 'Duplicar Transacción (Nueva)';
+
+        const nextFieldDup = form.querySelector('[name="next"]');
+        if (nextFieldDup) nextFieldDup.value = window.location.pathname + window.location.search;
 
         form.querySelector('[name="date"]').value = date;
         form.querySelector('[name="account"]').value = account;

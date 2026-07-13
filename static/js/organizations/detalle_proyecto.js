@@ -11,7 +11,10 @@ function initDetalleProyecto(config) {
         form.reset();
         form.action = config.crearTransUrl;
         document.getElementById('transactionModalTitle').innerText = 'Nueva Transacción';
-        
+
+        const nextFieldReset = form.querySelector('[name="next"]');
+        if (nextFieldReset) nextFieldReset.value = window.location.pathname + window.location.search;
+
         const orgSelect = form.querySelector('[name="organization"]');
         if (orgSelect) {
             orgSelect.value = config.orgId;
@@ -77,7 +80,10 @@ function initDetalleProyecto(config) {
         if (!form) return;
         form.action = '/transacciones/guardar/' + id + '/';
         document.getElementById('transactionModalTitle').innerText = 'Editar Transacción';
-        
+
+        const nextFieldEdit = form.querySelector('[name="next"]');
+        if (nextFieldEdit) nextFieldEdit.value = window.location.pathname + window.location.search;
+
         const dateField = form.querySelector('[name="date"]');
         if (dateField) dateField.value = date;
         
@@ -136,12 +142,14 @@ function initDetalleProyecto(config) {
                 form.querySelector('[name="real_dollars"]').value = Math.abs(realDollarsNum);
             }
             
-            document.getElementById('dailyRateContainer').style.display = 'none';
+            const dailyRateContainerHide = document.getElementById('dailyRateContainer');
+            if (dailyRateContainerHide) dailyRateContainerHide.style.display = 'none';
             if (tAmountDisplay) tAmountDisplay.parentElement.parentElement.style.display = 'none';
         } else {
             if (realSwitch) realSwitch.checked = false;
             if (realContainer) realContainer.style.display = 'none';
-            document.getElementById('dailyRateContainer').style.display = 'block';
+            const dailyRateContainerShow = document.getElementById('dailyRateContainer');
+            if (dailyRateContainerShow) dailyRateContainerShow.style.display = 'block';
             if (tAmountDisplay) tAmountDisplay.parentElement.parentElement.style.display = 'block';
         }
 
@@ -714,4 +722,31 @@ function initDetalleProyecto(config) {
         const div = document.getElementById('custom_date_inputs');
         if (div) div.style.display = (value === 'custom') ? 'block' : 'none';
     };
+
+    // Texto del filtro de categorías (igual que en la vista de Transacciones)
+    function updateSelectedCategoriesText() {
+        const dropdown = document.getElementById('categoryFilterDropdown');
+        if (!dropdown) return;
+        const toggleText = dropdown.querySelector('.cf-dropdown-multiselect__selected-text');
+        if (!toggleText) return;
+
+        const checkedCheckboxes = dropdown.querySelectorAll('input[type="checkbox"][name="category"]:checked');
+        if (checkedCheckboxes.length === 0) {
+            toggleText.textContent = 'Todas';
+        } else if (checkedCheckboxes.length === 1) {
+            const labelEl = checkedCheckboxes[0].closest('label');
+            const badge = labelEl ? labelEl.querySelector('.cf-badge') : null;
+            toggleText.textContent = badge ? badge.textContent.trim() : '1 seleccionada';
+        } else {
+            toggleText.textContent = `${checkedCheckboxes.length} seleccionadas`;
+        }
+    }
+
+    document.addEventListener('change', function (e) {
+        if (e.target.matches && e.target.matches('#categoryFilterDropdown input[type="checkbox"][name="category"]')) {
+            updateSelectedCategoriesText();
+        }
+    });
+
+    updateSelectedCategoriesText();
 }

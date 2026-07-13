@@ -5,6 +5,7 @@ from django.db import models
 from django.db.models import Sum, OuterRef, Subquery, Value, F, Q
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
 from django.core.paginator import Paginator
 from datetime import timedelta
@@ -1030,6 +1031,15 @@ def exportar_xlsx_transacciones(request):
     return response
 
 
+def _safe_next_url(request, default):
+    """Valida el parámetro 'next' (POST) para evitar open-redirects; si no es un destino local válido, usa default."""
+    next_url = request.POST.get('next')
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ):
+        return next_url
+    return default
+
 @login_required
 @viewer_restricted
 def guardar_transaccion(request, trans_id=None):
@@ -1057,8 +1067,8 @@ def guardar_transaccion(request, trans_id=None):
         transaction_to_edit = get_object_or_404(transactions_with_access, id=trans_id)
         instance = transaction_to_edit
     
-    redirect_to = request.POST.get('next', 'lista_transacciones')
-    
+    redirect_to = _safe_next_url(request, 'lista_transacciones')
+
     if request.method == 'POST':
         debug_event(
             "transaccion.guardar.intento",
@@ -1103,10 +1113,6 @@ def guardar_transaccion(request, trans_id=None):
                 is_update=bool(instance),
             )
             messages.success(request, "Transacción guardada correctamente.")
-            
-            # Si se especificó una redirección (ej. volver al proyecto)
-            if 'next' in request.POST:
-                return redirect(request.POST['next'])
         else:
             debug_event(
                 "transaccion.guardar.error",
@@ -1116,8 +1122,8 @@ def guardar_transaccion(request, trans_id=None):
                 errors=form.errors.get_json_data(),
             )
             messages.error(request, f"Error al guardar la transacción: {first_form_error(form)}")
-    
-    return redirect('lista_transacciones')
+
+    return redirect(redirect_to)
 
 @login_required
 @viewer_restricted
@@ -1612,14 +1618,27 @@ def detalle_proyecto(request, proj_id):
     
     project = get_object_or_404(project_qs, id=proj_id, user_accesses__user=request.user)
 
+    # Organizaciones con acceso al proyecto (dueña + compartidas), usado para
+    # los datos de categorías/centros de costo/cuentas disponibles en los filtros y el formulario
+    orgs_with_access = (Organization.objects.filter(projects=project) | Organization.objects.filter(shared_projects__project=project)).distinct()
+
     # --- Lógica de Filtrado ---
     filter_type = request.GET.get('filter_type', 'all')
     date_from = request.GET.get('date_from')
     date_to = request.GET.get('date_to')
-    selected_org_id = request.GET.get('organization')
+    category_raw = request.GET.getlist('category')
+    category_ids = []
+    for val in category_raw:
+        if ',' in val:
+            category_ids.extend([v.strip() for v in val.split(',') if v.strip()])
+        else:
+            category_ids.append(val)
+    category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
+    cost_center_id = request.GET.get('cost_center')
     search_query = request.GET.get('search', '')
     tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
     view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
+    status_filter = request.GET.get('status', '') # 'completado', 'pendiente', ''
 
     # Sincronización: El filtro de transacciones afecta al toggle de balance
     if tx_filter == 'real':
@@ -1629,7 +1648,7 @@ def detalle_proyecto(request, proj_id):
 
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
-    if selected_org_id == 'None' or selected_org_id == '': selected_org_id = None
+    if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
 
     # Ver TODAS las transacciones del proyecto (de cualquier organización con acceso)
     transactions_list = Transaction.objects.filter(project=project)
@@ -1645,7 +1664,9 @@ def detalle_proyecto(request, proj_id):
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
             models.Q(notes__icontains=search_query) |
-            models.Q(category__name__icontains=search_query) |
+            models.Q(categories__name__icontains=search_query) |
+            models.Q(cost_center__code__icontains=search_query) |
+            models.Q(cost_center__name__icontains=search_query) |
             models.Q(account__name__icontains=search_query) |
             models.Q(project__name__icontains=search_query) |
             models.Q(valuation__name__icontains=search_query) |
@@ -1656,8 +1677,14 @@ def detalle_proyecto(request, proj_id):
             models.Q(daily_rate__icontains=search_query)
         )
 
-    if selected_org_id:
-        transactions_list = transactions_list.filter(organization_id=selected_org_id)
+    if category_ids:
+        transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
+
+    if cost_center_id:
+        transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
+
+    if status_filter:
+        transactions_list = transactions_list.filter(status=status_filter)
 
     today = timezone.localdate()
     
@@ -1762,9 +1789,6 @@ def detalle_proyecto(request, proj_id):
     trans_form = TransactionForm(organization=org, project=project)
     bcv_rate = get_bcv_rate()
 
-    # Organizaciones para el filtro y datos dinámicos
-    orgs_with_access = (Organization.objects.filter(projects=project) | Organization.objects.filter(shared_projects__project=project)).distinct()
-    
     chart_data = get_chart_data(transactions_list, mode=view_mode)
 
     orgs_data = {}
@@ -1795,17 +1819,21 @@ def detalle_proyecto(request, proj_id):
         'trans_form': trans_form,
         'orgs_data': json.dumps(orgs_data, cls=DecimalEncoder),
         'bcv_rate': bcv_rate,
-        'orgs_with_access': orgs_with_access,
+        'categories': Category.objects.filter(organization__in=orgs_with_access),
+        'cost_centers': CostCenter.objects.filter(organization__in=orgs_with_access),
+        'selected_cost_center': cost_center_id,
+        'selected_category': category_ids[0] if category_ids else '',
+        'selected_categories': category_ids,
         'filter_type': filter_type,
         'date_from': date_from,
         'date_to': date_to,
         'search': search_query,
-        'selected_org_id': selected_org_id,
         'filter_options': filter_options,
         'chart_data': chart_data,
         'sort': sort,
         'view_mode': view_mode,
         'tx_filter': tx_filter,
+        'status_filter': status_filter,
         'totals': {
             'balance_usd': (overall_project['balance_usd'] or 0) + (overall_project['balance_real_usd'] or 0),
             'balance_bs': overall_project['balance_bs'] or 0,
@@ -1828,6 +1856,11 @@ def detalle_proyecto(request, proj_id):
             ('all', 'Todas las transacciones'),
             ('bcv', 'Transacciones BCV'),
             ('real', 'Transacciones Dólares Reales'),
+        ],
+        'status_filter_options': [
+            ('', 'Todos los estados'),
+            ('completado', 'Completado'),
+            ('pendiente', 'Pendiente'),
         ],
     })
 
