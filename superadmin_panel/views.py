@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.models import User
+from django.core.paginator import Paginator
 from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.core.exceptions import ValidationError
@@ -16,7 +17,7 @@ from BCV.services.bcv_scrapper import get_rate_for_date
 from CashFlow.debug import first_form_error
 from organizations.amounts import create_initial_balance_transaction
 from organizations.banks import build_account_display_name, validate_bank_for_currency
-from organizations.models import Account, Organization, OrganizationAccess, Transaction
+from organizations.models import Account, Organization, OrganizationAccess, Transaction, TransactionAuditLog
 from organizations.validators import validate_account_number, validate_holder, validate_rif
 
 from .decorators import superadmin_required
@@ -340,6 +341,7 @@ def crear_organizacion_wizard(request):
                 account=account,
                 balance=account_data['balance'],
                 daily_rate=rate,
+                created_by=request.user,
             )
 
     admins_count = len(user_ids)
@@ -517,3 +519,32 @@ def eliminar_tasa_bcv(request, rate_id):
     rate.delete()
     messages.success(request, f'Tasa {currency} eliminada.')
     return redirect(reverse('superadmin_tasas_bcv') + f'?date={rate_date}')
+
+
+@superadmin_required
+def auditoria_transacciones(request):
+    logs = TransactionAuditLog.objects.select_related('organization', 'user', 'transaction').all()
+
+    org_id = request.GET.get('organization')
+    if org_id:
+        logs = logs.filter(organization_id=org_id)
+
+    action = request.GET.get('action')
+    if action in dict(TransactionAuditLog.ACTION_CHOICES):
+        logs = logs.filter(action=action)
+
+    search = request.GET.get('search', '').strip()
+    if search:
+        logs = logs.filter(transaction_description__icontains=search)
+
+    paginator = Paginator(logs, 30)
+    page_obj = paginator.get_page(request.GET.get('page'))
+
+    return render(request, 'superadmin_panel/auditoria.html', {
+        'page_obj': page_obj,
+        'organizations': Organization.objects.order_by('name'),
+        'action_choices': TransactionAuditLog.ACTION_CHOICES,
+        'selected_organization': org_id or '',
+        'selected_action': action or '',
+        'search': search,
+    })

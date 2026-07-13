@@ -2,7 +2,7 @@
 
 from django.utils import timezone
 
-from .models import Account, Transaction
+from .models import Account, Transaction, TransactionAuditLog
 
 
 def apply_dual_currency_amounts(amount_bs, amount_usd, daily_rate):
@@ -38,6 +38,7 @@ def create_initial_balance_transaction(
     balance,
     daily_rate,
     tx_date=None,
+    created_by=None,
 ):
     """Crea la transacción de saldo inicial con equivalente en la otra moneda."""
     balance = balance or 0
@@ -45,7 +46,7 @@ def create_initial_balance_transaction(
         return None
 
     rate = daily_rate or 1
-    
+
     if account.currency == Account.CURRENCY_USD:
         amount_bs = 0
         amount_usd = 0
@@ -56,7 +57,7 @@ def create_initial_balance_transaction(
         )
         real_dollars = 0
 
-    return Transaction.objects.create(
+    transaction = Transaction.objects.create(
         organization=organization,
         account=account,
         date=tx_date or timezone.now().date(),
@@ -67,3 +68,14 @@ def create_initial_balance_transaction(
         daily_rate=rate,
         status='completado',
     )
+
+    if created_by is not None:
+        TransactionAuditLog.objects.create(
+            transaction=transaction,
+            organization=organization,
+            transaction_description=transaction.description[:255],
+            action=TransactionAuditLog.ACTION_CREATED,
+            user=created_by,
+        )
+
+    return transaction

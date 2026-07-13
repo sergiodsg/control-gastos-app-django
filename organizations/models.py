@@ -160,3 +160,29 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.date} - {self.description[:50]}"
+
+
+class TransactionAuditLog(models.Model):
+    ACTION_CREATED = 'created'
+    ACTION_UPDATED = 'updated'
+    ACTION_DELETED = 'deleted'
+    ACTION_CHOICES = [
+        (ACTION_CREATED, 'Creada'),
+        (ACTION_UPDATED, 'Editada'),
+        (ACTION_DELETED, 'Eliminada'),
+    ]
+
+    transaction = models.ForeignKey(Transaction, on_delete=models.SET_NULL, blank=True, null=True, related_name='audit_logs', verbose_name="Transacción")
+    organization = models.ForeignKey(Organization, on_delete=models.CASCADE, related_name='transaction_audit_logs', verbose_name="Organización")
+    transaction_description = models.CharField(max_length=255, blank=True, verbose_name="Descripción (registro histórico)")
+    action = models.CharField(max_length=10, choices=ACTION_CHOICES, verbose_name="Acción")
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='transaction_audit_logs', verbose_name="Usuario")
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Fecha y hora")
+
+    class Meta:
+        verbose_name = "Registro de auditoría de transacción"
+        verbose_name_plural = "Registros de auditoría de transacciones"
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.get_action_display()} · {self.transaction_description} · {self.timestamp:%d/%m/%Y %H:%M}"

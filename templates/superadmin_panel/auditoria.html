@@ -1,0 +1,108 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Auditoría de Transacciones - Superadmin{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/superadmin_panel/superadmin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cf-page-header">
+    <div>
+        <h2 class="cf-page-title"><i class="fa-solid fa-clock-rotate-left"></i> Auditoría de Transacciones</h2>
+        <nav class="cf-breadcrumb" aria-label="breadcrumb">
+            <span><a href="{% url 'superadmin_dashboard' %}">Superadmin</a></span>
+            <span class="cf-breadcrumb__sep cf-breadcrumb__active">Auditoría</span>
+        </nav>
+    </div>
+</div>
+
+<div class="cf-filter-bar">
+    <form method="get" class="cf-filter-form">
+        <div class="cf-form-group cf-form-group--search">
+            <label class="cf-stat-label">Buscar:</label>
+            <div class="cf-input-icon-wrapper">
+                <i class="fa-solid fa-magnifying-glass cf-icon"></i>
+                <input type="text" name="search" class="cf-input cf-input--sm" placeholder="Descripción de la transacción..." value="{{ search }}">
+            </div>
+        </div>
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Organización:</label>
+            <select name="organization" class="cf-select cf-input--sm">
+                <option value="">Todas</option>
+                {% for org in organizations %}
+                <option value="{{ org.id }}" {% if selected_organization == org.id|stringformat:"i" %}selected{% endif %}>{{ org.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Acción:</label>
+            <select name="action" class="cf-select cf-input--sm">
+                <option value="">Todas</option>
+                {% for value, label in action_choices %}
+                <option value="{{ value }}" {% if selected_action == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="cf-filter-actions">
+            <button type="submit" class="cf-btn cf-btn--primary cf-btn--sm">Filtrar</button>
+            <a href="{% url 'superadmin_auditoria' %}" class="cf-btn cf-btn--outline-secondary cf-btn--sm" title="Limpiar filtros">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<div class="cf-card">
+    <div class="cf-table-wrap">
+        <table class="cf-table cf-table--resizable">
+            <thead>
+                <tr>
+                    <th class="cf-ps-4 col-date">Fecha y hora</th>
+                    <th class="col-desc">Transacción</th>
+                    <th class="col-org">Organización</th>
+                    <th class="col-status">Acción</th>
+                    <th class="col-desc">Usuario</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in page_obj %}
+                <tr>
+                    <td class="cf-ps-4 col-date cf-text-muted">{{ log.timestamp|date:"d/m/Y H:i" }}</td>
+                    <td class="col-desc">{{ log.transaction_description|default:"—" }}</td>
+                    <td class="col-org">{{ log.organization.name|default:"—" }}</td>
+                    <td class="col-status">
+                        {% if log.action == 'created' %}
+                        <span class="cf-badge cf-badge--success">Creada</span>
+                        {% elif log.action == 'updated' %}
+                        <span class="cf-badge cf-badge--info">Editada</span>
+                        {% else %}
+                        <span class="cf-badge cf-badge--danger">Eliminada</span>
+                        {% endif %}
+                    </td>
+                    <td class="col-desc">{{ log.user.username|default:"—" }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="cf-text-center cf-py-5 cf-text-muted">No hay registros de auditoría.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if page_obj.has_other_pages %}
+    <nav class="cf-p-4">
+        <ul class="cf-pagination">
+            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&search={{ search }}&organization={{ selected_organization }}&action={{ selected_action }}">Anterior</a></li>{% endif %}
+            {% for i in page_obj.paginator.page_range %}
+            {% if page_obj.number == i %}<li class="is-active"><span>{{ i }}</span></li>
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&search={{ search }}&organization={{ selected_organization }}&action={{ selected_action }}">{{ i }}</a></li>{% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&search={{ search }}&organization={{ selected_organization }}&action={{ selected_action }}">Siguiente</a></li>{% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}

@@ -12,7 +12,7 @@ from datetime import timedelta
 import json
 from decimal import Decimal
 
-from .models import Organization, OrganizationAccess, Transaction, Category, Account, Project, Valuation, CostCenter
+from .models import Organization, OrganizationAccess, Transaction, TransactionAuditLog, Category, Account, Project, Valuation, CostCenter
 from accounts.models import Profile
 from accounts.decorators import viewer_restricted
 from .amounts import create_initial_balance_transaction
@@ -1108,7 +1108,15 @@ def guardar_transaccion(request, trans_id=None):
 
         form = TransactionForm(request.POST, instance=instance, organization=org, project=project_context)
         if form.is_valid():
+            is_update = bool(instance)
             transaction = form.save()
+            TransactionAuditLog.objects.create(
+                transaction=transaction,
+                organization=transaction.organization,
+                transaction_description=transaction.description[:255],
+                action=TransactionAuditLog.ACTION_UPDATED if is_update else TransactionAuditLog.ACTION_CREATED,
+                user=request.user,
+            )
             debug_event(
                 "transaccion.guardada",
                 user_id=request.user.id,
@@ -1117,7 +1125,7 @@ def guardar_transaccion(request, trans_id=None):
                 account_id=transaction.account_id,
                 amount_bs=transaction.amount_bs,
                 amount_usd=transaction.amount_usd,
-                is_update=bool(instance),
+                is_update=is_update,
             )
             messages.success(request, "Transacción guardada correctamente.")
         else:
@@ -1158,6 +1166,13 @@ def eliminar_transaccion(request, trans_id):
     redirect_to = request.GET.get('next', 'lista_transacciones')
     
     if request.method == 'POST':
+        TransactionAuditLog.objects.create(
+            transaction=transaction,
+            organization=transaction.organization,
+            transaction_description=transaction.description[:255],
+            action=TransactionAuditLog.ACTION_DELETED,
+            user=request.user,
+        )
         transaction.delete()
         messages.success(request, "Transacción eliminada.")
     
@@ -1184,7 +1199,15 @@ def detalle_transaccion(request, trans_id):
     ).distinct()
     
     transaction = get_object_or_404(transactions_with_access, id=trans_id)
-    return render(request, 'organizations/partials/detalle_transaccion.html', {'transaction': transaction})
+
+    created_log = transaction.audit_logs.filter(action=TransactionAuditLog.ACTION_CREATED).order_by('timestamp').first()
+    last_updated_log = transaction.audit_logs.filter(action=TransactionAuditLog.ACTION_UPDATED).order_by('-timestamp').first()
+
+    return render(request, 'organizations/partials/detalle_transaccion.html', {
+        'transaction': transaction,
+        'created_log': created_log,
+        'last_updated_log': last_updated_log,
+    })
 
 # --- Categorías ---
 
@@ -1319,6 +1342,7 @@ def guardar_cuenta(request, acc_id=None):
                     account=account,
                     balance=balance,
                     daily_rate=rate,
+                    created_by=request.user,
                 )
                 if initial_tx:
                     debug_event(

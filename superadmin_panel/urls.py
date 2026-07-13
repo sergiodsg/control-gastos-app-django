@@ -17,4 +17,5 @@ urlpatterns = [
     path('tasas-bcv/api/', views.tasas_bcv_api, name='superadmin_tasas_bcv_api'),
     path('tasas-bcv/guardar/', views.guardar_tasa_bcv, name='superadmin_guardar_tasa_bcv'),
     path('tasas-bcv/eliminar/<int:rate_id>/', views.eliminar_tasa_bcv, name='superadmin_eliminar_tasa_bcv'),
+    path('auditoria/', views.auditoria_transacciones, name='superadmin_auditoria'),
 ]

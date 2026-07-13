@@ -119,5 +119,31 @@
         <div class="cf-card cf-card--surface cf-p-4 cf-fs-sm" style="background: #f8f9fa;">{{ transaction.notes }}</div>
     </div>
     {% endif %}
+
+    <div class="cf-divider"></div>
+    <div class="cf-form-row">
+        <div class="cf-form-group cf-mb-0">
+            <span class="cf-stat-label">Creado por</span>
+            <div class="cf-fs-sm">
+                {% if created_log %}
+                    {{ created_log.user.username|default:"—" }}
+                    <span class="cf-text-muted">· {{ created_log.timestamp|date:"d/m/Y H:i" }}</span>
+                {% else %}
+                    <span class="cf-text-muted">—</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="cf-form-group cf-mb-0">
+            <span class="cf-stat-label">Última edición por</span>
+            <div class="cf-fs-sm">
+                {% if last_updated_log %}
+                    {{ last_updated_log.user.username|default:"—" }}
+                    <span class="cf-text-muted">· {{ last_updated_log.timestamp|date:"d/m/Y H:i" }}</span>
+                {% else %}
+                    <span class="cf-text-muted">—</span>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </div>
 

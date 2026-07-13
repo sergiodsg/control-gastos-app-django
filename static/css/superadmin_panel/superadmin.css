@@ -234,6 +234,12 @@
     border: 1px solid var(--color-warning-border);
 }
 
+.sa-module-card--audit .sa-module-card__icon {
+    background: var(--color-danger-bg);
+    color: var(--color-danger);
+    border: 1px solid var(--color-danger-border);
+}
+
 .sa-module-card:hover .sa-module-card__icon {
     transform: scale(1.06);
 }
@@ -284,6 +290,11 @@
 
 .sa-module-card--bcv:hover .sa-module-card__arrow {
     background: var(--color-warning);
+    color: #fff;
+}
+
+.sa-module-card--audit:hover .sa-module-card__arrow {
+    background: var(--color-danger);
     color: #fff;
 }
 
