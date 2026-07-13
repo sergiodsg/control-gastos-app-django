@@ -22,10 +22,10 @@
                 <i class="fa-solid fa-file-pdf"></i> <span class="cf-hidden-sm-label">Reporte PDF</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
             </button>
             <div class="cf-dropdown__menu">
-                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
                 </a>
-                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_pdf_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
                 </a>
             </div>
@@ -35,10 +35,10 @@
                 <i class="fa-solid fa-file-excel"></i> <span class="cf-hidden-sm-label">Reporte Excel</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
             </button>
             <div class="cf-dropdown__menu">
-                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
                 </a>
-                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_xlsx_transacciones' %}?report_type=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
                 </a>
             </div>
@@ -51,7 +51,7 @@
     </div>
 </div>
 
-<div id="transactions-container">
+<div id="kpi-container">
 <div class="cf-grid cf-grid--kpi cf-mb-4">
     <div class="cf-card cf-card--primary">
         <div class="cf-card__body cf-p-5">
@@ -62,8 +62,8 @@
                 </div>
                 <!-- Toggle de Vista -->
                 <div class="cf-tab-group" style="padding: 3px; border-radius: var(--radius-md); background: rgba(255,255,255,0.15); border: none; gap: 2px;">
-                    <a href="?view_mode=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-tab {% if view_mode == 'bcv' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm); color: #fff;">BCV</a>
-                    <a href="?view_mode=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-tab {% if view_mode == 'real' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm); color: #fff;">Dólares</a>
+                    <a href="?view_mode=bcv&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="cf-tab {% if view_mode == 'bcv' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm); color: #fff;">BCV</a>
+                    <a href="?view_mode=real&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="cf-tab {% if view_mode == 'real' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm); color: #fff;">Dólares</a>
                 </div>
             </div>
 
@@ -132,6 +132,7 @@
         </div>
     </div>
 </div>
+</div>
 
 <div class="cf-filter-bar">
     <form method="get" class="cf-filter-form">
@@ -170,6 +171,17 @@
                 <option value="">Todos</option>
                 {% for cc in cost_centers %}
                 <option value="{{ cc.id }}" {% if selected_cost_center == cc.id|stringformat:"i" %}selected{% endif %}>{{ cc.code }} - {{ cc.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 2e. Proyecto -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Proyecto:</label>
+            <select name="project" class="cf-select cf-input--sm dynamic-search">
+                <option value="">Todos</option>
+                {% for proj in projects %}
+                <option value="{{ proj.id }}" {% if selected_project == proj.id|stringformat:"i" %}selected{% endif %}>{{ proj.name }}</option>
                 {% endfor %}
             </select>
         </div>
@@ -230,7 +242,7 @@
                 <thead>
                     <tr>
                         <th class="cf-ps-4">
-                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
                                 Fecha
                                 {% if sort == 'asc' %}
                                 <i class="fa-solid fa-sort-up"></i>
@@ -307,17 +319,16 @@
     {% if page_obj.has_other_pages %}
     <nav class="cf-mt-4">
         <ul class="cf-pagination">
-            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="ajax-link">Anterior</a></li>{% endif %}
+            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="ajax-link">Anterior</a></li>{% endif %}
             {% for i in page_obj.paginator.page_range %}
             {% if page_obj.number == i %}<li class="is-active"><span>{{ i }}</span></li>
-            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="ajax-link">{{ i }}</a></li>{% endif %}
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="ajax-link">{{ i }}</a></li>{% endif %}
             {% endfor %}
-            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="ajax-link">Siguiente</a></li>{% endif %}
+            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&project={{ selected_project|default:'' }}" class="ajax-link">Siguiente</a></li>{% endif %}
         </ul>
     </nav>
     {% endif %}
 </div> <!-- End of transactions-container -->
-</div>
 
 <div class="cf-modal" id="transactionModal" tabindex="-1" aria-hidden="true">
     <div class="cf-modal__backdrop"></div>

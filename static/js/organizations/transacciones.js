@@ -537,12 +537,15 @@ function initTransacciones(config) {
         const container = document.getElementById('transactions-container');
         if (!container) return;
 
+        const kpiContainer = document.getElementById('kpi-container');
+
         // Mostrar estado de carga con clase (activa el spinner CSS)
         container.classList.add('is-loading');
+        if (kpiContainer) kpiContainer.classList.add('is-loading');
 
         const form = document.querySelector('.cf-filter-form');
         const formData = new URLSearchParams(new FormData(form));
-        
+
         // Obtener view_mode actual del toggle si existe
         const activeTab = document.querySelector('.cf-tab.is-active');
         if (activeTab) {
@@ -551,21 +554,26 @@ function initTransacciones(config) {
         }
 
         const url = window.location.pathname + '?' + formData.toString();
-        
+
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(r => r.text())
             .then(html => {
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const newContent = doc.getElementById('transactions-container');
+                const newKpiContent = kpiContainer ? doc.getElementById('kpi-container') : null;
                 if (newContent) {
                     container.innerHTML = newContent.innerHTML;
                     // Actualizar URL sin recargar
                     window.history.pushState({}, '', url);
                 }
+                if (kpiContainer && newKpiContent) {
+                    kpiContainer.innerHTML = newKpiContent.innerHTML;
+                }
             })
             .finally(() => {
                 container.classList.remove('is-loading');
+                if (kpiContainer) kpiContainer.classList.remove('is-loading');
                 updateSelectedCategoriesText();
             });
     }

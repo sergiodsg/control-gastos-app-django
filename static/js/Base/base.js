@@ -25,7 +25,10 @@
         const container = document.getElementById('transactions-container');
         if (!container) return;
 
+        const kpiContainer = document.getElementById('kpi-container');
+
         container.classList.add('is-loading');
+        if (kpiContainer) kpiContainer.classList.add('is-loading');
 
         fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.text(); })
@@ -33,17 +36,23 @@
                 const parser = new DOMParser();
                 const doc = parser.parseFromString(html, 'text/html');
                 const newContent = doc.getElementById('transactions-container');
+                const newKpiContent = kpiContainer ? doc.getElementById('kpi-container') : null;
 
                 if (newContent) {
                     container.innerHTML = newContent.innerHTML;
                     history.pushState(null, '', url);
                 }
+                if (kpiContainer && newKpiContent) {
+                    kpiContainer.innerHTML = newKpiContent.innerHTML;
+                }
                 container.classList.remove('is-loading');
+                if (kpiContainer) kpiContainer.classList.remove('is-loading');
                 applyCurrencyPreference();
                 if (typeof window.initResizableTables === 'function') window.initResizableTables();
             })
             .catch(function () {
                 container.classList.remove('is-loading');
+                if (kpiContainer) kpiContainer.classList.remove('is-loading');
             });
     }
 

@@ -374,6 +374,7 @@ def lista_transacciones(request):
             category_ids.append(val)
     category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
     cost_center_id = request.GET.get('cost_center')
+    project_id = request.GET.get('project')
     search_query = request.GET.get('search', '')
     tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
     view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
@@ -390,7 +391,8 @@ def lista_transacciones(request):
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
     if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
-    
+    if project_id == 'None' or project_id == '': project_id = None
+
     # Base: TODAS las transacciones para la tabla
     transactions_list = Transaction.objects.filter(organization=org)
 
@@ -423,7 +425,10 @@ def lista_transacciones(request):
 
     if cost_center_id:
         transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
-    
+
+    if project_id:
+        transactions_list = transactions_list.filter(project_id=project_id)
+
     # Filtrar por estado (status)
     if status_filter:
         transactions_list = transactions_list.filter(status=status_filter)
@@ -512,6 +517,8 @@ def lista_transacciones(request):
         'categories': categories,
         'cost_centers': CostCenter.objects.filter(organization=org),
         'selected_cost_center': cost_center_id,
+        'projects': projects,
+        'selected_project': project_id,
         'selected_category': category_ids[0] if category_ids else '',
         'selected_categories': category_ids,
         'projects_data': json.dumps(projects_data, cls=DecimalEncoder),

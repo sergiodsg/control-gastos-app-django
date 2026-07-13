@@ -221,17 +221,20 @@ body.app-layout {
     z-index: 1;
 }
 
-#transactions-container {
+#transactions-container,
+#kpi-container {
     position: relative;
     transition: var(--transition);
 }
 
-#transactions-container.is-loading {
+#transactions-container.is-loading,
+#kpi-container.is-loading {
     opacity: 0.6;
     pointer-events: none;
 }
 
-#transactions-container.is-loading::after {
+#transactions-container.is-loading::after,
+#kpi-container.is-loading::after {
     content: '';
     position: absolute;
     top: 50%;
