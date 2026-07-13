@@ -108,7 +108,7 @@
 <div class="cf-grid cf-grid--4 cf-mb-4">
     <div class="cf-card">
         <div class="cf-card__body cf-p-5">
-            <h5 class="cf-card__title cf-mb-4">
+            <h5 class="cf-card__title cf-chart-card__title cf-mb-4">
                 <i class="fa-solid fa-chart-line cf-text-primary cf-me-2"></i>Evolución del Balance (USD)
             </h5>
             <div id="evolutionChart" style="min-height: 300px;"></div>
@@ -116,7 +116,7 @@
     </div>
     <div class="cf-card">
         <div class="cf-card__body cf-p-5">
-            <h5 class="cf-card__title cf-mb-4">
+            <h5 class="cf-card__title cf-chart-card__title cf-mb-4">
                 <i class="fa-solid fa-chart-bar cf-text-primary cf-me-2"></i>Ingresos vs Gastos (Totales)
             </h5>
             <div id="totalsChart" style="min-height: 300px;"></div>
@@ -124,7 +124,7 @@
     </div>
     <div class="cf-card">
         <div class="cf-card__body cf-p-5">
-            <h5 class="cf-card__title cf-mb-4">
+            <h5 class="cf-card__title cf-chart-card__title cf-mb-4">
                 <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Categoría
             </h5>
             <div id="categoryChart" style="min-height: 300px;"></div>
@@ -132,7 +132,7 @@
     </div>
     <div class="cf-card" id="costCenterChartCard">
         <div class="cf-card__body cf-p-5">
-            <h5 class="cf-card__title cf-mb-4">
+            <h5 class="cf-card__title cf-chart-card__title cf-mb-4">
                 <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Centro de Costo
             </h5>
             <div id="costCenterChart" style="min-height: 300px;"></div>
@@ -295,7 +295,7 @@
 
         // --- Gráficos ApexCharts ---
         const commonOptions = {
-            chart: { toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'inherit' },
+            chart: { toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'inherit', height: 300 },
             noData: { text: 'No hay datos suficientes', style: { color: '#888', fontSize: '14px' } }
         };
 

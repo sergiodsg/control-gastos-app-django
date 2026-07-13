@@ -1024,3 +1024,27 @@
     cursor: pointer;
     width: auto;
 }
+
+/* ============================================
+   GRAFICOS (ApexCharts)
+   ApexCharts renderiza sus propios textos (leyendas, ejes, etiquetas)
+   con colores oscuros fijos por defecto. En modo oscuro esos textos
+   quedan casi invisibles sobre el fondo oscuro de la tarjeta, por lo
+   que forzamos un fondo blanco fijo en el contenedor del gráfico
+   (independiente del tema) para que el texto siga siendo legible.
+   ============================================ */
+#evolutionChart,
+#totalsChart,
+#categoryChart,
+#costCenterChart {
+    background: #ffffff;
+    border-radius: 1.25rem;
+    padding: 0.75rem;
+}
+
+/* Título de las tarjetas de gráficos: reserva la altura de 2 líneas
+   para que el gráfico empiece siempre a la misma altura en las 4
+   tarjetas, sin importar si el título ocupa 1 o 2 líneas. */
+.cf-chart-card__title {
+    min-height: 3rem;
+}
