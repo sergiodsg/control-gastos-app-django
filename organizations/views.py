@@ -331,7 +331,7 @@ def crear_organizacion(request):
             messages.success(request, f"Organización '{nombre}' creada con éxito.")
             return redirect('dashboard')
         else:
-            messages.error(request, "El nombre de la organización es obligatorio.")
+            messages.error(request, "El nombre de la organización es obligatorio: ingrese un nombre antes de crearla.")
     return render(request, 'organizations/crear.html', {'hide_sidebar': True})
 
 # --- Transacciones ---
@@ -1082,7 +1082,11 @@ def guardar_transaccion(request, trans_id=None):
                     org_id=org.id,
                     project_id=proj_id,
                 )
-                messages.error(request, "No tiene acceso a este proyecto.")
+                messages.error(
+                    request,
+                    "No tiene acceso a este proyecto: la organización actual no es propietaria del "
+                    "proyecto ni lo tiene compartido con ella."
+                )
                 return redirect(redirect_to)
 
         form = TransactionForm(request.POST, instance=instance, organization=org, project=project_context)
@@ -1206,7 +1210,7 @@ def guardar_categoria(request, cat_id=None):
             category.save()
             messages.success(request, "Categoría guardada correctamente.")
         else:
-            messages.error(request, "Error al guardar la categoría.")
+            messages.error(request, f"Error al guardar la categoría: {first_form_error(form)}")
             
     return redirect('lista_categorias')
 
@@ -1571,7 +1575,7 @@ def guardar_proyecto(request, proj_id=None):
                 
             messages.success(request, "Proyecto guardado correctamente.")
         else:
-            messages.error(request, "Error al guardar el proyecto.")
+            messages.error(request, f"Error al guardar el proyecto: {first_form_error(form)}")
 
     return redirect('lista_proyectos')
 
@@ -1855,7 +1859,7 @@ def guardar_valuacion(request, proj_id, val_id=None):
             valuation.save()
             messages.success(request, "Valuación guardada correctamente.")
         else:
-            messages.error(request, "Error al guardar la valuación.")
+            messages.error(request, f"Error al guardar la valuación: {first_form_error(form)}")
 
     return redirect('detalle_proyecto', proj_id=project.id)
 
@@ -1874,7 +1878,11 @@ def eliminar_valuacion(request, val_id):
     is_shared = project.shared_organizations.filter(organization=org).exists()
     
     if not (is_owner or is_shared):
-        messages.error(request, "No tiene permiso para eliminar esta valuación.")
+        messages.error(
+            request,
+            "No tiene permiso para eliminar esta valuación: la organización actual no es propietaria "
+            "del proyecto ni lo tiene compartido con ella."
+        )
         return redirect('lista_proyectos')
 
     proj_id = project.id

@@ -13,6 +13,7 @@ import json
 
 from BCV.models import ExchangeRateHistory
 from BCV.services.bcv_scrapper import get_rate_for_date
+from CashFlow.debug import first_form_error
 from organizations.amounts import create_initial_balance_transaction
 from organizations.banks import build_account_display_name, validate_bank_for_currency
 from organizations.models import Account, Organization, OrganizationAccess, Transaction
@@ -246,7 +247,7 @@ def guardar_usuario(request, user_id=None):
         action = 'actualizado' if user else 'creado'
         messages.success(request, f'Usuario "{form.instance.username}" {action} correctamente.')
     else:
-        messages.error(request, 'No se pudo guardar el usuario. Verifique los datos.')
+        messages.error(request, f'No se pudo guardar el usuario: {first_form_error(form)}')
     return redirect('superadmin_usuarios')
 
 
@@ -257,7 +258,11 @@ def eliminar_usuario(request, user_id):
 
     user = get_object_or_404(User, pk=user_id)
     if user.pk == request.user.pk:
-        messages.error(request, 'No puede eliminar su propia cuenta.')
+        messages.error(
+            request,
+            'No puede eliminar su propia cuenta de superadministrador: pida a otro '
+            'superadministrador que la elimine si es necesario.'
+        )
         return redirect('superadmin_usuarios')
 
     username = user.username
@@ -365,7 +370,7 @@ def guardar_organizacion(request, org_id=None):
         form.save()
         messages.success(request, 'Organización guardada correctamente.')
     else:
-        messages.error(request, 'No se pudo guardar la organización. Verifique los datos.')
+        messages.error(request, f'No se pudo guardar la organización: {first_form_error(form)}')
     return redirect('superadmin_organizaciones')
 
 
@@ -402,7 +407,7 @@ def actualizar_accesos_organizacion(request, org_id):
 
         messages.success(request, f'Accesos actualizados para "{org.name}".')
     else:
-        messages.error(request, 'No se pudieron actualizar los accesos.')
+        messages.error(request, f'No se pudieron actualizar los accesos: {first_form_error(form)}')
     return redirect('superadmin_organizaciones')
 
 
@@ -492,7 +497,7 @@ def guardar_tasa_bcv(request):
         messages.success(request, f'Tasa {currency} guardada para {rate_date.strftime("%d/%m/%Y")}.')
         return redirect(reverse('superadmin_tasas_bcv') + f'?date={rate_date.isoformat()}')
 
-    messages.error(request, 'No se pudo guardar la tasa. Verifique los datos.')
+    messages.error(request, f'No se pudo guardar la tasa: {first_form_error(form)}')
     rate_date = request.POST.get('rate_date') or timezone.localdate().isoformat()
     return redirect(reverse('superadmin_tasas_bcv') + f'?date={rate_date}')
 

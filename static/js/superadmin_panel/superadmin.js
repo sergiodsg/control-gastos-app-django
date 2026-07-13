@@ -123,10 +123,10 @@ function initSuperadminOrgs(config) {
                 bankNameInput.value = bankSelect.value;
             }
         }
-        if (!bankSelect.value) return currencyLabel + ': seleccione un banco.';
-        if (!row.querySelector('[name="account_rif"]').value.trim()) return currencyLabel + ': ingrese el RIF.';
-        if (!row.querySelector('[name="account_number"]').value.trim()) return currencyLabel + ': ingrese el número de cuenta.';
-        if (!row.querySelector('[name="account_holder"]').value.trim()) return currencyLabel + ': ingrese el titular.';
+        if (!bankSelect.value) return currencyLabel + ': seleccione un banco de la lista antes de continuar.';
+        if (!row.querySelector('[name="account_rif"]').value.trim()) return currencyLabel + ': ingrese el RIF del titular de la cuenta.';
+        if (!row.querySelector('[name="account_number"]').value.trim()) return currencyLabel + ': ingrese el número de cuenta bancaria.';
+        if (!row.querySelector('[name="account_holder"]').value.trim()) return currencyLabel + ': ingrese el nombre del titular de la cuenta.';
         return '';
     }
 
@@ -152,7 +152,7 @@ function initSuperadminOrgs(config) {
         var err = document.getElementById('wizardNameError');
         var value = nameInput.value.trim();
         if (value.length < 2) {
-            showError(err, 'Ingrese un nombre válido (mínimo 2 caracteres).');
+            showError(err, 'Ingrese un nombre de organización válido: debe tener al menos 2 caracteres.');
             nameInput.focus();
             return false;
         }
@@ -168,7 +168,7 @@ function initSuperadminOrgs(config) {
         var filledRows = rows.filter(accountRowIsFilled);
 
         if (filledRows.length === 0) {
-            showError(err, 'Agregue al menos una cuenta en bolívares o en dólares.');
+            showError(err, 'Agregue al menos una cuenta en bolívares o en dólares antes de continuar al siguiente paso.');
             return false;
         }
 
@@ -200,7 +200,7 @@ function initSuperadminOrgs(config) {
         username = username.trim();
 
         if (checked === 0 && !username) {
-            showError(err, 'Asigne al menos un usuario existente o complete el formulario de usuario nuevo.');
+            showError(err, 'Asigne al menos un administrador a la organización: seleccione un usuario existente de la lista o complete el formulario de usuario nuevo.');
             return false;
         }
 
@@ -209,12 +209,12 @@ function initSuperadminOrgs(config) {
             var p1 = (wizardForm.querySelector('[name="new_user_password1"]') || {}).value || '';
             var p2 = (wizardForm.querySelector('[name="new_user_password2"]') || {}).value || '';
             if (!email.trim() || !p1 || !p2) {
-                showError(err, 'Complete email y contraseñas del nuevo usuario.');
+                showError(err, 'Complete el email y ambas contraseñas del nuevo usuario antes de continuar.');
                 switchUserTab('create');
                 return false;
             }
             if (p1 !== p2) {
-                showError(err, 'Las contraseñas del nuevo usuario no coinciden.');
+                showError(err, 'Las contraseñas del nuevo usuario no coinciden: verifique que ambos campos contengan exactamente la misma contraseña.');
                 switchUserTab('create');
                 return false;
             }
@@ -400,7 +400,7 @@ function initSuperadminOrgs(config) {
                         window.location.href = result.data.redirect;
                         return;
                     }
-                    var errors = (result.data && result.data.errors) || ['Error al crear la organización.'];
+                    var errors = (result.data && result.data.errors) || ['No se pudo crear la organización. Verifique los datos ingresados en cada paso e intente de nuevo.'];
                     showWizardFormErrors(errors);
                     wizardStep = totalSteps;
                     updateWizardUI();

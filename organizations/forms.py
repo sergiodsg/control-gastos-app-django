@@ -55,7 +55,11 @@ class TransactionForm(forms.ModelForm):
                 cleaned_data['real_dollars'] = real_dollars
 
             if real_dollars == 0:
-                raise ValidationError("Una cuenta en dólares solo puede recibir fondos en Dólares Reales.")
+                raise ValidationError(
+                    "Esta cuenta está denominada en dólares: solo puede recibir o registrar movimientos "
+                    "en el campo 'Dólares Reales'. Los campos de Bolívares o Dólares BCV no aplican para "
+                    "este tipo de cuenta."
+                )
 
             cleaned_data['amount_bs'] = 0
             cleaned_data['amount_usd'] = 0
@@ -66,7 +70,11 @@ class TransactionForm(forms.ModelForm):
         else:
             # CUENTA EN BOLÍVARES: Solo BCV
             if real_dollars != 0 or bank_fee_real_usd != 0:
-                raise ValidationError("Una cuenta en bolívares solo puede recibir fondos mediante BCV (Bolívares o Dólares BCV).")
+                raise ValidationError(
+                    "Esta cuenta está denominada en bolívares: los movimientos deben registrarse "
+                    "mediante el tipo de cambio BCV (campos de Bolívares o Dólares BCV). El campo "
+                    "'Dólares Reales' solo aplica a cuentas en dólares."
+                )
             
             cleaned_data['real_dollars'] = 0
             cleaned_data['bank_fee_real_usd'] = 0
@@ -77,12 +85,12 @@ class TransactionForm(forms.ModelForm):
             
             # Validate that daily_rate is positive
             if daily_rate <= 0:
-                self.add_error('daily_rate', 'La tasa de cambio debe ser mayor a cero.')
+                self.add_error('daily_rate', 'La tasa de cambio debe ser mayor a cero: ingrese la tasa BCV vigente para calcular el equivalente en la otra moneda.')
                 return cleaned_data
             
             # Validate that daily_rate is not negative (additional safety check)
             if daily_rate < 0:
-                self.add_error('daily_rate', 'La tasa de cambio no puede ser negativa.')
+                self.add_error('daily_rate', 'La tasa de cambio no puede ser un valor negativo: ingrese un número positivo.')
                 return cleaned_data
             
             amount_bs, amount_usd = apply_dual_currency_amounts(amount_bs, amount_usd, daily_rate)
@@ -231,7 +239,7 @@ class AccountForm(forms.ModelForm):
 
         balance = cleaned_data.get('initial_balance') or 0
         if balance < 0:
-            self.add_error('initial_balance', 'El saldo inicial no puede ser negativo.')
+            self.add_error('initial_balance', 'El saldo inicial no puede ser un valor negativo: ingrese 0 o un monto positivo.')
 
         return cleaned_data
 
@@ -263,12 +271,12 @@ class ValuationForm(forms.ModelForm):
         
         # Validate that daily_rate is positive
         if rate is not None and rate <= 0:
-            self.add_error('daily_rate', 'La tasa de cambio debe ser mayor a cero.')
+            self.add_error('daily_rate', 'La tasa de cambio debe ser mayor a cero: ingrese la tasa BCV vigente para calcular el equivalente en la otra moneda.')
             return cleaned_data
         
         # Validate that daily_rate is not negative (additional safety check)
         if rate is not None and rate < 0:
-            self.add_error('daily_rate', 'La tasa de cambio no puede ser negativa.')
+            self.add_error('daily_rate', 'La tasa de cambio no puede ser un valor negativo: ingrese un número positivo.')
             return cleaned_data
         
         if (usd and usd != 0) and (not bs or bs == 0):

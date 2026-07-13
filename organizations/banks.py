@@ -49,16 +49,22 @@ def validate_bank_for_currency(currency, bank_code, bank_name):
     if currency == 'BS':
         bank = get_banco_bs_by_codigo(bank_code)
         if not bank:
-            raise ValidationError('Seleccione un banco válido en bolívares.')
+            raise ValidationError(
+                'Seleccione un banco válido en bolívares. El código de banco indicado no corresponde a '
+                'ninguna entidad bancaria registrada en el sistema.'
+            )
         return bank['codigo'], bank['nombre']
 
     if currency == 'USD':
         bank = get_banco_usd_by_nombre(bank_name)
         if not bank:
-            raise ValidationError('Seleccione un banco válido en dólares.')
+            raise ValidationError(
+                'Seleccione un banco válido en dólares. El nombre de banco indicado no corresponde a '
+                'ninguna entidad registrada para cuentas en moneda extranjera.'
+            )
         return '', bank['nombre']
 
-    raise ValidationError('La moneda de la cuenta debe ser BS o USD.')
+    raise ValidationError('La moneda de la cuenta no es válida: debe ser Bolívares (BS) o Dólares (USD).')
 
 
 def build_account_display_name(bank_name, account_number, currency):

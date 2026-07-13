@@ -112,7 +112,7 @@ class SuperadminUserEditForm(forms.ModelForm):
         confirm = cleaned.get('new_password_confirm')
         if password or confirm:
             if password != confirm:
-                self.add_error('new_password_confirm', 'Las contraseñas no coinciden.')
+                self.add_error('new_password_confirm', 'Las contraseñas no coinciden: verifique que ambos campos contengan exactamente la misma contraseña.')
             else:
                 validate_password(password, self.instance)
         return cleaned
@@ -199,9 +199,12 @@ class SuperadminOrganizationWizardForm(forms.Form):
     def clean_name(self):
         name = self.cleaned_data['name'].strip()
         if not name:
-            raise ValidationError('El nombre es obligatorio.')
+            raise ValidationError('El nombre de la organización es obligatorio: ingrese un nombre antes de continuar.')
         if Organization.objects.filter(name__iexact=name).exists():
-            raise ValidationError('Ya existe una organización con ese nombre.')
+            raise ValidationError(
+                'Ya existe una organización registrada con ese nombre exacto. Utilice un nombre '
+                'diferente o edite la organización existente.'
+            )
         return name
 
     def clean(self):
@@ -211,21 +214,24 @@ class SuperadminOrganizationWizardForm(forms.Form):
 
         for user in org_users:
             if user.is_superuser:
-                raise ValidationError('Los superadministradores no pueden administrar organizaciones.')
+                raise ValidationError(
+                    'Los superadministradores no pueden asignarse como administradores de una '
+                    'organización: quite la selección de superusuarios de la lista de administradores.'
+                )
 
         if username:
             if User.objects.filter(username__iexact=username).exists():
-                self.add_error('new_user_username', 'Ese nombre de usuario ya existe.')
+                self.add_error('new_user_username', 'Ese nombre de usuario ya está en uso por otra cuenta. Elija un nombre de usuario diferente.')
             if not cleaned_data.get('new_user_email'):
-                self.add_error('new_user_email', 'El email es obligatorio para el nuevo usuario.')
+                self.add_error('new_user_email', 'Debe indicar un email para el nuevo usuario que está creando.')
             password1 = cleaned_data.get('new_user_password1')
             password2 = cleaned_data.get('new_user_password2')
             if not password1:
-                self.add_error('new_user_password1', 'La contraseña es obligatoria.')
+                self.add_error('new_user_password1', 'Debe indicar una contraseña para el nuevo usuario.')
             if not password2:
-                self.add_error('new_user_password2', 'Confirme la contraseña.')
+                self.add_error('new_user_password2', 'Debe repetir la contraseña en el campo de confirmación.')
             if password1 and password2 and password1 != password2:
-                self.add_error('new_user_password2', 'Las contraseñas no coinciden.')
+                self.add_error('new_user_password2', 'Las contraseñas no coinciden: verifique que ambos campos contengan exactamente la misma contraseña.')
             elif password1 and password2 and password1 == password2:
                 try:
                     validate_password(password1)
@@ -234,7 +240,8 @@ class SuperadminOrganizationWizardForm(forms.Form):
 
         if not org_users and not username:
             raise ValidationError(
-                'Asigne al menos un administrador existente o complete los datos de un usuario nuevo.'
+                'Debe asignar al menos un administrador a la organización: seleccione un usuario '
+                'existente de la lista o complete los datos para crear uno nuevo.'
             )
 
         cleaned_data['new_user_username'] = username
@@ -276,11 +283,11 @@ class BcvRateForm(forms.ModelForm):
         currency = self.cleaned_data.get('currency')
         allowed = {ExchangeRateHistory.CURRENCY_USD, ExchangeRateHistory.CURRENCY_EUR}
         if currency not in allowed:
-            raise forms.ValidationError('Solo se permiten USD o EUR.')
+            raise forms.ValidationError('Moneda no permitida: la tasa solo puede registrarse para Dólar (USD) o Euro (EUR).')
         return currency
 
     def clean_rate(self):
         rate = self.cleaned_data.get('rate')
         if rate is not None and rate <= 0:
-            raise forms.ValidationError('La tasa debe ser mayor que cero.')
+            raise forms.ValidationError('La tasa debe ser un valor mayor que cero: ingrese la tasa de cambio vigente.')
         return rate
