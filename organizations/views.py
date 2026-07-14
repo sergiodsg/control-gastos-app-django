@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import Http404
 from django.contrib.auth.decorators import login_required
 from django.db import models
-from django.db.models import Sum, OuterRef, Subquery, Value, F, Q
+from django.db.models import Sum, OuterRef, Subquery, Value, F, Q, Count
 from django.db.models.functions import Coalesce, TruncMonth
 from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -212,12 +212,22 @@ def home_organizacion(request):
         balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
         balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
     )
-    
+
+    pending_totals = Transaction.objects.filter(organization_id=org_id, status='pendiente').aggregate(
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
+        count=Count('id')
+    )
+    has_pending = pending_totals['count'] > 0
+
     income_filter = request.GET.get('income_filter', 'all')
     expense_filter = request.GET.get('expense_filter', 'all')
-    
-    def get_filtered_totals_by_mode(filter_val, mode):
+
+    def get_filtered_totals_by_mode(filter_val, mode, status=None):
         transactions = Transaction.objects.filter(organization_id=org_id)
+        if status:
+            transactions = transactions.filter(status=status)
         today = timezone.localdate()
         if filter_val != 'all':
             if filter_val == 'day': start_date = today - timedelta(days=1)
@@ -233,11 +243,13 @@ def home_organizacion(request):
             res = transactions.aggregate(
                 income=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
                 expense=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
-                fees=Sum('bank_fee_real_usd')
+                fees=Sum('bank_fee_real_usd'),
+                count=Count('id')
             )
             return {
                 'income': res['income'] or 0,
-                'expense': abs(res['expense'] or 0) + (res['fees'] or 0)
+                'expense': abs(res['expense'] or 0) + (res['fees'] or 0),
+                'count': res['count'],
             }
         else:
             res = transactions.aggregate(
@@ -246,17 +258,21 @@ def home_organizacion(request):
                 fees_usd=Sum('bank_fee_usd'),
                 income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
                 expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
-                fees_bs=Sum('bank_fee_bs')
+                fees_bs=Sum('bank_fee_bs'),
+                count=Count('id')
             )
             return {
                 'income_usd': res['income_usd'] or 0,
                 'expense_usd': abs(res['expense_usd'] or 0) + (res['fees_usd'] or 0),
                 'income_bs': res['income_bs'] or 0,
                 'expense_bs': abs(res['expense_bs'] or 0) + (res['fees_bs'] or 0),
+                'count': res['count'],
             }
 
     inc_totals = get_filtered_totals_by_mode(income_filter, view_mode)
     exp_totals = get_filtered_totals_by_mode(expense_filter, view_mode)
+    inc_pending_totals = get_filtered_totals_by_mode(income_filter, view_mode, status='pendiente')
+    exp_pending_totals = get_filtered_totals_by_mode(expense_filter, view_mode, status='pendiente')
     
     try:
         rates = as_dashboard_rates()
@@ -291,6 +307,18 @@ def home_organizacion(request):
         'expense_usd': exp_totals.get('expense_usd', 0),
         'expense_bs': exp_totals.get('expense_bs', 0),
         'expense_real_usd': exp_totals.get('expense', 0),
+        'has_pending': has_pending,
+        'pending_balance_usd': pending_totals['balance_usd'] or 0,
+        'pending_balance_bs': pending_totals['balance_bs'] or 0,
+        'pending_balance_real_usd': pending_totals['balance_real_usd'] or 0,
+        'pending_income_usd': inc_pending_totals.get('income_usd', 0),
+        'pending_income_bs': inc_pending_totals.get('income_bs', 0),
+        'pending_income_real_usd': inc_pending_totals.get('income', 0),
+        'pending_income_count': inc_pending_totals.get('count', 0),
+        'pending_expense_usd': exp_pending_totals.get('expense_usd', 0),
+        'pending_expense_bs': exp_pending_totals.get('expense_bs', 0),
+        'pending_expense_real_usd': exp_pending_totals.get('expense', 0),
+        'pending_expense_count': exp_pending_totals.get('count', 0),
         'income_filter': income_filter,
         'expense_filter': expense_filter,
         'rates': rates,
@@ -430,28 +458,40 @@ def lista_transacciones(request):
     if project_id:
         transactions_list = transactions_list.filter(project_id=project_id)
 
+    # Punto de control: mismos filtros aplicados hasta aquí (tx_filter, búsqueda,
+    # categorías, centro de costo, proyecto) pero sin el filtro de estado, para
+    # poder calcular el saldo pendiente independientemente del estado seleccionado.
+    qs_before_status = transactions_list
+
     # Filtrar por estado (status)
     if status_filter:
         transactions_list = transactions_list.filter(status=status_filter)
-    
+
     today = timezone.localdate()
-    
-    # Si hay fechas explícitas, ignoramos el filter_type (periodo)
-    if date_from or date_to:
-        if date_from:
-            transactions_list = transactions_list.filter(date__gte=date_from)
-        if date_to:
-            transactions_list = transactions_list.filter(date__lte=date_to)
-    elif filter_type != 'all' and filter_type != 'custom':
-        if filter_type == 'day': start_date = today
-        elif filter_type == 'week': start_date = today - timedelta(days=7)
-        elif filter_type == '15days': start_date = today - timedelta(days=15)
-        elif filter_type == 'month': start_date = today - timedelta(days=30)
-        elif filter_type == 'quarter': start_date = today - timedelta(days=90)
-        elif filter_type == '6months': start_date = today - timedelta(days=180)
-        elif filter_type == 'year': start_date = today - timedelta(days=365)
-        transactions_list = transactions_list.filter(date__gte=start_date)
-    
+
+    def apply_date_filter(qs):
+        # Si hay fechas explícitas, ignoramos el filter_type (periodo)
+        if date_from or date_to:
+            if date_from:
+                qs = qs.filter(date__gte=date_from)
+            if date_to:
+                qs = qs.filter(date__lte=date_to)
+        elif filter_type != 'all' and filter_type != 'custom':
+            if filter_type == 'day': start_date = today
+            elif filter_type == 'week': start_date = today - timedelta(days=7)
+            elif filter_type == '15days': start_date = today - timedelta(days=15)
+            elif filter_type == 'month': start_date = today - timedelta(days=30)
+            elif filter_type == 'quarter': start_date = today - timedelta(days=90)
+            elif filter_type == '6months': start_date = today - timedelta(days=180)
+            elif filter_type == 'year': start_date = today - timedelta(days=365)
+            else: start_date = None
+            if start_date:
+                qs = qs.filter(date__gte=start_date)
+        return qs
+
+    transactions_list = apply_date_filter(transactions_list)
+    pending_qs_base = apply_date_filter(qs_before_status).filter(status='pendiente')
+
     sort = request.GET.get('sort', 'desc')
     if sort == 'asc':
         transactions_list = transactions_list.order_by('date', 'id')
@@ -492,6 +532,38 @@ def lista_transacciones(request):
             'expense_usd': abs(totals['expense_usd'] or 0) + (totals['fees_usd'] or 0),
             'expense_bs': abs(totals['expense_bs'] or 0) + (totals['fees_bs'] or 0),
         }
+
+    # --- Saldo pendiente: mismos filtros aplicados (excepto estado), solo transacciones 'pendiente' ---
+    has_pending = pending_qs_base.exists()
+    if view_mode == 'real':
+        pending_kpi_qs = pending_qs_base.exclude(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+        pending_totals_raw = pending_kpi_qs.aggregate(
+            balance=Sum(F('real_dollars') - F('bank_fee_real_usd')),
+            income=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+            expense=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+            fees=Sum('bank_fee_real_usd')
+        )
+        res_totals['pending_balance_real_usd'] = pending_totals_raw['balance'] or 0
+        res_totals['pending_income_real_usd'] = pending_totals_raw['income'] or 0
+        res_totals['pending_expense_real_usd'] = abs(pending_totals_raw['expense'] or 0) + (pending_totals_raw['fees'] or 0)
+    else:
+        pending_kpi_qs = pending_qs_base.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+        pending_totals_raw = pending_kpi_qs.aggregate(
+            balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+            balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+            income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+            income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+            expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+            expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+            fees_usd=Sum('bank_fee_usd'),
+            fees_bs=Sum('bank_fee_bs')
+        )
+        res_totals['pending_balance_usd'] = pending_totals_raw['balance_usd'] or 0
+        res_totals['pending_balance_bs'] = pending_totals_raw['balance_bs'] or 0
+        res_totals['pending_income_usd'] = pending_totals_raw['income_usd'] or 0
+        res_totals['pending_income_bs'] = pending_totals_raw['income_bs'] or 0
+        res_totals['pending_expense_usd'] = abs(pending_totals_raw['expense_usd'] or 0) + (pending_totals_raw['fees_usd'] or 0)
+        res_totals['pending_expense_bs'] = abs(pending_totals_raw['expense_bs'] or 0) + (pending_totals_raw['fees_bs'] or 0)
     
     paginator = Paginator(transactions_list, 20)
     page_number = request.GET.get('page')
@@ -533,6 +605,7 @@ def lista_transacciones(request):
         'tx_filter': tx_filter,
         'status_filter': status_filter,
         'totals': res_totals,
+        'has_pending': has_pending,
         'tx_filter_options': [
             ('all', 'Todas las transacciones'),
             ('bcv', 'Transacciones BCV'),
@@ -1715,32 +1788,45 @@ def detalle_proyecto(request, proj_id):
     if cost_center_id:
         transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
 
+    # Punto de control: mismos filtros aplicados hasta aquí (tx_filter, búsqueda,
+    # categorías, centro de costo) pero sin el filtro de estado, para poder calcular
+    # el saldo pendiente independientemente del estado seleccionado.
+    qs_before_status = transactions_list
+
     if status_filter:
         transactions_list = transactions_list.filter(status=status_filter)
 
     today = timezone.localdate()
-    
-    if date_from or date_to:
-        if date_from:
-            transactions_list = transactions_list.filter(date__gte=date_from)
-        if date_to:
-            transactions_list = transactions_list.filter(date__lte=date_to)
-    elif filter_type != 'all' and filter_type != 'custom':
-        if filter_type == 'day':
-            start_date = today
-        elif filter_type == 'week':
-            start_date = today - timedelta(days=7)
-        elif filter_type == '15days':
-            start_date = today - timedelta(days=15)
-        elif filter_type == 'month':
-            start_date = today - timedelta(days=30)
-        elif filter_type == 'quarter':
-            start_date = today - timedelta(days=90)
-        elif filter_type == '6months':
-            start_date = today - timedelta(days=180)
-        elif filter_type == 'year':
-            start_date = today - timedelta(days=365)
-        transactions_list = transactions_list.filter(date__gte=start_date)
+
+    def apply_date_filter(qs):
+        if date_from or date_to:
+            if date_from:
+                qs = qs.filter(date__gte=date_from)
+            if date_to:
+                qs = qs.filter(date__lte=date_to)
+        elif filter_type != 'all' and filter_type != 'custom':
+            if filter_type == 'day':
+                start_date = today
+            elif filter_type == 'week':
+                start_date = today - timedelta(days=7)
+            elif filter_type == '15days':
+                start_date = today - timedelta(days=15)
+            elif filter_type == 'month':
+                start_date = today - timedelta(days=30)
+            elif filter_type == 'quarter':
+                start_date = today - timedelta(days=90)
+            elif filter_type == '6months':
+                start_date = today - timedelta(days=180)
+            elif filter_type == 'year':
+                start_date = today - timedelta(days=365)
+            else:
+                start_date = None
+            if start_date:
+                qs = qs.filter(date__gte=start_date)
+        return qs
+
+    transactions_list = apply_date_filter(transactions_list)
+    pending_qs_base = apply_date_filter(qs_before_status).filter(status='pendiente')
 
     sort = request.GET.get('sort', 'desc')
     if sort == 'asc':
@@ -1787,6 +1873,28 @@ def detalle_proyecto(request, proj_id):
     
     # Totales solo para la organización actual (balance de la organización FILTRADO)
     totals_org = transactions_list.filter(organization=org).aggregate(
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
+    )
+
+    # Saldo pendiente: mismos filtros aplicados (excepto estado), solo transacciones 'pendiente'
+    has_pending = pending_qs_base.exists()
+    pending_totals_project = pending_qs_base.aggregate(
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+        fees_usd=Sum('bank_fee_usd'),
+        fees_bs=Sum('bank_fee_bs'),
+        fees_real_usd=Sum('bank_fee_real_usd')
+    )
+    pending_totals_org = pending_qs_base.filter(organization=org).aggregate(
         balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
         balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
         balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
@@ -1845,6 +1953,7 @@ def detalle_proyecto(request, proj_id):
         'view_mode': view_mode,
         'tx_filter': tx_filter,
         'status_filter': status_filter,
+        'has_pending': has_pending,
         'totals': {
             'balance_usd': (totals_project['balance_usd'] or 0) + (totals_project['balance_real_usd'] or 0),
             'balance_bs': totals_project['balance_bs'] or 0,
@@ -1859,6 +1968,19 @@ def detalle_proyecto(request, proj_id):
                            (totals_project['fees_usd'] or 0) + (totals_project['fees_real_usd'] or 0),
             'expense_bs': abs(totals_project['expense_bs'] or 0) + (totals_project['fees_bs'] or 0),
             'expense_real_usd': abs(totals_project['expense_real_usd'] or 0) + (totals_project['fees_real_usd'] or 0),
+            'pending_balance_usd': (pending_totals_project['balance_usd'] or 0) + (pending_totals_project['balance_real_usd'] or 0),
+            'pending_balance_bs': pending_totals_project['balance_bs'] or 0,
+            'pending_balance_real_usd': pending_totals_project['balance_real_usd'] or 0,
+            'pending_org_balance_usd': (pending_totals_org['balance_usd'] or 0) + (pending_totals_org['balance_real_usd'] or 0),
+            'pending_org_balance_bs': pending_totals_org['balance_bs'] or 0,
+            'pending_org_balance_real_usd': pending_totals_org['balance_real_usd'] or 0,
+            'pending_income_usd': (pending_totals_project['income_usd'] or 0) + (pending_totals_project['income_real_usd'] or 0),
+            'pending_income_bs': pending_totals_project['income_bs'] or 0,
+            'pending_income_real_usd': pending_totals_project['income_real_usd'] or 0,
+            'pending_expense_usd': abs((pending_totals_project['expense_usd'] or 0) + (pending_totals_project['expense_real_usd'] or 0)) +
+                                    (pending_totals_project['fees_usd'] or 0) + (pending_totals_project['fees_real_usd'] or 0),
+            'pending_expense_bs': abs(pending_totals_project['expense_bs'] or 0) + (pending_totals_project['fees_bs'] or 0),
+            'pending_expense_real_usd': abs(pending_totals_project['expense_real_usd'] or 0) + (pending_totals_project['fees_real_usd'] or 0),
         },
         'tx_filter_options': [
             ('all', 'Todas las transacciones'),

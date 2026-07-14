@@ -34,13 +34,20 @@
                     <small style="display:block; opacity: 0.7; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">BCV</small>
                     <div class="cf-stat-value currency-usd-content" style="font-size: 1.4rem; font-weight: 700;">${{ balance_usd|intcomma }}</div>
                     <div class="cf-stat-value currency-bs-content cf-hidden" style="font-size: 1.4rem; font-weight: 700;">Bs. {{ balance_bs|intcomma }}</div>
+                    {% if has_pending %}
+                    <small class="currency-usd-content" style="display:block; opacity: 0.75; font-size: 0.7rem; margin-top: 2px;">Pendiente: ${{ pending_balance_usd|intcomma }}</small>
+                    <small class="currency-bs-content cf-hidden" style="display:block; opacity: 0.75; font-size: 0.7rem; margin-top: 2px;">Pendiente: Bs. {{ pending_balance_bs|intcomma }}</small>
+                    {% endif %}
                 </div>
-                
+
                 <div style="width: 1px; height: 30px; background: rgba(255,255,255,0.25);"></div>
 
                 <div class="cf-text-center">
                     <small style="display:block; opacity: 0.7; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px;">Dólares</small>
                     <div class="cf-stat-value" style="font-size: 1.4rem; font-weight: 700;">${{ balance_real_usd|intcomma }}</div>
+                    {% if has_pending %}
+                    <small style="display:block; opacity: 0.75; font-size: 0.7rem; margin-top: 2px;">Pendiente: ${{ pending_balance_real_usd|intcomma }}</small>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -53,9 +60,16 @@
                     <h5 class="cf-text-muted cf-mb-1">Ingresos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
                     {% if view_mode == 'real' %}
                     <div class="cf-stat-value cf-text-success">${{ income_real_usd|intcomma }}</div>
+                    {% if pending_income_real_usd %}
+                    <small class="cf-text-muted" style="display:block; font-size: 0.75rem;">Pendiente: ${{ pending_income_real_usd|intcomma }}</small>
+                    {% endif %}
                     {% else %}
                     <div class="cf-stat-value cf-text-success currency-usd-content">${{ income_usd|intcomma }}</div>
                     <div class="cf-stat-value cf-text-success currency-bs-content cf-hidden">Bs. {{ income_bs|intcomma }}</div>
+                    {% if pending_income_usd or pending_income_bs %}
+                    <small class="cf-text-muted currency-usd-content" style="display:block; font-size: 0.75rem;">Pendiente: ${{ pending_income_usd|intcomma }}</small>
+                    <small class="cf-text-muted currency-bs-content cf-hidden" style="display:block; font-size: 0.75rem;">Pendiente: Bs. {{ pending_income_bs|intcomma }}</small>
+                    {% endif %}
                     {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--success">
@@ -82,9 +96,16 @@
                     <h5 class="cf-text-muted cf-mb-1">Gastos ({% if view_mode == 'real' %}Dólares{% else %}BCV{% endif %})</h5>
                     {% if view_mode == 'real' %}
                     <div class="cf-stat-value cf-text-danger">${{ expense_real_usd|intcomma }}</div>
+                    {% if pending_expense_real_usd %}
+                    <small class="cf-text-muted" style="display:block; font-size: 0.75rem;">Pendiente: ${{ pending_expense_real_usd|intcomma }}</small>
+                    {% endif %}
                     {% else %}
                     <div class="cf-stat-value cf-text-danger currency-usd-content">${{ expense_usd|intcomma }}</div>
                     <div class="cf-stat-value cf-text-danger currency-bs-content cf-hidden">Bs. {{ expense_bs|intcomma }}</div>
+                    {% if pending_expense_usd or pending_expense_bs %}
+                    <small class="cf-text-muted currency-usd-content" style="display:block; font-size: 0.75rem;">Pendiente: ${{ pending_expense_usd|intcomma }}</small>
+                    <small class="cf-text-muted currency-bs-content cf-hidden" style="display:block; font-size: 0.75rem;">Pendiente: Bs. {{ pending_expense_bs|intcomma }}</small>
+                    {% endif %}
                     {% endif %}
                 </div>
                 <div class="cf-icon-box cf-icon-box--danger">
