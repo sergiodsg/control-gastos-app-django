@@ -2,6 +2,7 @@
 
 from django.utils import timezone
 
+from .audit import log_transaction_audit
 from .models import Account, Transaction, TransactionAuditLog
 
 
@@ -70,12 +71,6 @@ def create_initial_balance_transaction(
     )
 
     if created_by is not None:
-        TransactionAuditLog.objects.create(
-            transaction=transaction,
-            organization=organization,
-            transaction_description=transaction.description[:255],
-            action=TransactionAuditLog.ACTION_CREATED,
-            user=created_by,
-        )
+        log_transaction_audit(transaction, organization, TransactionAuditLog.ACTION_CREATED, created_by)
 
     return transaction

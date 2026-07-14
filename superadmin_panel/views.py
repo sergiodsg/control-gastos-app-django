@@ -15,6 +15,7 @@ import json
 from BCV.models import ExchangeRateHistory
 from BCV.services.bcv_scrapper import get_rate_for_date
 from CashFlow.debug import first_form_error
+from accounts.models import Profile
 from organizations.amounts import create_initial_balance_transaction
 from organizations.banks import build_account_display_name, validate_bank_for_currency
 from organizations.models import Account, Organization, OrganizationAccess, Transaction, TransactionAuditLog
@@ -548,3 +549,9 @@ def auditoria_transacciones(request):
         'selected_action': action or '',
         'search': search,
     })
+
+
+@superadmin_required
+def auditoria_snapshot(request, log_id):
+    log = get_object_or_404(TransactionAuditLog, id=log_id)
+    return render(request, 'superadmin_panel/partials/auditoria_snapshot.html', {'log': log})

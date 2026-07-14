@@ -7,13 +7,21 @@ from django.conf import settings
 SENSITIVE_KEYS = ("password", "csrf", "token", "secret")
 
 
+def _redact_value(value):
+    if isinstance(value, dict):
+        return _safe_context(value)
+    if isinstance(value, (list, tuple)):
+        return [_redact_value(item) for item in value]
+    return value
+
+
 def _safe_context(context):
     safe = {}
     for key, value in context.items():
         if any(sensitive in key.lower() for sensitive in SENSITIVE_KEYS):
             safe[key] = "***"
         else:
-            safe[key] = value
+            safe[key] = _redact_value(value)
     return safe
 
 
@@ -40,9 +48,10 @@ def _logger_name_for_event(event):
 
 
 def _level_for_event(event):
-    if ".error" in event:
+    segments = event.lower().split(".")
+    if "error" in segments:
         return logging.ERROR
-    if "acceso_denegado" in event:
+    if "acceso_denegado" in segments:
         return logging.WARNING
     return logging.DEBUG
 

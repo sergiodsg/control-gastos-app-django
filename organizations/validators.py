@@ -2,7 +2,7 @@ import re
 
 from django.core.exceptions import ValidationError
 
-RIF_PATTERN = re.compile(r'^[JVEGPFjvegp]\-?\d{8,9}\-?\d?$')
+RIF_PATTERN = re.compile(r'^[JVEGPFjvegpf]\-?\d{8,9}\-?\d?$')
 ACCOUNT_NUMBER_PATTERN = re.compile(r'^\d{10,20}$')
 
 

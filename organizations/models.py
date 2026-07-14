@@ -178,6 +178,7 @@ class TransactionAuditLog(models.Model):
     action = models.CharField(max_length=10, choices=ACTION_CHOICES, verbose_name="Acción")
     user = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='transaction_audit_logs', verbose_name="Usuario")
     timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Fecha y hora")
+    snapshot = models.JSONField(blank=True, null=True, verbose_name="Instantánea de la transacción")
 
     class Meta:
         verbose_name = "Registro de auditoría de transacción"

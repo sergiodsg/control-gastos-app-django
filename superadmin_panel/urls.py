@@ -18,4 +18,5 @@ urlpatterns = [
     path('tasas-bcv/guardar/', views.guardar_tasa_bcv, name='superadmin_guardar_tasa_bcv'),
     path('tasas-bcv/eliminar/<int:rate_id>/', views.eliminar_tasa_bcv, name='superadmin_eliminar_tasa_bcv'),
     path('auditoria/', views.auditoria_transacciones, name='superadmin_auditoria'),
+    path('auditoria/<int:log_id>/instantanea/', views.auditoria_snapshot, name='superadmin_auditoria_snapshot'),
 ]

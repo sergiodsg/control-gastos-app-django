@@ -16,6 +16,7 @@ from .models import Organization, OrganizationAccess, Transaction, TransactionAu
 from accounts.models import Profile
 from accounts.decorators import viewer_restricted
 from .amounts import create_initial_balance_transaction
+from .audit import log_transaction_audit
 from .forms import TransactionForm, CategoryForm, AccountForm, ProjectForm, ValuationForm
 from CashFlow.debug import debug_event, first_form_error
 from BCV.services.bcv_scrapper import as_dashboard_rates, get_rate_for_date
@@ -591,10 +592,12 @@ def _get_report_data(request):
     if project_id:
         # Si filtramos por proyecto, buscamos transacciones de ese proyecto donde la org tenga acceso
         project = get_object_or_404(Project, id=project_id)
-        # Verificar acceso
+        # Verificar acceso: la org debe ser dueña o tener el proyecto compartido, Y el usuario
+        # debe tener acceso individual al proyecto (mismo criterio que detalle_proyecto/guardar_transaccion)
         is_owner = project.organization == org
         is_shared = project.shared_organizations.filter(organization=org).exists()
-        if not (is_owner or is_shared):
+        has_user_access = project.user_accesses.filter(user=request.user).exists()
+        if not ((is_owner or is_shared) and has_user_access):
              return org, Transaction.objects.none(), report_type, {}, "Sin Acceso"
          
         transactions = Transaction.objects.filter(project_id=project_id)
@@ -722,6 +725,7 @@ def _get_report_data(request):
     
     return org, transactions, report_type, report_totals, filter_label
 
+@login_required
 def exportar_pdf_transacciones(request):
     org, transactions, report_type, report_totals, filter_label = _get_report_data(request)
     now = timezone.now()
@@ -1016,6 +1020,7 @@ def exportar_pdf_transacciones(request):
     return response
 
 
+@login_required
 def exportar_xlsx_transacciones(request):
     org, transactions, report_type, report_totals, filter_label = _get_report_data(request)
     now = timezone.now()
@@ -1110,12 +1115,11 @@ def guardar_transaccion(request, trans_id=None):
         if form.is_valid():
             is_update = bool(instance)
             transaction = form.save()
-            TransactionAuditLog.objects.create(
-                transaction=transaction,
-                organization=transaction.organization,
-                transaction_description=transaction.description[:255],
-                action=TransactionAuditLog.ACTION_UPDATED if is_update else TransactionAuditLog.ACTION_CREATED,
-                user=request.user,
+            log_transaction_audit(
+                transaction,
+                transaction.organization,
+                TransactionAuditLog.ACTION_UPDATED if is_update else TransactionAuditLog.ACTION_CREATED,
+                request.user,
             )
             debug_event(
                 "transaccion.guardada",
@@ -1162,17 +1166,14 @@ def eliminar_transaccion(request, trans_id):
     ).distinct()
     
     transaction = get_object_or_404(transactions_with_access, id=trans_id)
-    
-    redirect_to = request.GET.get('next', 'lista_transacciones')
-    
+
+    next_url = request.GET.get('next')
+    redirect_to = next_url if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}, require_https=request.is_secure()
+    ) else 'lista_transacciones'
+
     if request.method == 'POST':
-        TransactionAuditLog.objects.create(
-            transaction=transaction,
-            organization=transaction.organization,
-            transaction_description=transaction.description[:255],
-            action=TransactionAuditLog.ACTION_DELETED,
-            user=request.user,
-        )
+        log_transaction_audit(transaction, transaction.organization, TransactionAuditLog.ACTION_DELETED, request.user)
         transaction.delete()
         messages.success(request, "Transacción eliminada.")
     
@@ -1768,27 +1769,6 @@ def detalle_proyecto(request, proj_id):
             covered = val.covered_bs or 0
             val.progress = min(round((covered / val.amount_bs) * 100, 2), 100)
 
-    # Totales GENERALES del proyecto (sin filtros de período/búsqueda/org)
-    overall_project = Transaction.objects.filter(project=project).aggregate(
-        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
-        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
-        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
-        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
-        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
-        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
-        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
-        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
-        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
-        fees_usd=Sum('bank_fee_usd'),
-        fees_bs=Sum('bank_fee_bs'),
-        fees_real_usd=Sum('bank_fee_real_usd')
-    )
-    overall_org = Transaction.objects.filter(project=project, organization=org).aggregate(
-        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
-        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
-        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
-    )
-
     # Totales FILTRADOS para el dashboard dinámico
     totals_project = transactions_list.aggregate(
         balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
@@ -1866,22 +1846,19 @@ def detalle_proyecto(request, proj_id):
         'tx_filter': tx_filter,
         'status_filter': status_filter,
         'totals': {
-            'balance_usd': (overall_project['balance_usd'] or 0) + (overall_project['balance_real_usd'] or 0),
-            'balance_bs': overall_project['balance_bs'] or 0,
-            'balance_real_usd': overall_project['balance_real_usd'] or 0,
-            'org_balance_usd': (overall_org['balance_usd'] or 0) + (overall_org['balance_real_usd'] or 0),
-            'org_balance_bs': overall_org['balance_bs'] or 0,
-            'org_balance_real_usd': overall_org['balance_real_usd'] or 0,
-            'income_usd': (overall_project['income_usd'] or 0) + (overall_project['income_real_usd'] or 0),
-            'income_bs': overall_project['income_bs'] or 0,
-            'income_real_usd': overall_project['income_real_usd'] or 0,
-            'expense_usd': abs((overall_project['expense_usd'] or 0) + (overall_project['expense_real_usd'] or 0)) + 
-                           (overall_project['fees_usd'] or 0) + (overall_project['fees_real_usd'] or 0),
-            'expense_bs': abs(overall_project['expense_bs'] or 0) + (overall_project['fees_bs'] or 0),
-            'expense_real_usd': abs(overall_project['expense_real_usd'] or 0) + (overall_project['fees_real_usd'] or 0),
-            # Filtros dinámicos
-            'filtered_balance_usd': (totals_project['balance_usd'] or 0) + (totals_project['balance_real_usd'] or 0),
-            'filtered_balance_bs': totals_project['balance_bs'] or 0,
+            'balance_usd': (totals_project['balance_usd'] or 0) + (totals_project['balance_real_usd'] or 0),
+            'balance_bs': totals_project['balance_bs'] or 0,
+            'balance_real_usd': totals_project['balance_real_usd'] or 0,
+            'org_balance_usd': (totals_org['balance_usd'] or 0) + (totals_org['balance_real_usd'] or 0),
+            'org_balance_bs': totals_org['balance_bs'] or 0,
+            'org_balance_real_usd': totals_org['balance_real_usd'] or 0,
+            'income_usd': (totals_project['income_usd'] or 0) + (totals_project['income_real_usd'] or 0),
+            'income_bs': totals_project['income_bs'] or 0,
+            'income_real_usd': totals_project['income_real_usd'] or 0,
+            'expense_usd': abs((totals_project['expense_usd'] or 0) + (totals_project['expense_real_usd'] or 0)) +
+                           (totals_project['fees_usd'] or 0) + (totals_project['fees_real_usd'] or 0),
+            'expense_bs': abs(totals_project['expense_bs'] or 0) + (totals_project['fees_bs'] or 0),
+            'expense_real_usd': abs(totals_project['expense_real_usd'] or 0) + (totals_project['fees_real_usd'] or 0),
         },
         'tx_filter_options': [
             ('all', 'Todas las transacciones'),
@@ -1901,6 +1878,8 @@ def detalle_proyecto(request, proj_id):
 @viewer_restricted
 def guardar_valuacion(request, proj_id, val_id=None):
     org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
     org = get_object_or_404(Organization, id=org_id)
     
     # Permitir si es dueño O si tiene acceso compartido
@@ -1931,6 +1910,8 @@ def guardar_valuacion(request, proj_id, val_id=None):
 @viewer_restricted
 def eliminar_valuacion(request, val_id):
     org_id = request.session.get('org_id')
+    if not org_id:
+        return redirect('dashboard')
     org = get_object_or_404(Organization, id=org_id)
     
     # Buscar la valuación y verificar que la organización tenga acceso al proyecto

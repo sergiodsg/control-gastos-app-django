@@ -1,0 +1,92 @@
+{% load intcomma %}
+
+{% if log.snapshot %}
+<div class="transaction-detail">
+    <div class="cf-form-row">
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Fecha</span>
+            <div class="cf-fw-bold">{{ log.snapshot.date|default:"-" }}</div>
+        </div>
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Cuenta</span>
+            <div class="cf-fw-medium">{{ log.snapshot.account|default:"-" }}</div>
+        </div>
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Referencia</span>
+            <div class="cf-fw-medium">{{ log.snapshot.reference_number|default:"-" }}</div>
+        </div>
+    </div>
+
+    <div class="cf-form-group">
+        <span class="cf-stat-label">Descripción</span>
+        <div class="cf-fw-medium">{{ log.snapshot.description }}</div>
+    </div>
+
+    {% if log.snapshot.real_dollars %}
+    <div class="cf-card cf-p-4 cf-mb-4" style="background: var(--color-info-bg); border: 1px solid var(--color-info-border);">
+        <span class="cf-stat-label">Monto (Dólares Reales)</span>
+        <div class="cf-stat-value" style="font-size: 1.5rem;">{{ log.snapshot.real_dollars|intcomma }} $</div>
+    </div>
+    {% else %}
+    <div class="cf-card cf-p-4 cf-mb-4" style="background: var(--color-info-bg); border: 1px solid var(--color-info-border);">
+        <span class="cf-stat-label">Monto (BCV)</span>
+        <div class="cf-stat-value" style="font-size: 1.5rem;">{{ log.snapshot.amount_usd|intcomma }} $</div>
+        <div class="cf-text-muted cf-fs-sm">{{ log.snapshot.amount_bs|intcomma }} Bs. · Tasa {{ log.snapshot.daily_rate|intcomma_rate }}</div>
+    </div>
+    {% endif %}
+
+    {% if log.snapshot.bank_fee_bs or log.snapshot.bank_fee_usd or log.snapshot.bank_fee_real_usd %}
+    <div class="cf-card cf-p-3 cf-mb-4" style="background: var(--color-light); border: 1px dashed var(--color-border);">
+        <span class="cf-stat-label cf-mb-2 cf-d-block">Comisión Bancaria</span>
+        <div class="cf-flex cf-gap-4">
+            <div><div class="cf-fw-bold cf-text-danger">{{ log.snapshot.bank_fee_usd|intcomma }} $</div><span class="cf-fs-xs cf-text-muted">Dólares (BCV)</span></div>
+            <div><div class="cf-fw-bold cf-text-danger">{{ log.snapshot.bank_fee_bs|intcomma }} Bs.</div><span class="cf-fs-xs cf-text-muted">Bolívares (BCV)</span></div>
+            {% if log.snapshot.bank_fee_real_usd %}
+            <div><div class="cf-fw-bold cf-text-danger">{{ log.snapshot.bank_fee_real_usd|intcomma }} $</div><span class="cf-fs-xs cf-text-muted">Dólares Reales</span></div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="cf-form-row">
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Categorías</span>
+            <div>
+                {% for cat in log.snapshot.categories %}
+                <span class="cf-badge cf-badge--pill">{{ cat }}</span>
+                {% empty %}
+                <span class="cf-text-muted">Sin categoría</span>
+                {% endfor %}
+            </div>
+        </div>
+        <div class="cf-form-group">
+            <span class="cf-stat-label">Estado</span>
+            <div class="cf-fw-medium">{{ log.snapshot.status|default:"-" }}</div>
+        </div>
+    </div>
+
+    {% if log.snapshot.cost_center %}
+    <div class="cf-form-group">
+        <span class="cf-stat-label">Centro de Costo</span>
+        <div class="cf-fw-medium">{{ log.snapshot.cost_center }}</div>
+    </div>
+    {% endif %}
+    {% if log.snapshot.project %}
+    <div class="cf-form-group">
+        <span class="cf-stat-label">Proyecto</span>
+        <div class="cf-fw-medium">{{ log.snapshot.project }}</div>
+    </div>
+    {% endif %}
+    {% if log.snapshot.notes %}
+    <div class="cf-form-group cf-mb-0">
+        <span class="cf-stat-label">Notas</span>
+        <div class="cf-card cf-card--surface cf-p-4 cf-fs-sm" style="background: #f8f9fa;">{{ log.snapshot.notes }}</div>
+    </div>
+    {% endif %}
+</div>
+{% else %}
+<p class="cf-text-center cf-py-4 cf-text-muted">
+    <i class="fa-solid fa-circle-info cf-fs-2xl cf-d-block cf-mb-2"></i>
+    No hay instantánea disponible para este registro (generado antes de esta funcionalidad).
+</p>
+{% endif %}
