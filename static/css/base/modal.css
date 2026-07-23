@@ -121,6 +121,68 @@ body.cf-modal-open {
     overflow: hidden;
 }
 
+/* Mobile action sheet: the "expand" button on phone-simplified transaction
+   tables opens this instead of the row's individual action buttons. On
+   phones it behaves like a native bottom sheet; at any larger width (it's
+   never triggered there today, since the expand button only shows on
+   phones) it just falls back to a normal small centered dialog. */
+.cf-modal__dialog--sheet {
+    max-width: 420px;
+}
+
+@media (max-width: 575px) {
+    .cf-modal--sheet {
+        align-items: flex-end;
+        padding: 0;
+    }
+
+    .cf-modal--sheet .cf-modal__dialog--sheet {
+        width: 100%;
+        max-width: 100%;
+        max-height: 80vh;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+}
+
+.cf-sheet-action {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+    padding: 1rem 1.25rem;
+    border: none;
+    border-bottom: 1px solid var(--border-subtle);
+    background: none;
+    color: var(--text-main);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-align: left;
+    cursor: pointer;
+}
+
+.cf-sheet-action:last-child {
+    border-bottom: none;
+}
+
+.cf-sheet-action:active,
+.cf-sheet-action:hover {
+    background: var(--bg-muted);
+}
+
+.cf-sheet-action i {
+    width: 20px;
+    text-align: center;
+    color: var(--color-morado);
+}
+
+.cf-sheet-action--danger {
+    color: var(--color-danger);
+}
+
+.cf-sheet-action--danger i {
+    color: var(--color-danger);
+}
+
 @keyframes cf-fade-in {
     from { opacity: 0; }
     to { opacity: 1; }

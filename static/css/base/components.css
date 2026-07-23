@@ -597,6 +597,40 @@
 .cf-table--resizable .col-org      { width: 12%; min-width: 130px; }
 .cf-table--resizable .col-actions  { width: 16%; min-width: 180px; } /* Increased to prevent cut-off */
 
+/* table-layout: fixed sizes columns purely from the declared % widths and
+   ignores per-cell min-width, so on narrow (phone) screens every column got
+   crushed into unreadable 1-2 character fragments instead of triggering the
+   horizontal scroll .cf-table-wrap already provides. Giving the table itself
+   a min-width (matching the sum of the columns actually visible at each
+   breakpoint, per the cf-only-* rules above) forces a real horizontal
+   scrollbar with legible columns instead of silently squashing text. */
+.cf-table--resizable { min-width: 640px; }
+
+/* On phone screens, transaction tables are simplified down to date + amount
+   (+ an expand button where row actions exist) via .cf-hide-phone /
+   .cf-show-phone-only. With that few columns left, table-layout: fixed's
+   desktop percentage widths (and the min-width floor above) are no longer
+   appropriate — switch to content-based sizing so the remaining columns fit
+   the phone screen without a forced horizontal scrollbar. */
+@media (max-width: 575px) {
+    .cf-table--resizable {
+        table-layout: auto;
+        min-width: 0;
+    }
+}
+
+@media (min-width: 768px) {
+    .cf-table--resizable { min-width: 750px; } /* + Categoría */
+}
+
+@media (min-width: 992px) {
+    .cf-table--resizable { min-width: 860px; } /* + Monto (BS) */
+}
+
+@media (min-width: 1200px) {
+    .cf-table--resizable { min-width: 940px; } /* + Tasa */
+}
+
 /* Correctly align the actions header and buttons */
 .cf-table--resizable th.col-actions {
     text-align: center;

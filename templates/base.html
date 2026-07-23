@@ -83,12 +83,6 @@
             </a>
             {% endif %}
         </nav>
-
-        <div class="app-sidebar-footer">
-            <button type="button" class="app-sidebar-collapse-btn" id="sidebarCollapseBtn" aria-label="Colapsar menú">
-                <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
-            </button>
-        </div>
     </aside>
     <div class="app-sidebar-backdrop" id="sidebarBackdrop" aria-hidden="true"></div>
     {% endwith %}
@@ -143,7 +137,7 @@
         </nav>
         {% endif %}
 
-        <div class="{% if hide_navbar and hide_sidebar %}auth-container{% else %}cf-page{% endif %}">
+        <div class="{% if hide_navbar and hide_sidebar and not wide_layout %}auth-container{% else %}cf-page{% endif %}">
             {% if messages %}
             <div class="{% if hide_navbar and hide_sidebar %}auth-messages{% endif %}">
                 {% for message in messages %}
@@ -167,6 +161,7 @@
     </script>
     <script src="{% static 'js/Base/alert.js' %}"></script>
     <script src="{% static 'js/Base/modal.js' %}"></script>
+    <script src="{% static 'js/Base/mobile-actions.js' %}"></script>
     <script src="{% static 'js/Base/table-resizable.js' %}"></script>
     <script src="{% static 'js/Base/base.js' %}"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>

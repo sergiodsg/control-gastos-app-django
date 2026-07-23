@@ -1,9 +1,16 @@
+/* Desktop sidebar: icon-only ("collapsed") by default; hovering it reveals
+   the full sidebar as a fixed-position overlay (no page reflow — see
+   .app-main-content in layout.css, whose margin always matches the
+   collapsed width). On phones/tablets (see the max-width: 992px block
+   below) it instead behaves as an off-canvas drawer opened by the hamburger
+   button, always showing full labels while open — hover has no meaning
+   there, so nothing here applies. */
 .app-sidebar {
     position: fixed;
     top: 0;
     left: 0;
     z-index: 1050;
-    width: var(--app-sidebar-w-expanded);
+    width: var(--app-sidebar-w-collapsed);
     height: 100vh;
     background: var(--app-sidebar-bg);
     border-right: 1px solid var(--app-sidebar-border);
@@ -11,12 +18,12 @@
     flex-direction: column;
     overflow-x: hidden;
     overflow-y: auto;
-    transition: width 0.28s ease, transform 0.28s ease;
+    transition: width 0.2s ease, transform 0.28s ease;
 }
 
 .app-sidebar-brand {
     flex-shrink: 0;
-    padding: 1rem 1rem 0.75rem;
+    padding: 1rem 0.65rem 0.75rem;
     border-bottom: 1px solid var(--app-sidebar-border);
 }
 
@@ -48,11 +55,11 @@
 }
 
 .app-sidebar-logo--full {
-    display: flex;
+    display: none;
 }
 
 .app-sidebar-logo--compact {
-    display: none;
+    display: flex;
     max-height: 38px;
 }
 
@@ -67,8 +74,11 @@
 .app-sidebar-link {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.65rem 0.85rem;
+    justify-content: center;
+    /* No gap while collapsed: the label is still in the DOM (width: 0) so a
+       gap here would reserve space next to it, nudging the icon off-center. */
+    gap: 0;
+    padding: 0.65rem 0.5rem;
     border-radius: 10px;
     color: rgba(255, 255, 255, 0.88);
     text-decoration: none;
@@ -85,7 +95,7 @@
 .app-sidebar-link.is-active {
     background: var(--app-sidebar-active-bg);
     color: #fff;
-    box-shadow: inset 4px 0 0 #fff;
+    box-shadow: none;
 }
 
 .app-sidebar-icon {
@@ -110,52 +120,9 @@
 .app-sidebar-label {
     white-space: nowrap;
     overflow: hidden;
-    text-overflow: ellipsis;
-    transition: opacity 0.2s ease;
-}
-
-.app-sidebar-footer {
-    flex-shrink: 0;
-    padding: 0.5rem 0.65rem 1rem;
-    border-top: 1px solid var(--app-sidebar-border);
-    display: flex;
-    flex-direction: column;
-    gap: 0.35rem;
-    align-items: stretch;
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar {
-    width: var(--app-sidebar-w-collapsed);
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar-logo--full {
-    display: none;
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar-logo--compact {
-    display: block;
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar-brand {
-    padding: 1rem 0.65rem 0.75rem;
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar-link {
-    justify-content: center;
-    padding-inline: 0.5rem;
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar-link.is-active {
-    box-shadow: none;
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar-label {
     width: 0;
     opacity: 0;
-}
-
-.app-layout.app-sidebar-collapsed .app-sidebar-collapse-btn i {
-    transform: rotate(180deg);
+    transition: opacity 0.2s ease;
 }
 
 .app-sidebar-scroll-arrow {
@@ -173,31 +140,6 @@
 
 .app-sidebar-scroll-arrow.visible {
     opacity: 1;
-}
-
-.app-sidebar-collapse-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    padding: 0.55rem;
-    border: 1px solid var(--app-sidebar-border);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.06);
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 1.15rem;
-    cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, transform 0.28s ease;
-}
-
-.app-sidebar-collapse-btn i {
-    display: block;
-    transition: transform 0.28s ease;
-}
-
-.app-sidebar-collapse-btn:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
 }
 
 .app-sidebar-backdrop {
@@ -236,10 +178,42 @@
     background: var(--bg-muted);
 }
 
-/* Desktop: sidebar siempre visible */
+/* Desktop: sidebar always present (never off-canvas); icon-only by default,
+   expands to full width as an overlay on hover. */
 @media (min-width: 993px) {
     .app-sidebar {
         transform: translateX(0) !important;
+    }
+
+    .app-sidebar:hover {
+        width: var(--app-sidebar-w-expanded);
+    }
+
+    .app-sidebar:hover .app-sidebar-logo--full {
+        display: flex;
+    }
+
+    .app-sidebar:hover .app-sidebar-logo--compact {
+        display: none;
+    }
+
+    .app-sidebar:hover .app-sidebar-brand {
+        padding: 1rem 1rem 0.75rem;
+    }
+
+    .app-sidebar:hover .app-sidebar-link {
+        justify-content: flex-start;
+        gap: 0.75rem;
+        padding-inline: 0.85rem;
+    }
+
+    .app-sidebar:hover .app-sidebar-link.is-active {
+        box-shadow: inset 4px 0 0 #fff;
+    }
+
+    .app-sidebar:hover .app-sidebar-label {
+        width: auto;
+        opacity: 1;
     }
 
     .app-sidebar-backdrop {
@@ -248,6 +222,10 @@
     }
 }
 
+/* Phones/tablets: off-canvas drawer, opened via the hamburger button. While
+   open it always shows the full sidebar (labels included) — there is no
+   hover on touch devices, so none of the desktop icon-only/hover rules
+   above apply here. */
 @media (max-width: 992px) {
     .app-sidebar {
         width: min(82vw, var(--app-sidebar-w-expanded));
@@ -269,6 +247,7 @@
 
     .app-sidebar-link {
         justify-content: flex-start;
+        gap: 0.75rem;
         padding-inline: 0.85rem;
     }
 
@@ -283,10 +262,6 @@
 
     .app-layout.sidebar-drawer-open .app-sidebar {
         transform: translateX(0);
-    }
-
-    .app-sidebar-collapse-btn {
-        display: none;
     }
 
     .app-mobile-menu-btn {

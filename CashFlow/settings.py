@@ -249,7 +249,11 @@ LOGGING = {
             'propagate': False,
         },
         'cashflow.errors': {
-            'handlers': ['console', 'application_errors_file', 'server_errors_file'],
+            # Solo 'server_errors_file': los eventos WARNING+ ya llegan una vez a
+            # 'console'/'application_errors_file' a través del logger de origen
+            # (cashflow.debug/transactions/accounts) en debug_event(); incluirlos
+            # también aquí duplicaba cada entrada WARNING+ en esos dos destinos.
+            'handlers': ['server_errors_file'],
             'level': 'WARNING',
             'propagate': False,
         },

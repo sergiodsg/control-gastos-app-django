@@ -37,7 +37,11 @@ urlpatterns = [
     path('proyectos/guardar/<int:proj_id>/', views.guardar_proyecto, name='editar_proyecto'),
     path('proyectos/eliminar/<int:proj_id>/', views.eliminar_proyecto, name='eliminar_proyecto'),
     path('proyectos/detalle/<int:proj_id>/', views.detalle_proyecto, name='detalle_proyecto'),
-    
+    path('proyectos/<int:proj_id>/compartir/', views.compartir_proyecto, name='compartir_proyecto'),
+    path('proyectos/enlaces/listar/', views.listar_enlaces_compartidos, name='listar_enlaces_compartidos'),
+    path('proyectos/enlaces/<int:link_id>/eliminar/', views.eliminar_enlace_compartido, name='eliminar_enlace_compartido'),
+    path('proyectos/compartido/<str:token>/', views.proyecto_publico, name='proyecto_publico'),
+
     # Valuaciones
     path('valuaciones/guardar/<int:proj_id>/', views.guardar_valuacion, name='crear_valuacion'),
     path('valuaciones/guardar/<int:proj_id>/<int:val_id>/', views.guardar_valuacion, name='editar_valuacion'),

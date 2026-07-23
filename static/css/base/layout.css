@@ -12,11 +12,10 @@ body.app-layout {
     transition: margin-left 0.28s ease;
 }
 
+/* The sidebar is icon-only by default and only widens on :hover (as a
+   fixed-position overlay, see sidebar.css) — content never reflows for it,
+   so the margin always matches the collapsed width, not the hover width. */
 .app-layout.has-sidebar .app-main-content {
-    margin-left: var(--app-sidebar-w-expanded);
-}
-
-.app-layout.has-sidebar.app-sidebar-collapsed .app-main-content {
     margin-left: var(--app-sidebar-w-collapsed);
 }
 
@@ -159,6 +158,20 @@ body.app-layout {
 
 @media (max-width: 1199px) {
     .cf-only-xl-up { display: none !important; }
+}
+
+/* Phone-only table simplification: on phone-sized screens, transaction
+   tables show only date + amount (+ an expand button where actions exist).
+   .cf-hide-phone hides a column below the phone breakpoint; .cf-show-phone-only
+   is the inverse, used for the mobile-only "expand" column. */
+@media (max-width: 575px) {
+    .cf-hide-phone { display: none !important; }
+}
+
+.cf-show-phone-only { display: none; }
+
+@media (max-width: 575px) {
+    .cf-show-phone-only { display: table-cell; }
 }
 
 /* Page header */

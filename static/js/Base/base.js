@@ -1,6 +1,4 @@
 (function () {
-    const STORAGE_KEY = 'cashflow_sidebar_collapsed';
-
     // Apply theme preference from localStorage
     function applyThemePreference() {
         const theme = localStorage.getItem('theme_pref') || 'light';
@@ -152,18 +150,10 @@
 
     function initSidebar() {
         const layout = document.getElementById('appLayout');
-        const collapseBtn = document.getElementById('sidebarCollapseBtn');
         const mobileBtn = document.getElementById('sidebarMobileBtn');
         const backdrop = document.getElementById('sidebarBackdrop');
 
         if (!layout || !layout.classList.contains('has-sidebar')) return;
-
-        function setCollapsed(collapsed) {
-            layout.classList.toggle('app-sidebar-collapsed', collapsed);
-            if (collapseBtn) {
-                collapseBtn.setAttribute('aria-label', collapsed ? 'Expandir menú' : 'Colapsar menú');
-            }
-        }
 
         function openDrawer() {
             layout.classList.add('sidebar-drawer-open');
@@ -186,17 +176,6 @@
         function isMobile() {
             return window.innerWidth <= 992;
         }
-
-        if (!isMobile() && localStorage.getItem(STORAGE_KEY) === '1') {
-            setCollapsed(true);
-        }
-
-        collapseBtn?.addEventListener('click', function () {
-            if (isMobile()) return;
-            const collapsed = !layout.classList.contains('app-sidebar-collapsed');
-            setCollapsed(collapsed);
-            localStorage.setItem(STORAGE_KEY, collapsed ? '1' : '0');
-        });
 
         mobileBtn?.addEventListener('click', function (e) {
             e.preventDefault();
@@ -226,8 +205,6 @@
         window.addEventListener('resize', function () {
             if (!isMobile()) {
                 closeDrawer();
-            } else {
-                layout.classList.remove('app-sidebar-collapsed');
             }
         });
     }

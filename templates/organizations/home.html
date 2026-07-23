@@ -229,16 +229,16 @@
                         <thead>
                             <tr>
                                 <th class="col-date">Fecha</th>
-                                <th class="col-desc">Descripción</th>
+                                <th class="col-desc cf-hide-phone">Descripción</th>
                                 <th class="col-amount">Monto</th>
-                                <th class="col-status">Estado</th>
+                                <th class="col-status cf-hide-phone">Estado</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for tx in recent_transactions %}
                             <tr>
                                 <td class="cf-fs-sm col-date">{{ tx.date|date:"d/m/Y" }}</td>
-                                <td class="cf-fs-sm col-desc">{{ tx.description }}</td>
+                                <td class="cf-fs-sm col-desc cf-hide-phone">{{ tx.description }}</td>
                                 <td class="cf-fs-sm col-amount">
                                     <div class="currency-usd-content cf-fw-bold">
                                         ${{ tx.amount_usd|intcomma }}
@@ -249,7 +249,7 @@
                                         <span class="cf-text-muted cf-fw-medium">(${{ tx.amount_usd|intcomma }})</span>
                                     </div>
                                 </td>
-                                <td class="col-status">
+                                <td class="col-status cf-hide-phone">
                                     <span class="cf-badge cf-badge--pill {% if tx.status == 'completado' %}cf-badge--success{% elif tx.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
                                         {{ tx.get_status_display }}
                                     </span>

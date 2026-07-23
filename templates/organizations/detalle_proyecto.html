@@ -23,10 +23,10 @@
                 <i class="fa-solid fa-file-pdf"></i> <span class="cf-hidden-sm-label">Reporte PDF</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
             </button>
             <div class="cf-dropdown__menu">
-                <a href="{% url 'exportar_pdf_transacciones' %}?project={{ project.id }}&report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_pdf_transacciones' %}?project={{ project.id }}&report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
                 </a>
-                <a href="{% url 'exportar_pdf_transacciones' %}?project={{ project.id }}&report_type=real&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_pdf_transacciones' %}?project={{ project.id }}&report_type=real&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
                 </a>
             </div>
@@ -36,10 +36,10 @@
                 <i class="fa-solid fa-file-excel"></i> <span class="cf-hidden-sm-label">Reporte Excel</span> <i class="fa-solid fa-chevron-down cf-fs-xs"></i>
             </button>
             <div class="cf-dropdown__menu">
-                <a href="{% url 'exportar_xlsx_transacciones' %}?project={{ project.id }}&report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_xlsx_transacciones' %}?project={{ project.id }}&report_type=bcv&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-building-columns"></i> Reporte BCV (Bs/$)
                 </a>
-                <a href="{% url 'exportar_xlsx_transacciones' %}?project={{ project.id }}&report_type=real&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-dropdown__item" target="_blank">
+                <a href="{% url 'exportar_xlsx_transacciones' %}?project={{ project.id }}&report_type=real&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}{% for cat_id in selected_categories %}&category={{ cat_id }}{% endfor %}&search={{ search|default:'' }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-dropdown__item" target="_blank">
                     <i class="fa-solid fa-sack-dollar"></i> Reporte Dólares Reales ($)
                 </a>
             </div>
@@ -57,6 +57,9 @@
             <i class="fa-solid fa-plus"></i> Añadir Valuación
         </button>
         {% endif %}
+        <button type="button" class="cf-btn cf-btn--outline-primary" data-cf-modal="shareProjectModal" onclick="resetShareProjectForm()">
+            <i class="fa-solid fa-share-nodes"></i> Compartir Proyecto
+        </button>
     </div>
 </div>
 
@@ -71,8 +74,8 @@
                 </div>
                 <!-- Toggle de Vista -->
                 <div class="cf-tab-group" style="padding: 3px; border-radius: var(--radius-md); background: var(--color-light); border: 1px solid var(--color-border); gap: 2px;">
-                    <a href="?view_mode=bcv&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}&category={{ selected_category }}&search={{ search|default:'' }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-tab {% if view_mode == 'bcv' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm);">BCV</a>
-                    <a href="?view_mode=real&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}&category={{ selected_category }}&search={{ search|default:'' }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-tab {% if view_mode == 'real' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm);">Dólares</a>
+                    <a href="?view_mode=bcv&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}&category={{ selected_category }}&search={{ search|default:'' }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-tab {% if view_mode == 'bcv' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm);">BCV</a>
+                    <a href="?view_mode=real&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}&category={{ selected_category }}&search={{ search|default:'' }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-tab {% if view_mode == 'real' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm);">Dólares</a>
                 </div>
             </div>
 
@@ -98,31 +101,6 @@
                             <div class="cf-text-muted cf-fs-sm">{{ totals.balance_usd|intcomma }} $</div>
                             {% if has_pending %}
                             <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_balance_bs|intcomma }} Bs.</small>
-                            {% endif %}
-                        </div>
-                    {% endif %}
-                </div>
-                <div>
-                    <span class="cf-stat-label">Balance Mi Organización</span>
-                    {% if view_mode == 'real' %}
-                        <div class="cf-stat-value {% if totals.org_balance_real_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.org_balance_real_usd|intcomma }} $</div>
-                        <div class="cf-text-muted cf-fs-sm">Dólares Reales</div>
-                        {% if has_pending %}
-                        <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_org_balance_real_usd|intcomma }} $</small>
-                        {% endif %}
-                    {% else %}
-                        <div class="currency-usd-content">
-                            <div class="cf-stat-value {% if totals.org_balance_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.org_balance_usd|intcomma }} $</div>
-                            <div class="cf-text-muted cf-fs-sm">{{ totals.org_balance_bs|intcomma }} Bs.</div>
-                            {% if has_pending %}
-                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_org_balance_usd|intcomma }} $</small>
-                            {% endif %}
-                        </div>
-                        <div class="currency-bs-content cf-hidden">
-                            <div class="cf-stat-value {% if totals.org_balance_bs < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.org_balance_bs|intcomma }} Bs.</div>
-                            <div class="cf-text-muted cf-fs-sm">{{ totals.org_balance_usd|intcomma }} $</div>
-                            {% if has_pending %}
-                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_org_balance_bs|intcomma }} Bs.</small>
                             {% endif %}
                         </div>
                     {% endif %}
@@ -240,6 +218,16 @@
     </div>
 </div>
 
+<script type="application/json" id="chartDataJson">{
+    "cat_labels": {{ chart_data.cat_labels|safe }},
+    "cat_series": {{ chart_data.cat_series|safe }},
+    "cat_colors": {{ chart_data.cat_colors|safe }},
+    "total_income": {{ chart_data.total_income|safe }},
+    "total_expense": {{ chart_data.total_expense|safe }},
+    "evo_labels": {{ chart_data.evo_labels|safe }},
+    "evo_series": {{ chart_data.evo_series|safe }}
+}</script>
+
 <div class="cf-filter-bar">
     <form method="get" class="cf-filter-form">
         <!-- 1. Búsqueda -->
@@ -291,6 +279,17 @@
             </select>
         </div>
 
+        <!-- 2f. Cuenta -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Cuenta:</label>
+            <select name="account" class="cf-select cf-input--sm dynamic-search">
+                <option value="">Todas</option>
+                {% for acc in accounts %}
+                <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>{{ acc.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
         <!-- 2d. Estado -->
         <div class="cf-form-group">
             <label class="cf-stat-label">Estado:</label>
@@ -338,7 +337,7 @@
                 <thead>
                     <tr>
                         <th class="cf-ps-4 col-date">
-                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
                                 Fecha
                                 {% if sort == 'asc' %}
                                 <i class="fa-solid fa-sort-up"></i>
@@ -347,20 +346,21 @@
                                 {% endif %}
                             </a>
                         </th>
-                    <th class="col-desc">Descripción</th>
+                    <th class="col-desc cf-hide-phone">Descripción</th>
                     <th class="col-amount">Monto (USD)</th>
                     <th class="col-amount cf-only-lg-up">Monto (BS)</th>
                     <th class="col-rate cf-only-xl-up">Tasa</th>
                     <th class="col-category cf-only-md-up">Categoría</th>
-                    <th class="col-status cf-only-sm">Estado</th>
-                    <th class="cf-text-end cf-pe-4 col-actions">Acciones</th>
+                    <th class="col-status cf-only-sm cf-hide-phone">Estado</th>
+                    <th class="cf-text-end cf-pe-4 col-actions cf-hide-phone">Acciones</th>
+                    <th class="col-expand cf-show-phone-only">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for trans in page_obj %}
                 <tr>
                     <td class="cf-ps-4 col-date">{{ trans.date|date:"d/m" }}<span class="cf-only-md-up">/{{ trans.date|date:"Y" }}</span></td>
-                    <td class="col-desc" title="{{ trans.description }}">{{ trans.description }}</td>
+                    <td class="col-desc cf-hide-phone" title="{{ trans.description }}">{{ trans.description }}</td>
                     <td class="cf-fw-bold col-amount {% if trans.amount_usd < 0 or trans.real_dollars < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">
                         {% if trans.real_dollars %}{{ trans.real_dollars|intcomma }} $
                         {% else %}{{ trans.amount_usd|intcomma }} ${% endif %}
@@ -380,12 +380,12 @@
                         <span class="cf-text-muted cf-fs-sm">---</span>
                         {% endfor %}
                     </td>
-                    <td class="col-status cf-only-sm">
+                    <td class="col-status cf-only-sm cf-hide-phone">
                         <span class="cf-badge cf-badge--pill {% if trans.status == 'completado' %}cf-badge--success{% elif trans.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
                             {{ trans.get_status_display }}
                         </span>
                     </td>
-                    <td class="cf-text-end cf-pe-4 col-actions">
+                    <td class="cf-text-end cf-pe-4 col-actions cf-hide-phone">
                         <div class="cf-btn-group">
                             <button class="cf-btn cf-btn--sm cf-btn--outline-secondary" onclick="viewTransaction({{ trans.id }})" title="Ver"><i class="fa-solid fa-eye"></i></button>
                             <button class="cf-btn cf-btn--sm cf-btn--outline-info" onclick="duplicateTransaction('{{ trans.organization.id }}', '{{ trans.account.id }}', '{% for c in trans.categories.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}', '{{ trans.cost_center.id|default:"" }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|default:''|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|default:''|escapejs }}', '{{ trans.notes|default:''|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}')" title="Duplicar"><i class="fa-solid fa-copy"></i></button>
@@ -393,9 +393,17 @@
                             <button class="cf-btn cf-btn--sm cf-btn--outline-danger" onclick="confirmDeleteTransaction({{ trans.id }})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </td>
+                    <td class="col-expand cf-show-phone-only cf-text-end">
+                        <button type="button" class="cf-btn cf-btn--sm cf-btn--outline" title="Acciones" onclick="openMobileActionSheet({
+                            view: function () { viewTransaction({{ trans.id }}); },
+                            duplicate: function () { duplicateTransaction('{{ trans.organization.id }}', '{{ trans.account.id }}', '{% for c in trans.categories.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}', '{{ trans.cost_center.id|default:"" }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|default:''|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|default:''|escapejs }}', '{{ trans.notes|default:''|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}'); },
+                            edit: function () { editTransaction({{ trans.id }}, '{{ trans.organization.id }}', '{{ trans.account.id }}', '{% for c in trans.categories.all %}{{ c.id }}{% if not forloop.last %},{% endif %}{% endfor %}', '{{ trans.cost_center.id|default:"" }}', '{{ trans.date|date:'Y-m-d' }}', '{{ trans.description|default:''|escapejs }}', '{{ trans.amount_bs|unlocalize }}', '{{ trans.amount_usd|unlocalize }}', '{{ trans.daily_rate|unlocalize }}', '{{ trans.reference_number|default:''|escapejs }}', '{{ trans.notes|default:''|escapejs }}', '{{ trans.status }}', '{{ trans.valuation.id|default:'' }}', '{{ trans.real_dollars|unlocalize }}', '{{ trans.bank_fee_bs|unlocalize }}', '{{ trans.bank_fee_usd|unlocalize }}', '{{ trans.bank_fee_real_usd|unlocalize }}'); },
+                            delete: function () { confirmDeleteTransaction({{ trans.id }}); }
+                        })"><i class="fa-solid fa-ellipsis"></i></button>
+                    </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="8" class="cf-text-center cf-py-5 cf-text-muted">No hay transacciones registradas para este proyecto.</td></tr>
+                <tr><td colspan="9" class="cf-text-center cf-py-5 cf-text-muted">No hay transacciones registradas para este proyecto.</td></tr>
                 {% endfor %}
             </tbody>
         </table>
@@ -403,12 +411,12 @@
     {% if page_obj.has_other_pages %}
     <nav class="cf-p-4">
         <ul class="cf-pagination">
-            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="ajax-link">Anterior</a></li>{% endif %}
+            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="ajax-link">Anterior</a></li>{% endif %}
             {% for i in page_obj.paginator.page_range %}
             {% if page_obj.number == i %}<li class="is-active"><span>{{ i }}</span></li>
-            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="ajax-link">{{ i }}</a></li>{% endif %}
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="ajax-link">{{ i }}</a></li>{% endif %}
             {% endfor %}
-            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}" class="ajax-link">Siguiente</a></li>{% endif %}
+            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="ajax-link">Siguiente</a></li>{% endif %}
         </ul>
     </nav>
     {% endif %}
@@ -548,6 +556,22 @@
     </div>
 </div>
 
+<div class="cf-modal cf-modal--sheet" id="mobileActionsModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--sheet">
+        <div class="cf-modal__header">
+            <h5 class="cf-modal__title">Acciones</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <div class="cf-modal__body cf-p-0">
+            <button type="button" class="cf-sheet-action" id="mobileActionView"><i class="fa-solid fa-eye"></i> Ver detalles</button>
+            <button type="button" class="cf-sheet-action" id="mobileActionDuplicate"><i class="fa-solid fa-copy"></i> Duplicar</button>
+            <button type="button" class="cf-sheet-action" id="mobileActionEdit"><i class="fa-solid fa-pencil"></i> Editar</button>
+            <button type="button" class="cf-sheet-action cf-sheet-action--danger" id="mobileActionDelete"><i class="fa-solid fa-trash"></i> Eliminar</button>
+        </div>
+    </div>
+</div>
+
 {% if not user_is_viewer %}
 <div class="cf-modal" id="valuationModal" tabindex="-1" aria-hidden="true">
     <div class="cf-modal__backdrop"></div>
@@ -583,6 +607,73 @@
     </div>
 </div>
 {% endif %}
+
+<div class="cf-modal" id="shareProjectModal" tabindex="-1" aria-hidden="true">
+    <div class="cf-modal__backdrop"></div>
+    <div class="cf-modal__dialog cf-modal__dialog--lg">
+        <div class="cf-modal__header cf-modal__header--primary">
+            <h5 class="cf-modal__title">Compartir Proyecto</h5>
+            <button type="button" class="cf-modal__close" data-cf-dismiss="modal">&times;</button>
+        </div>
+        <div class="cf-modal__body">
+            <!-- Paso 1: contraseña (la tabla de enlaces no se carga ni se muestra hasta verificarla) -->
+            <div id="shareProjectLockedSection">
+                <p class="cf-text-muted cf-fs-sm cf-mb-3">
+                    Ingrese la contraseña para ver y administrar los enlaces públicos de solo lectura
+                    de sus proyectos.
+                </p>
+                <form id="shareProjectForm">
+                    {% csrf_token %}
+                    <div class="cf-form-group">
+                        <label class="cf-label">Contraseña</label>
+                        <input type="password" id="shareProjectPassword" class="cf-input" placeholder="Ingrese la contraseña" autocomplete="off">
+                    </div>
+                    <div id="shareProjectError" class="cf-alert cf-alert--danger cf-hidden cf-mt-2 cf-mb-0"></div>
+                </form>
+            </div>
+
+            <!-- Paso 2: desbloqueado -->
+            <div id="shareProjectUnlockedSection" class="cf-hidden">
+                <p class="cf-text-muted cf-fs-sm cf-mb-3">
+                    Cualquier persona con un enlace podrá ver el resumen financiero, los gráficos y las
+                    transacciones de ese proyecto, sin necesidad de iniciar sesión.
+                </p>
+                <div class="cf-flex cf-justify-between cf-items-center cf-mb-3">
+                    <h6 class="cf-fw-bold cf-mb-0">Enlaces compartidos</h6>
+                    <button type="button" class="cf-btn cf-btn--sm cf-btn--primary" id="shareProjectGenerateBtn">
+                        <i class="fa-solid fa-plus"></i> Generar Enlace para "{{ project.name }}"
+                    </button>
+                </div>
+                <div id="shareProjectResult" class="cf-hidden cf-mb-3">
+                    <label class="cf-label">Nuevo enlace público</label>
+                    <div class="cf-input-group">
+                        <input type="text" id="shareProjectLink" class="cf-input" readonly>
+                        <button type="button" class="cf-btn cf-btn--outline" id="shareProjectCopyBtn">
+                            <i class="fa-solid fa-copy"></i> Copiar
+                        </button>
+                    </div>
+                </div>
+                <div class="cf-table-wrap">
+                    <table class="cf-table" id="shareLinksTable">
+                        <thead>
+                            <tr>
+                                <th>Proyecto</th>
+                                <th>Enlace</th>
+                                <th>Creado</th>
+                                <th class="cf-text-end cf-pe-4">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="shareLinksTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <div class="cf-modal__footer">
+            <button type="button" class="cf-btn cf-btn--secondary" data-cf-dismiss="modal">Cerrar</button>
+            <button type="button" class="cf-btn cf-btn--primary" id="shareProjectSubmitBtn">Ver Enlaces</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
@@ -599,6 +690,181 @@
         currentPath: "{{ request.get_full_path|escapejs }}"
     });
 
+    // --- Compartir Proyecto (enlace público de solo lectura) ---
+    // La contraseña se verifica una vez por apertura del modal; mientras el
+    // modal permanece abierto se reutiliza en memoria para "Generar Enlace"
+    // sin volver a pedirla, pero el servidor la sigue validando en cada
+    // llamada (compartir_proyecto / listar_enlaces_compartidos).
+    let verifiedSharePassword = null;
+
+    window.resetShareProjectForm = function () {
+        verifiedSharePassword = null;
+        const passwordField = document.getElementById('shareProjectPassword');
+        const errorBox = document.getElementById('shareProjectError');
+        const resultBox = document.getElementById('shareProjectResult');
+        const lockedSection = document.getElementById('shareProjectLockedSection');
+        const unlockedSection = document.getElementById('shareProjectUnlockedSection');
+        const submitBtn = document.getElementById('shareProjectSubmitBtn');
+        const tbody = document.getElementById('shareLinksTableBody');
+        if (passwordField) passwordField.value = '';
+        if (errorBox) { errorBox.classList.add('cf-hidden'); errorBox.textContent = ''; }
+        if (resultBox) resultBox.classList.add('cf-hidden');
+        if (lockedSection) lockedSection.classList.remove('cf-hidden');
+        if (unlockedSection) unlockedSection.classList.add('cf-hidden');
+        if (submitBtn) submitBtn.classList.remove('cf-hidden');
+        if (tbody) tbody.innerHTML = '';
+    };
+
+    function renderShareLinksTable(links) {
+        const tbody = document.getElementById('shareLinksTableBody');
+        if (!tbody) return;
+        if (!links.length) {
+            tbody.innerHTML = '<tr id="shareLinksEmptyRow"><td colspan="4" class="cf-text-center cf-py-3 cf-text-muted cf-fs-sm">No hay enlaces compartidos.</td></tr>';
+            return;
+        }
+        tbody.innerHTML = '';
+        links.forEach(addShareLinkRow);
+    }
+
+    function addShareLinkRow(link) {
+        const tbody = document.getElementById('shareLinksTableBody');
+        if (!tbody) return;
+        const emptyRow = document.getElementById('shareLinksEmptyRow');
+        if (emptyRow) emptyRow.remove();
+
+        const tr = document.createElement('tr');
+        tr.setAttribute('data-link-id', link.id);
+        tr.innerHTML =
+            '<td class="cf-fs-sm"></td>' +
+            '<td class="cf-fs-sm" style="max-width: 220px; overflow-wrap: anywhere;"></td>' +
+            '<td class="cf-fs-sm cf-text-muted"></td>' +
+            '<td class="cf-text-end cf-pe-4">' +
+                '<div class="cf-btn-group">' +
+                    '<button type="button" class="cf-btn cf-btn--sm cf-btn--outline" onclick="copyShareLinkRow(this)" title="Copiar"><i class="fa-solid fa-copy"></i></button>' +
+                    '<button type="button" class="cf-btn cf-btn--sm cf-btn--outline-danger" onclick="eliminarEnlaceCompartido(' + link.id + ', this)" title="Eliminar"><i class="fa-solid fa-trash"></i></button>' +
+                '</div>' +
+            '</td>';
+        tr.children[0].textContent = link.project_name || '';
+        tr.children[1].textContent = link.url;
+        tr.children[2].textContent = link.created_at + (link.created_by ? ' · ' + link.created_by : '');
+        tr.querySelector('button[title="Copiar"]').setAttribute('data-url', link.url);
+        tbody.insertBefore(tr, tbody.firstChild);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const submitBtn = document.getElementById('shareProjectSubmitBtn');
+        const generateBtn = document.getElementById('shareProjectGenerateBtn');
+        const copyBtn = document.getElementById('shareProjectCopyBtn');
+        const csrfInput = document.querySelector('#shareProjectForm input[name="csrfmiddlewaretoken"]');
+
+        if (submitBtn) {
+            submitBtn.addEventListener('click', function () {
+                const passwordField = document.getElementById('shareProjectPassword');
+                const errorBox = document.getElementById('shareProjectError');
+                const lockedSection = document.getElementById('shareProjectLockedSection');
+                const unlockedSection = document.getElementById('shareProjectUnlockedSection');
+
+                errorBox.classList.add('cf-hidden');
+
+                const formData = new FormData();
+                formData.append('password', passwordField.value);
+
+                fetch("{% url 'listar_enlaces_compartidos' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfInput ? csrfInput.value : '' },
+                    body: formData
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.ok) {
+                            verifiedSharePassword = passwordField.value;
+                            passwordField.value = '';
+                            lockedSection.classList.add('cf-hidden');
+                            unlockedSection.classList.remove('cf-hidden');
+                            submitBtn.classList.add('cf-hidden');
+                            renderShareLinksTable(data.links);
+                        } else {
+                            errorBox.textContent = data.error || 'No se pudo verificar la contraseña.';
+                            errorBox.classList.remove('cf-hidden');
+                        }
+                    })
+                    .catch(() => {
+                        errorBox.textContent = 'Ocurrió un error al verificar la contraseña.';
+                        errorBox.classList.remove('cf-hidden');
+                    });
+            });
+        }
+
+        if (generateBtn) {
+            generateBtn.addEventListener('click', function () {
+                const resultBox = document.getElementById('shareProjectResult');
+                const linkField = document.getElementById('shareProjectLink');
+                if (!verifiedSharePassword) return;
+
+                const formData = new FormData();
+                formData.append('password', verifiedSharePassword);
+
+                fetch("{% url 'compartir_proyecto' project.id %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrfInput ? csrfInput.value : '' },
+                    body: formData
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.ok) {
+                            linkField.value = data.url;
+                            resultBox.classList.remove('cf-hidden');
+                            if (data.link) addShareLinkRow(data.link);
+                        } else {
+                            alert(data.error || 'No se pudo generar el enlace.');
+                        }
+                    })
+                    .catch(() => alert('Ocurrió un error al generar el enlace.'));
+            });
+        }
+
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function () {
+                const linkField = document.getElementById('shareProjectLink');
+                if (!linkField) return;
+                linkField.select();
+                navigator.clipboard.writeText(linkField.value).catch(() => {
+                    document.execCommand('copy');
+                });
+            });
+        }
+    });
+
+    window.copyShareLinkRow = function (btn) {
+        const url = btn.getAttribute('data-url');
+        if (!url) return;
+        navigator.clipboard.writeText(url).catch(() => {});
+    };
+
+    window.eliminarEnlaceCompartido = function (linkId, btn) {
+        if (!confirm('¿Eliminar este enlace compartido? Dejará de funcionar de inmediato.')) return;
+        const row = btn.closest('tr');
+        const csrfInput = document.querySelector('#shareProjectForm input[name="csrfmiddlewaretoken"]');
+
+        fetch("/proyectos/enlaces/" + linkId + "/eliminar/", {
+            method: 'POST',
+            headers: { 'X-CSRFToken': csrfInput ? csrfInput.value : '' }
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (data.ok && row) {
+                    row.remove();
+                    const tbody = document.getElementById('shareLinksTableBody');
+                    if (tbody && !tbody.querySelector('tr')) {
+                        tbody.innerHTML = '<tr id="shareLinksEmptyRow"><td colspan="4" class="cf-text-center cf-py-3 cf-text-muted cf-fs-sm">No hay enlaces compartidos.</td></tr>';
+                    }
+                } else if (!data.ok) {
+                    alert(data.error || 'No se pudo eliminar el enlace.');
+                }
+            })
+            .catch(() => alert('Ocurrió un error al eliminar el enlace.'));
+    };
+
     // --- Gráficos ApexCharts ---
     document.addEventListener('DOMContentLoaded', function () {
         const commonOptions = {
@@ -607,7 +873,7 @@
         };
 
         // 1. Gastos por Categoría
-        new ApexCharts(document.querySelector("#categoryChart"), {
+        const categoryChart = new ApexCharts(document.querySelector("#categoryChart"), {
             ...commonOptions,
             series: {{ chart_data.cat_series|safe }},
             labels: {{ chart_data.cat_labels|safe }},
@@ -615,10 +881,11 @@
             chart: { ...commonOptions.chart, type: 'donut' },
             legend: { position: 'bottom' },
             tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
-        }).render();
+        });
+        categoryChart.render();
 
         // 2. Ingresos vs Gastos (Totales)
-        new ApexCharts(document.querySelector("#totalsChart"), {
+        const totalsChart = new ApexCharts(document.querySelector("#totalsChart"), {
             ...commonOptions,
             series: [{
                 name: 'Total',
@@ -630,13 +897,14 @@
             plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4 } },
             legend: { show: false },
             tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
-        }).render();
+        });
+        totalsChart.render();
 
         // 3. Evolución del Saldo
-        new ApexCharts(document.querySelector("#evolutionChart"), {
+        const evolutionChart = new ApexCharts(document.querySelector("#evolutionChart"), {
             ...commonOptions,
             series: [{ name: 'Saldo', data: {{ chart_data.evo_series|safe }}, color: '#0d6efd' }],
-            xaxis: { 
+            xaxis: {
                 type: 'datetime',
                 categories: {{ chart_data.evo_labels|safe }},
                 labels: { format: 'dd/MM/yy' }
@@ -644,8 +912,12 @@
             chart: { ...commonOptions.chart, type: 'area' },
             stroke: { curve: 'smooth', width: 2 },
             fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } },
+            dataLabels: { enabled: false },
             tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `$${v.toFixed(2)}` } }
-        }).render();
+        });
+        evolutionChart.render();
+
+        window.projectCharts = { category: categoryChart, totals: totalsChart, evolution: evolutionChart };
     });
 </script>
 {% endblock %}

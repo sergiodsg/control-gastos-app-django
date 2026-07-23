@@ -187,3 +187,21 @@ class TransactionAuditLog(models.Model):
 
     def __str__(self):
         return f"{self.get_action_display()} · {self.transaction_description} · {self.timestamp:%d/%m/%Y %H:%M}"
+
+
+class ProjectShareLink(models.Model):
+    """Enlace público (sin login) de solo lectura hacia un proyecto. El token
+    incluye una firma criptográfica (django.core.signing), pero además se
+    valida contra este registro para poder revocar el enlace al eliminarlo."""
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='share_links', verbose_name="Proyecto")
+    token = models.CharField(max_length=255, unique=True, verbose_name="Token")
+    created_by = models.ForeignKey(User, on_delete=models.SET_NULL, blank=True, null=True, related_name='project_share_links', verbose_name="Creado por")
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de creación")
+
+    class Meta:
+        verbose_name = "Enlace público de proyecto"
+        verbose_name_plural = "Enlaces públicos de proyecto"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Enlace de {self.project.name} ({self.created_at:%d/%m/%Y %H:%M})"

@@ -875,7 +875,10 @@ function initTransacciones(config) {
     window.confirmDelete = function (id) {
         if (window.userIsViewer) return;
         const delForm = document.getElementById('deleteForm');
-        if (delForm) delForm.action = '/transacciones/eliminar/' + id + '/';
+        if (delForm) {
+            const next = encodeURIComponent(window.location.pathname + window.location.search);
+            delForm.action = '/transacciones/eliminar/' + id + '/?next=' + next;
+        }
         CFModal.open('deleteModal');
     };
 

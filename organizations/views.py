@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import Http404
+from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.db import models
 from django.db.models import Sum, OuterRef, Subquery, Value, F, Q, Count
@@ -8,11 +8,13 @@ from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.core import signing
+from django.urls import reverse
 from datetime import timedelta
 import json
 from decimal import Decimal
 
-from .models import Organization, OrganizationAccess, Transaction, TransactionAuditLog, Category, Account, Project, Valuation, CostCenter
+from .models import Organization, OrganizationAccess, Transaction, TransactionAuditLog, Category, Account, Project, Valuation, CostCenter, ProjectShareLink
 from accounts.models import Profile
 from accounts.decorators import viewer_restricted
 from .amounts import create_initial_balance_transaction
@@ -184,19 +186,29 @@ def get_filtered_totals_both(org_id, filter_type):
     }
 
 def get_bcv_rate(target_date=None):
+    rate_date = target_date or timezone.localdate()
     try:
-        rate_date = target_date or timezone.localdate()
         # Si es para hoy, usar la misma lógica que el dashboard para consistencia total
         if rate_date == timezone.localdate():
             rates = as_dashboard_rates()
             if rates.get('usd_bcv') and rates['usd_bcv'].get('promedio') is not None:
                 return float(rates['usd_bcv']['promedio'])
-        
+
         rate = get_rate_for_date(rate_date, currency="USD")
         if rate is not None:
             return float(rate)
-    except Exception:
-        pass
+    except Exception as exc:
+        debug_event(
+            "bcv.tasa.error",
+            rate_date=str(rate_date),
+            exception=str(exc),
+        )
+        return 1.0
+    debug_event(
+        "bcv.tasa.error",
+        rate_date=str(rate_date),
+        reason="no_rate_available",
+    )
     return 1.0
 
 @login_required
@@ -352,6 +364,7 @@ def salir_organizacion(request):
     return redirect('dashboard')
 
 @login_required
+@viewer_restricted
 def crear_organizacion(request):
     if request.method == 'POST':
         nombre = request.POST.get('nombre')
@@ -404,6 +417,7 @@ def lista_transacciones(request):
     category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
     cost_center_id = request.GET.get('cost_center')
     project_id = request.GET.get('project')
+    account_id = request.GET.get('account')
     search_query = request.GET.get('search', '')
     tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
     view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
@@ -421,6 +435,7 @@ def lista_transacciones(request):
     if date_to == 'None': date_to = None
     if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
     if project_id == 'None' or project_id == '': project_id = None
+    if account_id == 'None' or account_id == '': account_id = None
 
     # Base: TODAS las transacciones para la tabla
     transactions_list = Transaction.objects.filter(organization=org)
@@ -432,6 +447,9 @@ def lista_transacciones(request):
         transactions_list = transactions_list.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
     
     if search_query:
+        # OJO: el lookup categories__name atraviesa una relación M2M, lo que puede
+        # multiplicar filas si la transacción tiene más de una categoría (aparecería
+        # duplicada en la tabla y en los KPIs). Se aplica distinct() para evitarlo.
         transactions_list = transactions_list.filter(
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
@@ -447,7 +465,7 @@ def lista_transacciones(request):
             models.Q(amount_usd__icontains=search_query) |
             models.Q(real_dollars__icontains=search_query) |
             models.Q(daily_rate__icontains=search_query)
-        )
+        ).distinct()
 
     if category_ids:
         transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
@@ -458,8 +476,11 @@ def lista_transacciones(request):
     if project_id:
         transactions_list = transactions_list.filter(project_id=project_id)
 
+    if account_id:
+        transactions_list = transactions_list.filter(account_id=account_id)
+
     # Punto de control: mismos filtros aplicados hasta aquí (tx_filter, búsqueda,
-    # categorías, centro de costo, proyecto) pero sin el filtro de estado, para
+    # categorías, centro de costo, proyecto, cuenta) pero sin el filtro de estado, para
     # poder calcular el saldo pendiente independientemente del estado seleccionado.
     qs_before_status = transactions_list
 
@@ -487,6 +508,9 @@ def lista_transacciones(request):
             else: start_date = None
             if start_date:
                 qs = qs.filter(date__gte=start_date)
+                if filter_type == 'day':
+                    # "Hoy" debe mostrar solo el día de hoy, no fechas futuras.
+                    qs = qs.filter(date__lte=today)
         return qs
 
     transactions_list = apply_date_filter(transactions_list)
@@ -578,7 +602,8 @@ def lista_transacciones(request):
         projects_data[p.id] = list(Valuation.objects.filter(project=p).values('id', 'name', 'amount_usd'))
 
     # Mapeo de cuentas a monedas para lógica en JS
-    accounts_data = {a.id: a.currency for a in Account.objects.filter(organization=org)}
+    accounts_qs = Account.objects.filter(organization=org)
+    accounts_data = {a.id: a.currency for a in accounts_qs}
 
     bcv_rate = get_bcv_rate()
     categories = Category.objects.filter(organization=org)
@@ -592,6 +617,8 @@ def lista_transacciones(request):
         'selected_cost_center': cost_center_id,
         'projects': projects,
         'selected_project': project_id,
+        'accounts': accounts_qs,
+        'selected_account': account_id,
         'selected_category': category_ids[0] if category_ids else '',
         'selected_categories': category_ids,
         'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
@@ -705,6 +732,9 @@ def _get_report_data(request):
         transactions = transactions.filter(status=status_filter)
     
     if search_query:
+        # OJO: el lookup categories__name atraviesa una relación M2M, lo que puede
+        # multiplicar filas si la transacción tiene más de una categoría (aparecería
+        # duplicada en el reporte). Se aplica distinct() para evitarlo.
         transactions = transactions.filter(
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
@@ -720,7 +750,7 @@ def _get_report_data(request):
             models.Q(amount_usd__icontains=search_query) |
             models.Q(real_dollars__icontains=search_query) |
             models.Q(daily_rate__icontains=search_query)
-        )
+        ).distinct()
     
     today = timezone.localdate()
     
@@ -785,7 +815,10 @@ def _get_report_data(request):
         elif filter_type == 'year':
             start_date = today - timedelta(days=365)
         transactions = transactions.filter(date__gte=start_date)
-        
+        if filter_type == 'day':
+            # "Hoy" debe mostrar solo el día de hoy, no fechas futuras.
+            transactions = transactions.filter(date__lte=today)
+
     filter_label = " | ".join(filter_parts) if filter_parts else "Todas"
         
     transactions = transactions.order_by('date', 'id')
@@ -1144,8 +1177,7 @@ def guardar_transaccion(request, trans_id=None):
         )
         
         transactions_with_access = Transaction.objects.filter(
-            models.Q(organization=org) | 
-            models.Q(organization__user_accesses__user=request.user) |
+            models.Q(organization=org) |
             models.Q(project__in=projects_with_access)
         ).distinct()
         
@@ -1167,10 +1199,10 @@ def guardar_transaccion(request, trans_id=None):
         project_context = None
         if proj_id:
             project_context = get_object_or_404(Project, id=proj_id)
-            # Verificar acceso al proyecto
+            # Verificar acceso al proyecto (dueño o compartido) Y acceso individual del usuario
             projects_owned = Project.objects.filter(organization=org)
             projects_shared = Project.objects.filter(shared_organizations__organization=org)
-            if not (projects_owned | projects_shared).filter(id=proj_id).exists():
+            if not (projects_owned | projects_shared).filter(id=proj_id, user_accesses__user=request.user).exists():
                 debug_event(
                     "transaccion.guardar.acceso_denegado",
                     user_id=request.user.id,
@@ -1233,8 +1265,7 @@ def eliminar_transaccion(request, trans_id):
     )
     
     transactions_with_access = Transaction.objects.filter(
-        models.Q(organization=org) | 
-        models.Q(organization__user_accesses__user=request.user) |
+        models.Q(organization=org) |
         models.Q(project__in=projects_with_access)
     ).distinct()
     
@@ -1267,8 +1298,7 @@ def detalle_transaccion(request, trans_id):
     )
     
     transactions_with_access = Transaction.objects.filter(
-        models.Q(organization=org) | 
-        models.Q(organization__user_accesses__user=request.user) |
+        models.Q(organization=org) |
         models.Q(project__in=projects_with_access)
     ).distinct()
     
@@ -1492,19 +1522,28 @@ def detalle_cuenta(request, acc_id):
             category_ids.append(val)
     category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
     search_query = request.GET.get('search', '')
+    cost_center_id = request.GET.get('cost_center')
+    project_id = request.GET.get('project')
+    status_filter = request.GET.get('status', '')
 
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
-    
+    if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
+    if project_id == 'None' or project_id == '': project_id = None
+
     transactions_list = Transaction.objects.filter(account=account)
 
     if search_query:
-
+        # OJO: el lookup categories__name atraviesa una relación M2M, lo que puede
+        # multiplicar filas si la transacción tiene más de una categoría (aparecería
+        # duplicada en la tabla y en los KPIs). Se aplica distinct() para evitarlo.
         transactions_list = transactions_list.filter(
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
             models.Q(notes__icontains=search_query) |
             models.Q(categories__name__icontains=search_query) |
+            models.Q(cost_center__code__icontains=search_query) |
+            models.Q(cost_center__name__icontains=search_query) |
             models.Q(project__name__icontains=search_query) |
             models.Q(valuation__name__icontains=search_query) |
             models.Q(status__icontains=search_query) |
@@ -1512,10 +1551,19 @@ def detalle_cuenta(request, acc_id):
             models.Q(amount_usd__icontains=search_query) |
             models.Q(real_dollars__icontains=search_query) |
             models.Q(daily_rate__icontains=search_query)
-        )
+        ).distinct()
 
     if category_ids:
         transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
+
+    if cost_center_id:
+        transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
+
+    if project_id:
+        transactions_list = transactions_list.filter(project_id=project_id)
+
+    if status_filter:
+        transactions_list = transactions_list.filter(status=status_filter)
 
     today = timezone.localdate()
     
@@ -1540,6 +1588,9 @@ def detalle_cuenta(request, acc_id):
         elif filter_type == 'year':
             start_date = today - timedelta(days=365)
         transactions_list = transactions_list.filter(date__gte=start_date)
+        if filter_type == 'day':
+            # "Hoy" debe mostrar solo el día de hoy, no fechas futuras.
+            transactions_list = transactions_list.filter(date__lte=today)
 
     sort = request.GET.get('sort', 'desc')
     if sort == 'asc':
@@ -1567,9 +1618,8 @@ def detalle_cuenta(request, acc_id):
     page_obj = paginator.get_page(page_number)
     
     categories = Category.objects.filter(organization=org)
-    
+
     filter_options = [
-        ('all', 'Todo el tiempo'),
         ('day', 'Hoy'),
         ('week', 'Esta semana'),
         ('15days', 'Últimos 15 días'),
@@ -1577,11 +1627,21 @@ def detalle_cuenta(request, acc_id):
         ('quarter', 'Último trimestre'),
         ('6months', 'Últimos 6 meses'),
         ('year', 'Último año'),
+        ('all', 'Todo el tiempo'),
         ('custom', 'Personalizado'),
     ]
 
     # Mapeo de cuentas a monedas para lógica en JS
     accounts_data = {a.id: a.currency for a in Account.objects.filter(organization=org)}
+
+    # Mapeo de proyectos a valuaciones para filtrado dinámico en JS
+    projects = Project.objects.filter(organization=org)
+    projects_data = {}
+    for p in projects:
+        projects_data[p.id] = list(Valuation.objects.filter(project=p).values('id', 'name', 'amount_usd'))
+
+    form = TransactionForm(organization=org)
+    bcv_rate = get_bcv_rate()
 
     return render(request, 'organizations/detalle_cuenta.html', {
         'account': account,
@@ -1594,8 +1654,21 @@ def detalle_cuenta(request, acc_id):
         'categories': categories,
         'selected_category': category_ids[0] if category_ids else '',
         'selected_categories': category_ids,
+        'cost_centers': CostCenter.objects.filter(organization=org),
+        'selected_cost_center': cost_center_id,
+        'projects': projects,
+        'selected_project': project_id,
+        'status_filter': status_filter,
+        'status_filter_options': [
+            ('', 'Todos los estados'),
+            ('completado', 'Completado'),
+            ('pendiente', 'Pendiente'),
+        ],
         'filter_options': filter_options,
         'accounts_data': json.dumps(accounts_data),
+        'projects_data': json.dumps(projects_data, cls=DecimalEncoder),
+        'form': form,
+        'bcv_rate': bcv_rate,
         'totals': {
             'balance_usd': totals['balance_usd'] or 0,
             'balance_bs': totals['balance_bs'] or 0,
@@ -1740,6 +1813,7 @@ def detalle_proyecto(request, proj_id):
             category_ids.append(val)
     category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
     cost_center_id = request.GET.get('cost_center')
+    account_id = request.GET.get('account')
     search_query = request.GET.get('search', '')
     tx_filter = request.GET.get('tx_filter', 'all') # 'all', 'bcv', 'real'
     view_mode = request.GET.get('view_mode', 'bcv') # 'bcv' or 'real'
@@ -1754,6 +1828,7 @@ def detalle_proyecto(request, proj_id):
     if date_from == 'None': date_from = None
     if date_to == 'None': date_to = None
     if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
+    if account_id == 'None' or account_id == '': account_id = None
 
     # Ver TODAS las transacciones del proyecto (de cualquier organización con acceso)
     transactions_list = Transaction.objects.filter(project=project)
@@ -1765,6 +1840,9 @@ def detalle_proyecto(request, proj_id):
         transactions_list = transactions_list.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
 
     if search_query:
+        # OJO: el lookup categories__name atraviesa una relación M2M, lo que puede
+        # multiplicar filas si la transacción tiene más de una categoría (aparecería
+        # duplicada en la tabla y en los KPIs). Se aplica distinct() para evitarlo.
         transactions_list = transactions_list.filter(
             models.Q(description__icontains=search_query) |
             models.Q(reference_number__icontains=search_query) |
@@ -1780,7 +1858,7 @@ def detalle_proyecto(request, proj_id):
             models.Q(amount_usd__icontains=search_query) |
             models.Q(real_dollars__icontains=search_query) |
             models.Q(daily_rate__icontains=search_query)
-        )
+        ).distinct()
 
     if category_ids:
         transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
@@ -1788,8 +1866,11 @@ def detalle_proyecto(request, proj_id):
     if cost_center_id:
         transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
 
+    if account_id:
+        transactions_list = transactions_list.filter(account_id=account_id)
+
     # Punto de control: mismos filtros aplicados hasta aquí (tx_filter, búsqueda,
-    # categorías, centro de costo) pero sin el filtro de estado, para poder calcular
+    # categorías, centro de costo, cuenta) pero sin el filtro de estado, para poder calcular
     # el saldo pendiente independientemente del estado seleccionado.
     qs_before_status = transactions_list
 
@@ -1823,6 +1904,9 @@ def detalle_proyecto(request, proj_id):
                 start_date = None
             if start_date:
                 qs = qs.filter(date__gte=start_date)
+                if filter_type == 'day':
+                    # "Hoy" debe mostrar solo el día de hoy, no fechas futuras.
+                    qs = qs.filter(date__lte=today)
         return qs
 
     transactions_list = apply_date_filter(transactions_list)
@@ -1871,13 +1955,6 @@ def detalle_proyecto(request, proj_id):
         fees_real_usd=Sum('bank_fee_real_usd')
     )
     
-    # Totales solo para la organización actual (balance de la organización FILTRADO)
-    totals_org = transactions_list.filter(organization=org).aggregate(
-        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
-        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
-        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
-    )
-
     # Saldo pendiente: mismos filtros aplicados (excepto estado), solo transacciones 'pendiente'
     has_pending = pending_qs_base.exists()
     pending_totals_project = pending_qs_base.aggregate(
@@ -1893,11 +1970,6 @@ def detalle_proyecto(request, proj_id):
         fees_usd=Sum('bank_fee_usd'),
         fees_bs=Sum('bank_fee_bs'),
         fees_real_usd=Sum('bank_fee_real_usd')
-    )
-    pending_totals_org = pending_qs_base.filter(organization=org).aggregate(
-        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
-        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
-        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd'))
     )
 
     paginator = Paginator(transactions_list, 20)
@@ -1941,6 +2013,8 @@ def detalle_proyecto(request, proj_id):
         'categories': Category.objects.filter(organization__in=orgs_with_access),
         'cost_centers': CostCenter.objects.filter(organization__in=orgs_with_access),
         'selected_cost_center': cost_center_id,
+        'accounts': Account.objects.filter(organization__in=orgs_with_access),
+        'selected_account': account_id,
         'selected_category': category_ids[0] if category_ids else '',
         'selected_categories': category_ids,
         'filter_type': filter_type,
@@ -1958,9 +2032,6 @@ def detalle_proyecto(request, proj_id):
             'balance_usd': (totals_project['balance_usd'] or 0) + (totals_project['balance_real_usd'] or 0),
             'balance_bs': totals_project['balance_bs'] or 0,
             'balance_real_usd': totals_project['balance_real_usd'] or 0,
-            'org_balance_usd': (totals_org['balance_usd'] or 0) + (totals_org['balance_real_usd'] or 0),
-            'org_balance_bs': totals_org['balance_bs'] or 0,
-            'org_balance_real_usd': totals_org['balance_real_usd'] or 0,
             'income_usd': (totals_project['income_usd'] or 0) + (totals_project['income_real_usd'] or 0),
             'income_bs': totals_project['income_bs'] or 0,
             'income_real_usd': totals_project['income_real_usd'] or 0,
@@ -1971,9 +2042,6 @@ def detalle_proyecto(request, proj_id):
             'pending_balance_usd': (pending_totals_project['balance_usd'] or 0) + (pending_totals_project['balance_real_usd'] or 0),
             'pending_balance_bs': pending_totals_project['balance_bs'] or 0,
             'pending_balance_real_usd': pending_totals_project['balance_real_usd'] or 0,
-            'pending_org_balance_usd': (pending_totals_org['balance_usd'] or 0) + (pending_totals_org['balance_real_usd'] or 0),
-            'pending_org_balance_bs': pending_totals_org['balance_bs'] or 0,
-            'pending_org_balance_real_usd': pending_totals_org['balance_real_usd'] or 0,
             'pending_income_usd': (pending_totals_project['income_usd'] or 0) + (pending_totals_project['income_real_usd'] or 0),
             'pending_income_bs': pending_totals_project['income_bs'] or 0,
             'pending_income_real_usd': pending_totals_project['income_real_usd'] or 0,
@@ -1994,6 +2062,400 @@ def detalle_proyecto(request, proj_id):
         ],
     })
 
+# --- Compartir proyecto (enlace público de solo lectura, sin login) ---
+
+PROJECT_SHARE_SALT = "organizations.proyecto_publico"
+
+# Contraseña requerida para generar un enlace público. Hardcodeada a propósito
+# (no es un dato sensible por-organización, solo una traba simple contra el uso
+# accidental del botón "Compartir Proyecto").
+PROJECT_SHARE_PASSWORD = "CashFlow-Compartir-2026"
+
+
+def _get_project_for_share(request, proj_id):
+    """Mismo criterio de acceso que detalle_proyecto: la org actual debe ser
+    dueña o tener el proyecto compartido, y el usuario debe tener acceso
+    individual. Usado tanto para generar como para administrar enlaces."""
+    org_id = request.session.get('org_id')
+    if not org_id:
+        return None, None
+    org = get_object_or_404(Organization, id=org_id)
+    projects_owned = Project.objects.filter(organization=org)
+    projects_shared = Project.objects.filter(shared_organizations__organization=org)
+    project_qs = (projects_owned | projects_shared).distinct()
+    project = get_object_or_404(project_qs, id=proj_id, user_accesses__user=request.user)
+    return org, project
+
+
+@login_required
+def compartir_proyecto(request, proj_id):
+    """Genera un enlace público firmado (sin necesidad de login) con información
+    de solo lectura del proyecto, previa verificación de una contraseña compartida.
+    El token se firma criptográficamente y además queda registrado en
+    ProjectShareLink, de modo que eliminarlo revoca el acceso al enlace."""
+    org, project = _get_project_for_share(request, proj_id)
+    if org is None:
+        return JsonResponse({'ok': False, 'error': 'No hay organización seleccionada.'}, status=400)
+
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido.'}, status=405)
+
+    password = request.POST.get('password', '')
+    if password != PROJECT_SHARE_PASSWORD:
+        debug_event(
+            "proyecto.compartir.acceso_denegado",
+            user_id=request.user.id,
+            org_id=org.id,
+            project_id=project.id,
+        )
+        return JsonResponse({'ok': False, 'error': 'Contraseña incorrecta.'}, status=403)
+
+    token = signing.dumps({'proj_id': project.id}, salt=PROJECT_SHARE_SALT)
+    link = ProjectShareLink.objects.create(project=project, token=token, created_by=request.user)
+    public_url = request.build_absolute_uri(reverse('proyecto_publico', kwargs={'token': token}))
+
+    debug_event(
+        "proyecto.compartir.generado",
+        user_id=request.user.id,
+        org_id=org.id,
+        project_id=project.id,
+    )
+
+    return JsonResponse({
+        'ok': True,
+        'url': public_url,
+        'link': {
+            'id': link.id,
+            'url': public_url,
+            'project_name': project.name,
+            'created_at': link.created_at.strftime('%d/%m/%Y %H:%M'),
+            'created_by': request.user.username,
+        },
+    })
+
+
+@login_required
+def listar_enlaces_compartidos(request):
+    """Verifica la contraseña compartida y, si es correcta, devuelve TODOS los
+    enlaces públicos generados para los proyectos a los que el usuario tiene
+    acceso individual (ProjectUserAccess), sin importar la organización
+    seleccionada actualmente ni el proyecto desde el que se abrió el modal."""
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido.'}, status=405)
+
+    password = request.POST.get('password', '')
+    if password != PROJECT_SHARE_PASSWORD:
+        debug_event(
+            "proyecto.compartir.listado.acceso_denegado",
+            user_id=request.user.id,
+        )
+        return JsonResponse({'ok': False, 'error': 'Contraseña incorrecta.'}, status=403)
+
+    links_qs = ProjectShareLink.objects.filter(
+        project__user_accesses__user=request.user
+    ).distinct().select_related('project', 'created_by').order_by('-created_at')
+
+    links = [{
+        'id': link.id,
+        'url': request.build_absolute_uri(reverse('proyecto_publico', kwargs={'token': link.token})),
+        'project_name': link.project.name,
+        'created_at': link.created_at.strftime('%d/%m/%Y %H:%M'),
+        'created_by': link.created_by.username if link.created_by else '',
+    } for link in links_qs]
+
+    return JsonResponse({'ok': True, 'links': links})
+
+
+@login_required
+def eliminar_enlace_compartido(request, link_id):
+    """Elimina (revoca) un enlace público de proyecto previamente generado.
+    Permitido para cualquier proyecto al que el usuario tenga acceso individual,
+    sin depender de la organización seleccionada en ese momento (la tabla de
+    enlaces ahora abarca todos los proyectos del usuario, no solo el actual)."""
+    link = get_object_or_404(
+        ProjectShareLink.objects.filter(project__user_accesses__user=request.user),
+        id=link_id,
+    )
+
+    if request.method != 'POST':
+        return JsonResponse({'ok': False, 'error': 'Método no permitido.'}, status=405)
+
+    debug_event(
+        "proyecto.compartir.eliminado",
+        user_id=request.user.id,
+        project_id=link.project_id,
+        link_id=link.id,
+    )
+    link.delete()
+
+    return JsonResponse({'ok': True})
+
+
+def proyecto_publico(request, token):
+    """Vista pública (sin login) de solo lectura de un proyecto, accesible solo
+    mediante un enlace firmado generado desde compartir_proyecto. No requiere
+    sesión ni organización seleccionada: expone datos de TODAS las organizaciones
+    con acceso al proyecto, igual que detalle_proyecto."""
+    def enlace_invalido():
+        return render(request, 'organizations/enlace_publico_invalido.html', {
+            'hide_navbar': True,
+            'hide_sidebar': True,
+            'wide_layout': True,
+        }, status=404)
+
+    try:
+        data = signing.loads(token, salt=PROJECT_SHARE_SALT)
+    except signing.BadSignature:
+        return enlace_invalido()
+
+    # Además de la firma, el token debe seguir registrado: esto es lo que
+    # permite revocar el enlace al eliminarlo desde "Compartir Proyecto".
+    if not ProjectShareLink.objects.filter(token=token).exists():
+        return enlace_invalido()
+
+    project = get_object_or_404(Project, id=data.get('proj_id'))
+
+    orgs_with_access = (Organization.objects.filter(projects=project) | Organization.objects.filter(shared_projects__project=project)).distinct()
+
+    # --- Lógica de Filtrado (misma que detalle_proyecto, sin dependencia de sesión/org) ---
+    filter_type = request.GET.get('filter_type', 'all')
+    date_from = request.GET.get('date_from')
+    date_to = request.GET.get('date_to')
+    category_raw = request.GET.getlist('category')
+    category_ids = []
+    for val in category_raw:
+        if ',' in val:
+            category_ids.extend([v.strip() for v in val.split(',') if v.strip()])
+        else:
+            category_ids.append(val)
+    category_ids = [cid for cid in category_ids if cid and cid != 'None' and cid != 'null']
+    cost_center_id = request.GET.get('cost_center')
+    account_id = request.GET.get('account')
+    search_query = request.GET.get('search', '')
+    tx_filter = request.GET.get('tx_filter', 'all')
+    view_mode = request.GET.get('view_mode', 'bcv')
+    status_filter = request.GET.get('status', '')
+
+    if tx_filter == 'real':
+        view_mode = 'real'
+    elif tx_filter == 'bcv':
+        view_mode = 'bcv'
+
+    if date_from == 'None': date_from = None
+    if date_to == 'None': date_to = None
+    if cost_center_id == 'None' or cost_center_id == '': cost_center_id = None
+    if account_id == 'None' or account_id == '': account_id = None
+
+    transactions_list = Transaction.objects.filter(project=project)
+
+    if tx_filter == 'real':
+        transactions_list = transactions_list.exclude(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+    elif tx_filter == 'bcv':
+        transactions_list = transactions_list.filter(models.Q(real_dollars=0) | models.Q(real_dollars__isnull=True))
+
+    if search_query:
+        transactions_list = transactions_list.filter(
+            models.Q(description__icontains=search_query) |
+            models.Q(reference_number__icontains=search_query) |
+            models.Q(notes__icontains=search_query) |
+            models.Q(categories__name__icontains=search_query) |
+            models.Q(cost_center__code__icontains=search_query) |
+            models.Q(cost_center__name__icontains=search_query) |
+            models.Q(account__name__icontains=search_query) |
+            models.Q(project__name__icontains=search_query) |
+            models.Q(valuation__name__icontains=search_query) |
+            models.Q(status__icontains=search_query) |
+            models.Q(amount_bs__icontains=search_query) |
+            models.Q(amount_usd__icontains=search_query) |
+            models.Q(real_dollars__icontains=search_query) |
+            models.Q(daily_rate__icontains=search_query)
+        ).distinct()
+
+    if category_ids:
+        transactions_list = transactions_list.filter(categories__id__in=category_ids).distinct()
+
+    if cost_center_id:
+        transactions_list = transactions_list.filter(cost_center_id=cost_center_id)
+
+    if account_id:
+        transactions_list = transactions_list.filter(account_id=account_id)
+
+    qs_before_status = transactions_list
+
+    if status_filter:
+        transactions_list = transactions_list.filter(status=status_filter)
+
+    today = timezone.localdate()
+
+    def apply_date_filter(qs):
+        if date_from or date_to:
+            if date_from:
+                qs = qs.filter(date__gte=date_from)
+            if date_to:
+                qs = qs.filter(date__lte=date_to)
+        elif filter_type != 'all' and filter_type != 'custom':
+            if filter_type == 'day':
+                start_date = today
+            elif filter_type == 'week':
+                start_date = today - timedelta(days=7)
+            elif filter_type == '15days':
+                start_date = today - timedelta(days=15)
+            elif filter_type == 'month':
+                start_date = today - timedelta(days=30)
+            elif filter_type == 'quarter':
+                start_date = today - timedelta(days=90)
+            elif filter_type == '6months':
+                start_date = today - timedelta(days=180)
+            elif filter_type == 'year':
+                start_date = today - timedelta(days=365)
+            else:
+                start_date = None
+            if start_date:
+                qs = qs.filter(date__gte=start_date)
+                if filter_type == 'day':
+                    qs = qs.filter(date__lte=today)
+        return qs
+
+    transactions_list = apply_date_filter(transactions_list)
+    pending_qs_base = apply_date_filter(qs_before_status).filter(status='pendiente')
+
+    sort = request.GET.get('sort', 'desc')
+    if sort == 'asc':
+        transactions_list = transactions_list.order_by('date', 'id')
+    else:
+        transactions_list = transactions_list.order_by('-date', '-id')
+
+    valuations = list(Valuation.objects.filter(project=project).annotate(
+        covered_usd=Sum(
+            Coalesce('transactions__amount_usd', Value(0, output_field=models.DecimalField())) +
+            Coalesce('transactions__real_dollars', Value(0, output_field=models.DecimalField())),
+            filter=models.Q(transactions__amount_usd__gt=0) | models.Q(transactions__real_dollars__gt=0)
+        ),
+        covered_bs=Sum('transactions__amount_bs', filter=models.Q(transactions__amount_bs__gt=0))
+    ))
+
+    for val in valuations:
+        val.progress = 0
+        if val.amount_usd > 0:
+            covered = val.covered_usd or 0
+            val.progress = min(round((covered / val.amount_usd) * 100, 2), 100)
+        elif val.amount_bs > 0:
+            covered = val.covered_bs or 0
+            val.progress = min(round((covered / val.amount_bs) * 100, 2), 100)
+
+    totals_project = transactions_list.aggregate(
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+        fees_usd=Sum('bank_fee_usd'),
+        fees_bs=Sum('bank_fee_bs'),
+        fees_real_usd=Sum('bank_fee_real_usd')
+    )
+
+    has_pending = pending_qs_base.exists()
+    pending_totals_project = pending_qs_base.aggregate(
+        balance_usd=Sum(F('amount_usd') - F('bank_fee_usd')),
+        balance_bs=Sum(F('amount_bs') - F('bank_fee_bs')),
+        balance_real_usd=Sum(F('real_dollars') - F('bank_fee_real_usd')),
+        income_usd=Sum('amount_usd', filter=models.Q(amount_usd__gt=0)),
+        expense_usd=Sum('amount_usd', filter=models.Q(amount_usd__lt=0)),
+        income_bs=Sum('amount_bs', filter=models.Q(amount_bs__gt=0)),
+        expense_bs=Sum('amount_bs', filter=models.Q(amount_bs__lt=0)),
+        income_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__gt=0)),
+        expense_real_usd=Sum('real_dollars', filter=models.Q(real_dollars__lt=0)),
+        fees_usd=Sum('bank_fee_usd'),
+        fees_bs=Sum('bank_fee_bs'),
+        fees_real_usd=Sum('bank_fee_real_usd')
+    )
+
+    paginator = Paginator(transactions_list, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
+    chart_data = get_chart_data(transactions_list, mode=view_mode)
+
+    filter_options = [
+        ('all', 'Todo el tiempo'),
+        ('day', 'Hoy'),
+        ('week', 'Esta semana'),
+        ('15days', 'Últimos 15 días'),
+        ('month', 'Último mes'),
+        ('quarter', 'Último trimestre'),
+        ('6months', 'Últimos 6 meses'),
+        ('year', 'Último año'),
+        ('custom', 'Personalizado'),
+    ]
+
+    return render(request, 'organizations/proyecto_publico.html', {
+        'project': project,
+        'valuations': valuations,
+        'page_obj': page_obj,
+        'token': token,
+        'categories': Category.objects.filter(organization__in=orgs_with_access),
+        'cost_centers': CostCenter.objects.filter(organization__in=orgs_with_access),
+        'selected_cost_center': cost_center_id,
+        'accounts': Account.objects.filter(organization__in=orgs_with_access),
+        'selected_account': account_id,
+        'selected_category': category_ids[0] if category_ids else '',
+        'selected_categories': category_ids,
+        'filter_type': filter_type,
+        'date_from': date_from,
+        'date_to': date_to,
+        'search': search_query,
+        'filter_options': filter_options,
+        'chart_data': chart_data,
+        'sort': sort,
+        'view_mode': view_mode,
+        'tx_filter': tx_filter,
+        'status_filter': status_filter,
+        'has_pending': has_pending,
+        'totals': {
+            'balance_usd': (totals_project['balance_usd'] or 0) + (totals_project['balance_real_usd'] or 0),
+            'balance_bs': totals_project['balance_bs'] or 0,
+            'balance_real_usd': totals_project['balance_real_usd'] or 0,
+            'income_usd': (totals_project['income_usd'] or 0) + (totals_project['income_real_usd'] or 0),
+            'income_bs': totals_project['income_bs'] or 0,
+            'income_real_usd': totals_project['income_real_usd'] or 0,
+            'expense_usd': abs((totals_project['expense_usd'] or 0) + (totals_project['expense_real_usd'] or 0)) +
+                           (totals_project['fees_usd'] or 0) + (totals_project['fees_real_usd'] or 0),
+            'expense_bs': abs(totals_project['expense_bs'] or 0) + (totals_project['fees_bs'] or 0),
+            'expense_real_usd': abs(totals_project['expense_real_usd'] or 0) + (totals_project['fees_real_usd'] or 0),
+            'pending_balance_usd': (pending_totals_project['balance_usd'] or 0) + (pending_totals_project['balance_real_usd'] or 0),
+            'pending_balance_bs': pending_totals_project['balance_bs'] or 0,
+            'pending_balance_real_usd': pending_totals_project['balance_real_usd'] or 0,
+            'pending_income_usd': (pending_totals_project['income_usd'] or 0) + (pending_totals_project['income_real_usd'] or 0),
+            'pending_income_bs': pending_totals_project['income_bs'] or 0,
+            'pending_income_real_usd': pending_totals_project['income_real_usd'] or 0,
+            'pending_expense_usd': abs((pending_totals_project['expense_usd'] or 0) + (pending_totals_project['expense_real_usd'] or 0)) +
+                                    (pending_totals_project['fees_usd'] or 0) + (pending_totals_project['fees_real_usd'] or 0),
+            'pending_expense_bs': abs(pending_totals_project['expense_bs'] or 0) + (pending_totals_project['fees_bs'] or 0),
+            'pending_expense_real_usd': abs(pending_totals_project['expense_real_usd'] or 0) + (pending_totals_project['fees_real_usd'] or 0),
+        },
+        'tx_filter_options': [
+            ('all', 'Todas las transacciones'),
+            ('bcv', 'Transacciones BCV'),
+            ('real', 'Transacciones Dólares Reales'),
+        ],
+        'status_filter_options': [
+            ('', 'Todos los estados'),
+            ('completado', 'Completado'),
+            ('pendiente', 'Pendiente'),
+        ],
+        # Se ocultan navbar y sidebar siempre (incluso si quien abre el enlace
+        # público resulta estar logueado en su propia sesión). wide_layout evita
+        # que base.html use el layout angosto "auth-container" (pensado para
+        # login) cuando ambos hide_navbar/hide_sidebar están activos.
+        'hide_navbar': True,
+        'hide_sidebar': True,
+        'wide_layout': True,
+    })
+
 # --- Valuaciones ---
 
 @login_required
@@ -2004,12 +2466,13 @@ def guardar_valuacion(request, proj_id, val_id=None):
         return redirect('dashboard')
     org = get_object_or_404(Organization, id=org_id)
     
-    # Permitir si es dueño O si tiene acceso compartido
+    # Permitir si es dueño O si tiene acceso compartido, Y el usuario tiene acceso individual al proyecto
     project = get_object_or_404(
         Project.objects.filter(
             models.Q(organization=org) | models.Q(shared_organizations__organization=org)
-        ).distinct(), 
-        id=proj_id
+        ).distinct(),
+        id=proj_id,
+        user_accesses__user=request.user
     )
     
     instance = None
@@ -2040,11 +2503,12 @@ def eliminar_valuacion(request, val_id):
     valuation = get_object_or_404(Valuation, id=val_id)
     project = valuation.project
     
-    # Verificar acceso (Dueño o Compartido)
+    # Verificar acceso (Dueño o Compartido) Y que el usuario tenga acceso individual al proyecto
     is_owner = project.organization == org
     is_shared = project.shared_organizations.filter(organization=org).exists()
-    
-    if not (is_owner or is_shared):
+    has_user_access = project.user_accesses.filter(user=request.user).exists()
+
+    if not ((is_owner or is_shared) and has_user_access):
         messages.error(
             request,
             "No tiene permiso para eliminar esta valuación: la organización actual no es propietaria "

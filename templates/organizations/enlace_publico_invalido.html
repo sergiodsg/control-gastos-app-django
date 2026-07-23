@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Enlace no disponible{% endblock %}
+
+{% block content %}
+<div class="cf-flex cf-items-center cf-justify-center" style="min-height: 70vh;">
+    <div class="cf-card" style="max-width: 480px; width: 100%;">
+        <div class="cf-card__body cf-p-5 cf-text-center">
+            <i class="fa-solid fa-link-slash cf-text-danger cf-mb-3" style="font-size: 2.5rem;"></i>
+            <h4 class="cf-fw-bold cf-mb-2">Este enlace no está disponible</h4>
+            <p class="cf-text-muted cf-mb-0">
+                El enlace al que intenta acceder no es válido
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,387 @@
+{% extends 'base.html' %}
+{% load static l10n intcomma %}
+
+{% block title %}{{ project.name }} - Vista Pública{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/organizations/detalle_proyecto.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="cf-page-header">
+    <div>
+        <h2 class="cf-page-title"><i class="fa-solid fa-table-columns cf-text-primary"></i> {{ project.name }}</h2>
+    </div>
+</div>
+
+<div id="kpi-container">
+<div class="cf-grid cf-grid--kpi cf-mb-4">
+    <div class="cf-card" id="projectSummaryCol">
+        <div class="cf-card__body cf-p-5">
+            <div class="cf-flex cf-items-center cf-justify-between cf-w-full cf-mb-4">
+                <div class="cf-flex cf-items-center cf-gap-2">
+                    <i class="fa-solid fa-chart-pie cf-icon cf-text-primary"></i>
+                    <h5 class="cf-mb-0" style="font-weight: 600; font-size: 0.95rem;">RESUMEN FINANCIERO</h5>
+                </div>
+                <!-- Toggle de Vista -->
+                <div class="cf-tab-group" style="padding: 3px; border-radius: var(--radius-md); background: var(--color-light); border: 1px solid var(--color-border); gap: 2px;">
+                    <a href="?view_mode=bcv&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}&category={{ selected_category }}&search={{ search|default:'' }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-tab {% if view_mode == 'bcv' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm);">BCV</a>
+                    <a href="?view_mode=real&filter_type={{ filter_type }}&date_from={{ date_from|default:'' }}&date_to={{ date_to|default:'' }}&category={{ selected_category }}&search={{ search|default:'' }}&sort={{ sort }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-tab {% if view_mode == 'real' %}is-active{% endif %}" style="padding: 4px 12px; font-size: 0.72rem; border-radius: var(--radius-sm);">Dólares</a>
+                </div>
+            </div>
+
+            <div class="project-detail-kpi">
+                <div>
+                    <span class="cf-stat-label">Balance Proyecto (Total)</span>
+                    {% if view_mode == 'real' %}
+                        <div class="cf-stat-value {% if totals.balance_real_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.balance_real_usd|intcomma }} $</div>
+                        <div class="cf-text-muted cf-fs-sm">Dólares Reales</div>
+                        {% if has_pending %}
+                        <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_balance_real_usd|intcomma }} $</small>
+                        {% endif %}
+                    {% else %}
+                        <div class="currency-usd-content">
+                            <div class="cf-stat-value {% if totals.balance_usd < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.balance_usd|intcomma }} $</div>
+                            <div class="cf-text-muted cf-fs-sm">{{ totals.balance_bs|intcomma }} Bs.</div>
+                            {% if has_pending %}
+                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_balance_usd|intcomma }} $</small>
+                            {% endif %}
+                        </div>
+                        <div class="currency-bs-content cf-hidden">
+                            <div class="cf-stat-value {% if totals.balance_bs < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">{{ totals.balance_bs|intcomma }} Bs.</div>
+                            <div class="cf-text-muted cf-fs-sm">{{ totals.balance_usd|intcomma }} $</div>
+                            {% if has_pending %}
+                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_balance_bs|intcomma }} Bs.</small>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="cf-stat-label">Ingresos Totales</span>
+                    {% if view_mode == 'real' %}
+                        <div class="cf-stat-value cf-text-success">{{ totals.income_real_usd|intcomma }} $</div>
+                        {% if totals.pending_income_real_usd %}
+                        <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_income_real_usd|intcomma }} $</small>
+                        {% endif %}
+                    {% else %}
+                        <div class="currency-usd-content">
+                            <div class="cf-stat-value cf-text-success">{{ totals.income_usd|intcomma }} $</div>
+                            <div class="cf-text-muted cf-fs-sm">{{ totals.income_bs|intcomma }} Bs.</div>
+                            {% if totals.pending_income_usd or totals.pending_income_bs %}
+                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_income_usd|intcomma }} $</small>
+                            {% endif %}
+                        </div>
+                        <div class="currency-bs-content cf-hidden">
+                            <div class="cf-stat-value cf-text-success">{{ totals.income_bs|intcomma }} Bs.</div>
+                            <div class="cf-text-muted cf-fs-sm">{{ totals.income_usd|intcomma }} $</div>
+                            {% if totals.pending_income_usd or totals.pending_income_bs %}
+                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_income_bs|intcomma }} Bs.</small>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                <div>
+                    <span class="cf-stat-label">Gastos Totales</span>
+                    {% if view_mode == 'real' %}
+                        <div class="cf-stat-value cf-text-danger">{{ totals.expense_real_usd|intcomma }} $</div>
+                        {% if totals.pending_expense_real_usd %}
+                        <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_expense_real_usd|intcomma }} $</small>
+                        {% endif %}
+                    {% else %}
+                        <div class="currency-usd-content">
+                            <div class="cf-stat-value cf-text-danger">{{ totals.expense_usd|intcomma }} $</div>
+                            <div class="cf-text-muted cf-fs-sm">{{ totals.expense_bs|intcomma }} Bs.</div>
+                            {% if totals.pending_expense_usd or totals.pending_expense_bs %}
+                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_expense_usd|intcomma }} $</small>
+                            {% endif %}
+                        </div>
+                        <div class="currency-bs-content cf-hidden">
+                            <div class="cf-stat-value cf-text-danger">{{ totals.expense_bs|intcomma }} Bs.</div>
+                            <div class="cf-text-muted cf-fs-sm">{{ totals.expense_usd|intcomma }} $</div>
+                            {% if totals.pending_expense_usd or totals.pending_expense_bs %}
+                            <small class="cf-text-muted" style="display:block; font-size: 0.7rem;">Pendiente: {{ totals.pending_expense_bs|intcomma }} Bs.</small>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<div class="cf-grid cf-grid--3 cf-mb-4">
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-chart-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-line cf-text-primary cf-me-2"></i>Evolución del Balance (USD)
+            </h5>
+            <div id="evolutionChart" style="min-height: 250px;"></div>
+        </div>
+    </div>
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-chart-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-bar cf-text-primary cf-me-2"></i>Ingresos vs Gastos (Totales)
+            </h5>
+            <div id="totalsChart" style="min-height: 250px;"></div>
+        </div>
+    </div>
+    <div class="cf-card">
+        <div class="cf-card__body cf-p-5">
+            <h5 class="cf-card__title cf-chart-card__title cf-mb-4">
+                <i class="fa-solid fa-chart-pie cf-text-primary cf-me-2"></i>Gastos por Categoría
+            </h5>
+            <div id="categoryChart" style="min-height: 250px;"></div>
+        </div>
+    </div>
+</div>
+
+<script type="application/json" id="chartDataJson">{
+    "cat_labels": {{ chart_data.cat_labels|safe }},
+    "cat_series": {{ chart_data.cat_series|safe }},
+    "cat_colors": {{ chart_data.cat_colors|safe }},
+    "total_income": {{ chart_data.total_income|safe }},
+    "total_expense": {{ chart_data.total_expense|safe }},
+    "evo_labels": {{ chart_data.evo_labels|safe }},
+    "evo_series": {{ chart_data.evo_series|safe }}
+}</script>
+
+<div class="cf-filter-bar">
+    <form method="get" class="cf-filter-form">
+        <!-- 1. Búsqueda -->
+        <div class="cf-form-group cf-form-group--search">
+            <label class="cf-stat-label">Buscar:</label>
+            <div class="cf-input-icon-wrapper">
+                <i class="fa-solid fa-magnifying-glass cf-icon"></i>
+                <input type="text" name="search" class="cf-input cf-input--sm dynamic-search" placeholder="Ref, desc, cat, monto..." value="{{ search }}">
+            </div>
+        </div>
+
+        <!-- 2. Categoría -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Categorías:</label>
+            <div class="cf-dropdown cf-dropdown-multiselect" id="categoryFilterDropdown">
+                <button type="button" class="cf-select cf-input--sm cf-dropdown-multiselect__toggle" data-cf-dropdown style="padding: 0.4rem 0.65rem;">
+                    <span class="cf-dropdown-multiselect__selected-text">Todas</span>
+                    <i class="fa-solid fa-chevron-down cf-fs-xs cf-text-muted"></i>
+                </button>
+                <div class="cf-dropdown__menu cf-dropdown-multiselect__menu">
+                    {% for cat in categories %}
+                    <label class="cf-dropdown-multiselect__item">
+                        <input type="checkbox" name="category" value="{{ cat.id }}" class="dynamic-search cf-checkbox" {% if cat.id|stringformat:"i" in selected_categories %}checked{% endif %}>
+                        <span class="cf-badge cf-badge--pill" style="background-color: {{ cat.color }}; color: #fff; border: none; padding: 2px 8px; font-size: 0.75rem;">{{ cat.name }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 2c. Centro de Costo -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Centro de Costo:</label>
+            <select name="cost_center" class="cf-select cf-input--sm dynamic-search">
+                <option value="">Todos</option>
+                {% for cc in cost_centers %}
+                <option value="{{ cc.id }}" {% if selected_cost_center == cc.id|stringformat:"i" %}selected{% endif %}>{{ cc.code }} - {{ cc.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 2b. Tipo de Transacción -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Tipo:</label>
+            <select name="tx_filter" class="cf-select cf-input--sm dynamic-search">
+                {% for value, label in tx_filter_options %}
+                <option value="{{ value }}" {% if tx_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 2f. Cuenta -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Cuenta:</label>
+            <select name="account" class="cf-select cf-input--sm dynamic-search">
+                <option value="">Todas</option>
+                {% for acc in accounts %}
+                <option value="{{ acc.id }}" {% if selected_account == acc.id|stringformat:"i" %}selected{% endif %}>{{ acc.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 2d. Estado -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Estado:</label>
+            <select name="status" class="cf-select cf-input--sm dynamic-search">
+                {% for value, label in status_filter_options %}
+                <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 3. Período -->
+        <div class="cf-form-group">
+            <label class="cf-stat-label">Período:</label>
+            <select name="filter_type" class="cf-select cf-input--sm dynamic-search" id="filter_type_select">
+                {% for value, label in filter_options %}
+                <option value="{{ value }}" {% if filter_type == value %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <!-- 4. Rango -->
+        <div class="cf-form-group cf-form-group--date">
+            <label class="cf-stat-label">Desde:</label>
+            <input type="date" name="date_from" class="cf-input cf-input--sm dynamic-search" value="{{ date_from }}">
+        </div>
+        <div class="cf-form-group cf-form-group--date">
+            <label class="cf-stat-label">Hasta:</label>
+            <input type="date" name="date_to" class="cf-input cf-input--sm dynamic-search" value="{{ date_to }}">
+        </div>
+
+        <!-- 5. Limpiar -->
+        <div class="cf-filter-actions">
+            <a href="{% url 'proyecto_publico' token %}" class="cf-btn cf-btn--outline-secondary cf-btn--sm" title="Limpiar filtros">
+                <i class="fa-solid fa-circle-xmark"></i>
+            </a>
+        </div>
+    </form>
+</div>
+
+<div id="transactions-container">
+    <div class="cf-card">
+        <div class="cf-card__header"><h5 class="cf-card__title">Transacciones del Proyecto</h5></div>
+        <div class="cf-table-wrap">
+            <table class="cf-table cf-table--resizable">
+                <thead>
+                    <tr>
+                        <th class="cf-ps-4 col-date">
+                            <a href="?sort={% if sort == 'desc' %}asc{% else %}desc{% endif %}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="cf-text-inherit cf-flex cf-items-center cf-gap-1 ajax-link" style="text-decoration: none; color: inherit;">
+                                Fecha
+                                {% if sort == 'asc' %}
+                                <i class="fa-solid fa-sort-up"></i>
+                                {% else %}
+                                <i class="fa-solid fa-sort-down"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                    <th class="col-desc cf-hide-phone">Descripción</th>
+                    <th class="col-amount">Monto (USD)</th>
+                    <th class="col-amount cf-only-lg-up">Monto (BS)</th>
+                    <th class="col-rate cf-only-xl-up">Tasa</th>
+                    <th class="col-category cf-only-md-up">Categoría</th>
+                    <th class="col-status cf-only-sm cf-hide-phone">Estado</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for trans in page_obj %}
+                <tr>
+                    <td class="cf-ps-4 col-date">{{ trans.date|date:"d/m" }}<span class="cf-only-md-up">/{{ trans.date|date:"Y" }}</span></td>
+                    <td class="col-desc cf-hide-phone" title="{{ trans.description }}">{{ trans.description }}</td>
+                    <td class="cf-fw-bold col-amount {% if trans.amount_usd < 0 or trans.real_dollars < 0 %}cf-text-danger{% else %}cf-text-success{% endif %}">
+                        {% if trans.real_dollars %}{{ trans.real_dollars|intcomma }} $
+                        {% else %}{{ trans.amount_usd|intcomma }} ${% endif %}
+                    </td>
+                    <td class="cf-text-muted cf-fs-sm col-amount cf-only-lg-up">
+                        {% if trans.real_dollars %}-
+                        {% else %}{{ trans.amount_bs|intcomma }} Bs.{% endif %}
+                    </td>
+                    <td class="col-rate cf-only-xl-up">
+                        {% if trans.real_dollars %}-
+                        {% else %}{{ trans.daily_rate|intcomma_rate }}{% endif %}
+                    </td>
+                    <td class="col-category cf-only-md-up">
+                        {% for cat in trans.categories.all %}
+                        <span class="cf-badge cf-badge--pill" style="background-color: {{ cat.color }}; color: #fff; border: none; margin-right: 2px;">{{ cat.name }}</span>
+                        {% empty %}
+                        <span class="cf-text-muted cf-fs-sm">---</span>
+                        {% endfor %}
+                    </td>
+                    <td class="col-status cf-only-sm cf-hide-phone">
+                        <span class="cf-badge cf-badge--pill {% if trans.status == 'completado' %}cf-badge--success{% elif trans.status == 'pendiente' %}cf-badge--admin{% else %}cf-badge--danger{% endif %}">
+                            {{ trans.get_status_display }}
+                        </span>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="7" class="cf-text-center cf-py-5 cf-text-muted">No hay transacciones registradas para este proyecto.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if page_obj.has_other_pages %}
+    <nav class="cf-p-4">
+        <ul class="cf-pagination">
+            {% if page_obj.has_previous %}<li><a href="?page={{ page_obj.previous_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="ajax-link">Anterior</a></li>{% endif %}
+            {% for i in page_obj.paginator.page_range %}
+            {% if page_obj.number == i %}<li class="is-active"><span>{{ i }}</span></li>
+            {% elif i > page_obj.number|add:'-3' and i < page_obj.number|add:'3' %}<li><a href="?page={{ i }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="ajax-link">{{ i }}</a></li>{% endif %}
+            {% endfor %}
+            {% if page_obj.has_next %}<li><a href="?page={{ page_obj.next_page_number }}&sort={{ sort }}&filter_type={{ filter_type }}&date_from={{ date_from }}&date_to={{ date_to }}&category={{ selected_category }}&search={{ search }}&tx_filter={{ tx_filter }}&status={{ status_filter }}&view_mode={{ view_mode }}&cost_center={{ selected_cost_center|default:'' }}&account={{ selected_account|default:'' }}" class="ajax-link">Siguiente</a></li>{% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/organizations/proyecto_publico.js' %}"></script>
+<script>
+    initProyectoPublico({});
+
+    // --- Gráficos ApexCharts ---
+    document.addEventListener('DOMContentLoaded', function () {
+        const commonOptions = {
+            chart: { toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'inherit', height: 250 },
+            noData: { text: 'No hay datos suficientes', style: { color: '#888', fontSize: '14px' } }
+        };
+
+        // 1. Gastos por Categoría
+        const categoryChart = new ApexCharts(document.querySelector("#categoryChart"), {
+            ...commonOptions,
+            series: {{ chart_data.cat_series|safe }},
+            labels: {{ chart_data.cat_labels|safe }},
+            colors: {{ chart_data.cat_colors|safe }},
+            chart: { ...commonOptions.chart, type: 'donut' },
+            legend: { position: 'bottom' },
+            tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
+        });
+        categoryChart.render();
+
+        // 2. Ingresos vs Gastos (Totales)
+        const totalsChart = new ApexCharts(document.querySelector("#totalsChart"), {
+            ...commonOptions,
+            series: [{
+                name: 'Total',
+                data: [{{ chart_data.total_income|safe }}, {{ chart_data.total_expense|safe }}]
+            }],
+            xaxis: { categories: ['Ingresos', 'Gastos'] },
+            colors: ['#198754', '#dc3545'],
+            chart: { ...commonOptions.chart, type: 'bar' },
+            plotOptions: { bar: { columnWidth: '50%', distributed: true, borderRadius: 4 } },
+            legend: { show: false },
+            tooltip: { y: { formatter: (v) => `$${v.toFixed(2)}` } }
+        });
+        totalsChart.render();
+
+        // 3. Evolución del Saldo
+        const evolutionChart = new ApexCharts(document.querySelector("#evolutionChart"), {
+            ...commonOptions,
+            series: [{ name: 'Saldo', data: {{ chart_data.evo_series|safe }}, color: '#0d6efd' }],
+            xaxis: {
+                type: 'datetime',
+                categories: {{ chart_data.evo_labels|safe }},
+                labels: { format: 'dd/MM/yy' }
+            },
+            chart: { ...commonOptions.chart, type: 'area' },
+            stroke: { curve: 'smooth', width: 2 },
+            fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.45, opacityTo: 0.05 } },
+            dataLabels: { enabled: false },
+            tooltip: { x: { format: 'dd/MM/yyyy' }, y: { formatter: (v) => `$${v.toFixed(2)}` } }
+        });
+        evolutionChart.render();
+
+        window.projectCharts = { category: categoryChart, totals: totalsChart, evolution: evolutionChart };
+    });
+</script>
+{% endblock %}

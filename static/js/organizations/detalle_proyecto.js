@@ -423,9 +423,40 @@ function initDetalleProyecto(config) {
                 const newKpis = doc.getElementById('projectSummaryCol');
                 if (newContent) container.innerHTML = newContent.innerHTML;
                 if (newKpis) document.getElementById('projectSummaryCol').innerHTML = newKpis.innerHTML;
+                updateCharts(doc);
                 window.history.pushState({}, '', url);
             })
             .finally(() => { container.classList.remove('is-loading'); });
+    }
+
+    function updateCharts(doc) {
+        const newChartDataEl = doc.getElementById('chartDataJson');
+        if (!newChartDataEl || !window.projectCharts) return;
+        try {
+            const chartData = JSON.parse(newChartDataEl.textContent);
+            const charts = window.projectCharts;
+            if (charts.category) {
+                charts.category.updateOptions({
+                    series: chartData.cat_series,
+                    labels: chartData.cat_labels,
+                    colors: chartData.cat_colors
+                });
+            }
+            if (charts.totals) {
+                charts.totals.updateSeries([{
+                    name: 'Total',
+                    data: [chartData.total_income, chartData.total_expense]
+                }]);
+            }
+            if (charts.evolution) {
+                charts.evolution.updateOptions({
+                    xaxis: { categories: chartData.evo_labels },
+                    series: [{ name: 'Saldo', data: chartData.evo_series }]
+                });
+            }
+        } catch (e) {
+            console.error('Error updating project charts:', e);
+        }
     }
 
     function setupTListeners() {
